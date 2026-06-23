@@ -1,0 +1,48 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG Connection-Rate Suite",
+    "description": "Measures how fast fresh connections can be established and torn down (connections/second) and the per-connection establishment latency (handshake p50/p99). Connector threads open a connection, complete the establishment handshake (TCP three-way for loopback; the gateway's upstream TLS handshake once that path is wired), then close, churning as fast as possible while a server thread drains them. The 'connections' field sets the connector parallelism, not a steady connection count. This is the connection-setup analogue of the throughput and ping-pong suites: it stresses accept()/handshake cost rather than steady-state data movement. Loopback TCP only — UDP is connectionless and the gateway connrate harness is not wired yet, so those scenarios are skipped with a notice.",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 3,
+    "duration_secs": 2,
+    "warmup_secs": 1,
+    "cooldown_secs": 0,
+    "cpu_affinity_sender": [],
+    "cpu_affinity_receiver": [],
+    "auto_affinity": true,
+    "scg_process_name": "gateway",
+    "collect_system_metrics": false,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "conn_tcp_loopback_1thread",
+      "category": "connection",
+      "mode": "connrate",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:14000",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "conn_tcp_loopback_4thread",
+      "category": "connection",
+      "mode": "connrate",
+      "message_size_bytes": 64,
+      "connections": 4,
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:14001",
+        "pattern": "sustained"
+      }
+    }
+  ]
+}

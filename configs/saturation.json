@@ -1,0 +1,78 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG Saturation Suite",
+    "description": "Offered-load sweeps (Phase D). Each scenario first runs its headline fixed-load measurement, then sweeps offered load (sustained at each rate) to map the throughput curve and find the knee: saturation_gbps is the raw ceiling, max_lossfree_gbps is the highest goodput within the loss budget (defaults.loss_threshold_pct). Headline senders here blast unthrottled on purpose, so loss-prone paths (UDP/DTLS) are flagged 'overloaded' while the sweep reports the real sustainable rate. Per-point curves land in scenarios/<name>/saturation.csv.",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 2,
+    "duration_secs": 1,
+    "warmup_secs": 1,
+    "cooldown_secs": 0,
+    "cpu_affinity_sender": [],
+    "cpu_affinity_receiver": [],
+    "cpu_affinity_gateway": [],
+    "auto_affinity": true,
+    "loss_threshold_pct": 1.0,
+    "scg_process_name": "gateway",
+    "collect_system_metrics": false,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "sat_tcp_loopback_1KB",
+      "category": "saturation",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "saturation": { "start_mbps": 1000, "step_mbps": 1000, "max_mbps": 8000 },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:13000",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "sat_udp_loopback_1KB",
+      "category": "saturation",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "saturation": { "start_mbps": 1000, "step_mbps": 1000, "max_mbps": 8000 },
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:13001",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "sat_scg_routing_tcp_1KB",
+      "category": "saturation",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "saturation": { "start_mbps": 500, "step_mbps": 500, "max_mbps": 4000 },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:13010",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "sat_scg_dtls12_udp_1KB",
+      "category": "saturation",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "dtls", "version": "1.2" },
+      "saturation": { "start_mbps": 500, "step_mbps": 500, "max_mbps": 4000 },
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:13030",
+        "pattern": "sustained"
+      }
+    }
+  ]
+}

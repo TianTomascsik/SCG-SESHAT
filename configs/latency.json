@@ -1,0 +1,91 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG Latency Suite",
+    "description": "Measures per-message processing latency through the SCG using PACED sub-saturation senders (periodic, 2000 msg/s). Latency must be measured below saturation: an unthrottled sender fills the buffers and reports bufferbloat, not the gateway's real latency. Captures handshake (connection-establishment) time per scenario.",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 3,
+    "duration_secs": 2,
+    "warmup_secs": 1,
+    "cooldown_secs": 0,
+    "cpu_affinity_sender": [],
+    "cpu_affinity_receiver": [],
+    "cpu_affinity_gateway": [],
+    "auto_affinity": true,
+    "scg_process_name": "gateway",
+    "collect_system_metrics": false,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "lat_tcp_loopback_1KB",
+      "category": "latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:12000",
+        "pattern": "periodic",
+        "interval_us": 500
+      }
+    },
+    {
+      "name": "lat_udp_loopback_1KB",
+      "category": "latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:12001",
+        "pattern": "periodic",
+        "interval_us": 500
+      }
+    },
+    {
+      "name": "lat_scg_routing_tcp_1KB",
+      "category": "latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:12010",
+        "pattern": "periodic",
+        "interval_us": 500
+      }
+    },
+    {
+      "name": "lat_scg_tls13_tcp_1KB",
+      "category": "latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:12020",
+        "pattern": "periodic",
+        "interval_us": 500
+      }
+    },
+    {
+      "name": "lat_scg_dtls12_udp_1KB",
+      "category": "latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "dtls", "version": "1.2" },
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:12030",
+        "pattern": "periodic",
+        "interval_us": 500
+      }
+    }
+  ]
+}

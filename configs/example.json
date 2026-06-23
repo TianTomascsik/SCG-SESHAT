@@ -1,0 +1,112 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG Example Suite",
+    "description": "A small representative suite for smoke-testing SESHAT.",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 5,
+    "duration_secs": 30,
+    "warmup_secs": 5,
+    "cooldown_secs": 2,
+    "cpu_affinity_sender": [0, 1],
+    "cpu_affinity_receiver": [2, 3],
+    "scg_process_name": "gateway",
+    "collect_system_metrics": true,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "perf_tcp_baseline_1400B_1conn",
+      "category": "performance",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:10000",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "perf_udp_periodic_128B_1conn",
+      "category": "performance",
+      "message_size_bytes": 128,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:10010",
+        "pattern": "periodic",
+        "interval_us": 1000
+      }
+    },
+    {
+      "name": "perf_tcp_tls13_64KB_16conn",
+      "category": "performance",
+      "message_size_bytes": 65536,
+      "connections": 16,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "mutual_auth": true },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:10020",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "perf_shm_tls13_64KB_1conn",
+      "category": "performance",
+      "message_size_bytes": 65536,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "sender": {
+        "interface": "shm",
+        "target_addr": "shm:///scg_ring",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "sched_flood_safety_vs_bulk",
+      "category": "scheduling",
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "udp",
+          "target_addr": "127.0.0.1:10030",
+          "connections": 1,
+          "message_size_bytes": 128,
+          "pattern": "periodic",
+          "interval_us": 1000,
+          "priority": { "dscp_tag": "EF", "traffic_class": "safety-critical" }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:10040",
+          "connections": 32,
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": { "dscp_tag": "BE", "traffic_class": "non-safety" }
+        }
+      ]
+    },
+    {
+      "name": "disabled_wireguard_test",
+      "category": "protocol",
+      "enabled": false,
+      "disabled_reason": "SCG WireGuard support pending",
+      "message_size_bytes": 1400,
+      "connections": 4,
+      "protocol": { "type": "wireguard" },
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:10050"
+      }
+    }
+  ]
+}

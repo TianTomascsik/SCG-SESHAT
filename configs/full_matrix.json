@@ -1,0 +1,166 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG Full Implemented Matrix",
+    "description": "Exercises every protocol/transport/topology path SESHAT can currently drive end-to-end: loopback TCP/UDP baselines, gateway TCP (routing, TLS 1.2/1.3, kTLS, mTLS, integrity-only) and gateway UDP (DTLS 1.2 server-auth + mutual), across both scg-direct and scg-scg topologies. Contains only executable scenarios so nothing is skipped. Pending features (UDS/SHM, ALE/RAW, TPROXY, scheduling, hot-reload, WireGuard/IPSec) are intentionally excluded.",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 3,
+    "duration_secs": 5,
+    "warmup_secs": 2,
+    "cooldown_secs": 1,
+    "cpu_affinity_sender": [],
+    "cpu_affinity_receiver": [],
+    "scg_process_name": "gateway",
+    "collect_system_metrics": true,
+    "metrics_backend": "procfs",
+    "metrics_sample_rate_hz": 5,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "baseline_tcp_loopback_1KB",
+      "category": "performance",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11000", "pattern": "sustained" }
+    },
+    {
+      "name": "baseline_tcp_loopback_64KB",
+      "category": "performance",
+      "message_size_bytes": 65536,
+      "connections": 1,
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11001", "pattern": "sustained" }
+    },
+    {
+      "name": "baseline_udp_loopback_1400B",
+      "category": "performance",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:11010", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_routing_tcp_direct_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11020", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_routing_tcp_direct_4KB_8conn",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 8,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11021", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_routing_tcp_scgscg_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-scg" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11030", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_tls12_tcp_direct_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.2" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11040", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_tls13_tcp_direct_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11050", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_tls13_tcp_scgscg_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-scg" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11060", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_ktls13_tcp_direct_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11070", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_mtls13_tcp_direct_4KB",
+      "category": "protocol",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "mutual_auth": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11080", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_mtls12_tcp_direct_4KB",
+      "category": "protocol",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.2", "mutual_auth": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11090", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_integrity_tls12_tcp_direct_4KB",
+      "category": "protocol",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.2", "protection_mode": "integrity-only" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:11100", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_dtls12_udp_direct_1400B",
+      "category": "protocol",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "dtls", "version": "1.2" },
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:11110", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_dtls12_udp_scgscg_1400B",
+      "category": "protocol",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-scg" },
+      "protocol": { "type": "dtls", "version": "1.2" },
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:11120", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_dtls12_mtls_udp_direct_1400B",
+      "category": "protocol",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "dtls", "version": "1.2", "mutual_auth": true },
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:11130", "pattern": "sustained" }
+    }
+  ]
+}

@@ -13,6 +13,26 @@ name = "seshat"
 path = "src/main.rs"
 
 [dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = { version = "0.4", features = ["std"] }
+libc = "0.2"
+
+# Terminal table rendering (scientific output).
+tabled = { version = "0.17", features = ["std", "ansi"] }
+
+# SCG local-interface client (UDS + SHM via gRPC-provisioned endpoints).
+scg-client = { path = "../SCG/crates/scg-client" }
+scg-ipc = { path = "../SCG/crates/scg-ipc" }
+scg-proto = { path = "../SCG/crates/scg-proto" }
+
+# Async runtime — used ONLY for the gRPC management calls; data plane stays sync.
+tokio = { version = "1", features = ["rt", "net", "time"] }
+tonic = "0.12"
+prost = "0.13"
+tower = { version = "0.4", features = ["util"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
 
 [profile.release]
 opt-level = 3

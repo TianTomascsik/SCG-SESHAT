@@ -1,0 +1,72 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG Ping-Pong RTT Suite",
+    "description": "Measures closed-loop round-trip time (RTT) with a single message in flight per connection (window = 1). The client sends one message, waits for the echo, and records the elapsed monotonic time; the next send only happens after the reply arrives. Unlike the throughput and latency suites (which keep the pipe full and measure one-way processing latency under load), ping-pong captures the true request/response turnaround a request/reply protocol experiences, including both directions of the path. Throughput-oriented calibration and saturation sweeps are skipped because they measure bandwidth, not turnaround. Loopback TCP and UDP only: the DTLS/UDP gateway path has no return rule and is not exercised here.",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 3,
+    "duration_secs": 2,
+    "warmup_secs": 1,
+    "cooldown_secs": 0,
+    "cpu_affinity_sender": [],
+    "cpu_affinity_receiver": [],
+    "auto_affinity": true,
+    "scg_process_name": "gateway",
+    "collect_system_metrics": false,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "pp_tcp_loopback_64B",
+      "category": "latency-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:13000",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "pp_tcp_loopback_1KB",
+      "category": "latency-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:13001",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "pp_udp_loopback_64B",
+      "category": "latency-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:13010",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "pp_udp_loopback_1KB",
+      "category": "latency-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:13011",
+        "pattern": "sustained"
+      }
+    }
+  ]
+}

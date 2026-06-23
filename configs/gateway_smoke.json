@@ -1,0 +1,73 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG Gateway Smoke Suite",
+    "description": "Exercises routing and server-auth TLS through the real SCG over TCP, plus a loopback baseline, with short runs for quick validation.",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 2,
+    "duration_secs": 1,
+    "warmup_secs": 1,
+    "cooldown_secs": 0,
+    "cpu_affinity_sender": [],
+    "cpu_affinity_receiver": [],
+    "scg_process_name": "gateway",
+    "collect_system_metrics": false,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "baseline_tcp_loopback_1KB",
+      "category": "performance",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:10000",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "scg_routing_direct_1KB",
+      "category": "performance",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:10010",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "scg_routing_scgscg_1KB",
+      "category": "performance",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-scg" },
+      "protocol": { "type": "none" },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:10020",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "scg_tls13_direct_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:10030",
+        "pattern": "sustained"
+      }
+    }
+  ]
+}
