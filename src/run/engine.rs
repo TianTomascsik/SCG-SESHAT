@@ -459,8 +459,9 @@ fn run_once_pingpong(
         let cli_phase = phase.clone();
         let cores = params.sender_cores.clone();
         let msg = params.message_bytes;
-        client_handles
-            .push(thread::spawn(move || pingpong_client_loop(client, cli_phase, cores, msg)));
+        client_handles.push(thread::spawn(move || {
+            pingpong_client_loop(client, cli_phase, cores, msg)
+        }));
     }
 
     thread::sleep(params.warmup);
@@ -634,8 +635,9 @@ fn run_once_connrate(transport: &dyn Transport, params: &RunParams) -> io::Resul
         let cli_phase = phase.clone();
         let cli_factory = factory.clone();
         let cores = params.sender_cores.clone();
-        client_handles
-            .push(thread::spawn(move || connrate_client_loop(cli_factory, cli_phase, cores)));
+        client_handles.push(thread::spawn(move || {
+            connrate_client_loop(cli_factory, cli_phase, cores)
+        }));
     }
 
     thread::sleep(params.warmup);
@@ -745,8 +747,12 @@ mod tests {
 
     #[test]
     fn tcp_loopback_run_produces_metrics() {
-        let stats =
-            run_scenario(&TcpTransport, &quick_params(periodic_sender(200)), |_, _| {}).unwrap();
+        let stats = run_scenario(
+            &TcpTransport,
+            &quick_params(periodic_sender(200)),
+            |_, _| {},
+        )
+        .unwrap();
         assert_eq!(stats.runs.len(), 2);
         // TCP is reliable: zero loss and some messages measured.
         assert_eq!(stats.total_lost, 0);
@@ -849,12 +855,9 @@ pub struct DistributedParams {
 /// Connects to `target` (TCP), sends WireHeader-stamped messages for the
 /// configured duration, then disconnects. Prints per-connection message counts
 /// on completion.
-pub fn run_distributed_sender(
-    params: &DistributedParams,
-    target: &str,
-) -> io::Result<u64> {
-    use std::net::{TcpStream, ToSocketAddrs};
+pub fn run_distributed_sender(params: &DistributedParams, target: &str) -> io::Result<u64> {
     use crate::proto::wire::{self, WireHeader, HEADER_LEN};
+    use std::net::{TcpStream, ToSocketAddrs};
 
     let addr = target
         .to_socket_addrs()?
@@ -926,10 +929,10 @@ pub fn run_distributed_receiver(
     params: &DistributedParams,
     bind_addr: &str,
 ) -> io::Result<FlowSummary> {
-    use std::net::TcpListener;
-    use crate::proto::wire::{WireHeader, HEADER_LEN};
     use crate::metrics::app::{self, FlowMetrics};
+    use crate::proto::wire::{WireHeader, HEADER_LEN};
     use crate::time::monotonic_ns;
+    use std::net::TcpListener;
 
     let listener = TcpListener::bind(bind_addr)?;
     listener.set_nonblocking(true)?;
@@ -978,7 +981,9 @@ pub fn run_distributed_receiver(
     thread::sleep(params.cooldown);
     phase.store(PHASE_DONE, Ordering::Relaxed);
 
-    let conns = accept_handle.join().map_err(|_| io::Error::other("accept thread panicked"))?;
+    let conns = accept_handle
+        .join()
+        .map_err(|_| io::Error::other("accept thread panicked"))?;
     log::info!("distributed receiver: accepted {} connections", conns.len());
 
     // Read all remaining data from connections and build metrics.

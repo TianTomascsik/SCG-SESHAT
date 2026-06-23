@@ -42,9 +42,7 @@ impl Drop for AppliedImpairment {
 ///
 /// Example: `tc qdisc add dev veth0 root netem delay 50ms 10ms loss 1%`
 pub fn apply_impairment(interface: &str, imp: &Impairment) -> io::Result<AppliedImpairment> {
-    let mut args = vec![
-        "qdisc", "add", "dev", interface, "root", "netem",
-    ];
+    let mut args = vec!["qdisc", "add", "dev", interface, "root", "netem"];
 
     let delay_str;
     let jitter_str;

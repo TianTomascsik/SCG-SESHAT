@@ -293,6 +293,7 @@ Additional columns surface the later improvements:
 | `saturation_gbps`, `max_lossfree_gbps` | Saturation-sweep knee and highest loss-free offered load (when a sweep ran) |
 | `effective_protocol` | What the gateway **actually** negotiated, e.g. `tls/1.3 (ktls→userspace)` when kTLS was requested but fell back |
 | `cpu_pct_peak`, `cpu_pct_mean`, `gbps_per_core` | Gateway CPU utilisation (from `/proc`) and throughput efficiency |
+| `perf_cycles`, `perf_instructions`, `perf_ipc`, `perf_cache_*`, `perf_context_switches`, `perf_task_clock_ms`, `perf_duration_s` | Scenario-wide `perf stat` hardware/software counters when the `perf` backend is enabled |
 | `bottleneck` | Calibration verdict: `harness-io`, `scg`, … (who limited the result) |
 | `rtt_us_mean/ci95/p50/p99` | Closed-loop round-trip time (populated only for `pingpong` scenarios) |
 | `conns_per_sec`, `conns_per_sec_ci95`, `conn_handshake_p50_us`, `conn_handshake_p99_us` | Connection rate + handshake latency (populated only for `connrate` scenarios) |

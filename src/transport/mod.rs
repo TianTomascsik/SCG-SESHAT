@@ -261,12 +261,8 @@ impl FramedReader {
             match read_fn(&mut self.scratch) {
                 Ok(0) => return Ok(RecvOutcome::Closed),
                 Ok(n) => self.acc.extend_from_slice(&self.scratch[..n]),
-                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
-                    return Ok(RecvOutcome::Timeout)
-                }
-                Err(e) if e.kind() == io::ErrorKind::TimedOut => {
-                    return Ok(RecvOutcome::Timeout)
-                }
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => return Ok(RecvOutcome::Timeout),
+                Err(e) if e.kind() == io::ErrorKind::TimedOut => return Ok(RecvOutcome::Timeout),
                 Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
                 Err(e) => return Err(e),
             }

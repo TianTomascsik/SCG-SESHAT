@@ -218,8 +218,7 @@ impl RuleConfig {
 
     /// Set a flattened provider parameter (e.g. `cert_path`, `verify`, `profile`).
     pub fn param(mut self, key: &str, value: impl Into<serde_json::Value>) -> Self {
-        self.provider_params
-            .insert(key.to_string(), value.into());
+        self.provider_params.insert(key.to_string(), value.into());
         self
     }
 }

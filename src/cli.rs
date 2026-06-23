@@ -68,6 +68,26 @@ pub enum SysinfoFormat {
     Json,
 }
 
+/// CLI override for the suite-level system-metrics backend.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum MetricsBackendArg {
+    Procfs,
+    Perf,
+    Ebpf,
+    None,
+}
+
+impl From<MetricsBackendArg> for crate::config::MetricsBackend {
+    fn from(value: MetricsBackendArg) -> Self {
+        match value {
+            MetricsBackendArg::Procfs => crate::config::MetricsBackend::Procfs,
+            MetricsBackendArg::Perf => crate::config::MetricsBackend::Perf,
+            MetricsBackendArg::Ebpf => crate::config::MetricsBackend::Ebpf,
+            MetricsBackendArg::None => crate::config::MetricsBackend::None,
+        }
+    }
+}
+
 /// Virtual network topology kind for `setup`/`teardown`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum TopologyKind {
@@ -144,6 +164,10 @@ pub struct RunArgs {
     /// Skip `/proc`/`perf` system-metric collection.
     #[arg(long, default_value_t = false)]
     pub no_system_metrics: bool,
+
+    /// Override the suite's system-metrics backend.
+    #[arg(long, value_enum)]
+    pub metrics_backend: Option<MetricsBackendArg>,
 
     /// PID of the SCG process for system metrics (default: auto-detect).
     #[arg(long)]
@@ -369,7 +393,9 @@ pub fn parse_duration(input: &str) -> Result<Duration, String> {
         .parse()
         .map_err(|_| format!("invalid duration '{input}' (unit '{unit}')"))?;
     if value < 0.0 || !value.is_finite() {
-        return Err(format!("duration '{input}' must be non-negative and finite"));
+        return Err(format!(
+            "duration '{input}' must be non-negative and finite"
+        ));
     }
 
     Ok(Duration::from_secs_f64(value * to_secs))
@@ -403,5 +429,21 @@ mod tests {
     fn verifies_cli() {
         use clap::CommandFactory;
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn parses_metrics_backend_override() {
+        let cli = Cli::parse_from([
+            "seshat",
+            "run",
+            "--config",
+            "./cfg.json",
+            "--metrics-backend",
+            "perf",
+        ]);
+        let Command::Run(args) = cli.command else {
+            panic!("expected run command");
+        };
+        assert_eq!(args.metrics_backend, Some(MetricsBackendArg::Perf));
     }
 }

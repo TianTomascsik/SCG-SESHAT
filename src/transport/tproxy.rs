@@ -121,9 +121,7 @@ impl TproxyRules {
         );
         let _ = run_cmd(
             "ip",
-            &[
-                "route", "del", "local", "0/0", "dev", "lo", "table", "100",
-            ],
+            &["route", "del", "local", "0/0", "dev", "lo", "table", "100"],
         );
         let _ = run_cmd("ip", &["rule", "del", "fwmark", "1", "lookup", "100"]);
     }
@@ -168,11 +166,7 @@ impl TproxyTransport {
     ///
     /// Returns `Err` with `ErrorKind::PermissionDenied` if `CAP_NET_ADMIN` is
     /// missing.
-    pub fn start(
-        name: &'static str,
-        binary: &Path,
-        work_dir: &Path,
-    ) -> io::Result<Self> {
+    pub fn start(name: &'static str, binary: &Path, work_dir: &Path) -> io::Result<Self> {
         if !has_cap_net_admin() {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
@@ -205,16 +199,13 @@ impl TproxyTransport {
         .security("routing")
         .param("transparent", true);
 
-        let config = GatewayConfig::new(vec![rule])
-            .log_level("info")
-            .allow_all();
+        let config = GatewayConfig::new(vec![rule]).log_level("info").allow_all();
 
         // Set up TPROXY iptables rules.
         let rules = TproxyRules::setup(target_port, gw_port)?;
 
         // Start the gateway.
-        let mut gateway =
-            GatewayProcess::spawn(binary, &config, work_dir, "tproxy", "info")?;
+        let mut gateway = GatewayProcess::spawn(binary, &config, work_dir, "tproxy", "info")?;
         gateway.wait_ready(READY_TIMEOUT)?;
 
         Ok(TproxyTransport {
@@ -228,7 +219,10 @@ impl TproxyTransport {
 
     /// OS pid of the gateway process.
     pub fn pids(&self) -> Vec<i32> {
-        self.gateway.as_ref().map(|g| vec![g.pid()]).unwrap_or_default()
+        self.gateway
+            .as_ref()
+            .map(|g| vec![g.pid()])
+            .unwrap_or_default()
     }
 
     /// Captured gateway log file.

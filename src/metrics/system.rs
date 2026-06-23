@@ -119,19 +119,27 @@ pub struct PerfSampler {
 }
 
 impl PerfSampler {
-    /// Start `perf stat -p <pid>` collecting standard counters.
+    /// Start `perf stat -p <pid[,pid...]>` collecting standard counters.
     /// Returns `None` if `perf` is not available.
-    pub fn start(pid: i32, work_dir: &std::path::Path) -> Option<Self> {
+    pub fn start(pids: &[i32], work_dir: &std::path::Path) -> Option<Self> {
         use std::process::{Command, Stdio};
 
-        let stderr_path = work_dir.join(format!("perf_stat_{pid}.txt"));
+        if pids.is_empty() {
+            return None;
+        }
+
+        let pid_list = pids
+            .iter()
+            .map(i32::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        let stderr_path = work_dir.join(format!("perf_stat_{}.txt", pid_list.replace(',', "-")));
         let stderr_file = fs::File::create(&stderr_path).ok()?;
 
         let child = Command::new("perf")
+            .args(["stat", "-p"])
+            .arg(&pid_list)
             .args([
-                "stat",
-                "-p",
-                &pid.to_string(),
                 "-e",
                 "cycles,instructions,cache-references,cache-misses,context-switches,task-clock",
                 "--log-fd",
@@ -250,7 +258,9 @@ fn sample_loop(pids: &[i32], rate_hz: u32, stop: &AtomicBool) -> Vec<SystemSampl
                 next = now + interval;
             }
         }
-        let wait = next.saturating_duration_since(Instant::now()).min(MAX_SLEEP);
+        let wait = next
+            .saturating_duration_since(Instant::now())
+            .min(MAX_SLEEP);
         if !wait.is_zero() {
             thread::sleep(wait);
         }
@@ -425,7 +435,11 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
 
     // Skip the first tick (its per-PID CPU% is 0 for want of a prior delta).
     let times: Vec<u64> = cpu_by_time.keys().copied().collect();
-    let measured = if times.len() > 1 { &times[1..] } else { &times[..] };
+    let measured = if times.len() > 1 {
+        &times[1..]
+    } else {
+        &times[..]
+    };
     let mut peak = 0.0_f64;
     let mut sum = 0.0_f64;
     for t in measured {
@@ -550,12 +564,46 @@ mod tests {
     }
 
     #[test]
+    fn parse_perf_output_extracts_counters() {
+        let dir = std::env::temp_dir().join(format!("seshat-perf-{}", monotonic_tag()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("perf.txt");
+        fs::write(
+            &path,
+            "  1,234      cycles
+  2,468      instructions              # 2.00 insn per cycle
+  3,579      cache-references
+  246      cache-misses
+  12      context-switches
+  45.678      task-clock
+  0.123456      seconds time elapsed
+",
+        )
+        .unwrap();
+
+        let perf = parse_perf_output(&path);
+        assert_eq!(perf.cycles, Some(1234));
+        assert_eq!(perf.instructions, Some(2468));
+        assert_eq!(perf.ipc, Some(2.0));
+        assert_eq!(perf.cache_references, Some(3579));
+        assert_eq!(perf.cache_misses, Some(246));
+        assert_eq!(perf.context_switches, Some(12));
+        assert_eq!(perf.task_clock_ms, Some(45.678));
+        assert_eq!(perf.duration_s, Some(0.123456));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn sampler_captures_timeseries_and_writes_csv() {
         let pid = std::process::id() as i32;
         let sampler = SystemSampler::start(vec![pid], 50);
         thread::sleep(Duration::from_millis(140));
         let samples = sampler.stop();
-        assert!(samples.len() >= 2, "expected several samples, got {}", samples.len());
+        assert!(
+            samples.len() >= 2,
+            "expected several samples, got {}",
+            samples.len()
+        );
 
         let dir = std::env::temp_dir().join(format!("seshat-sys-{pid}-{}", monotonic_tag()));
         write_csv(&dir, &samples).unwrap();

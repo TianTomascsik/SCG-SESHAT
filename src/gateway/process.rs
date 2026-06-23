@@ -110,10 +110,7 @@ impl GatewayProcess {
             .filter(|r| r.listen_proto == "tcp" && r.listen_addr != "unused")
             .map(|r| normalize_probe_addr(&r.listen_addr))
             .collect();
-        let mgmt_socket = config
-            .api
-            .as_ref()
-            .map(|a| PathBuf::from(&a.uds_path));
+        let mgmt_socket = config.api.as_ref().map(|a| PathBuf::from(&a.uds_path));
 
         Ok(GatewayProcess {
             label: label.to_string(),

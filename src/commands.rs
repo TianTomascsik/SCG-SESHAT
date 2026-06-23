@@ -97,6 +97,14 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
              (the effective_protocol column records the actual protocol per scenario)"
         );
     }
+    if cfg.defaults.collect_system_metrics
+        && cfg.defaults.metrics_backend == MetricsBackend::Perf
+        && !system::PerfSampler::available()
+    {
+        log::warn!(
+            "perf backend requested but `perf` is unavailable; perf_* result fields will be empty"
+        );
+    }
     rdir.write_sysinfo(&host)?;
 
     // Resolve sender/receiver/gateway CPU pools once for the whole suite.
@@ -122,7 +130,9 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
         if let Some(bin) = &found {
             log::info!("gateway binary: {}", bin.display());
         } else {
-            log::warn!("no gateway binary supports the required providers; SCG scenarios will be skipped");
+            log::warn!(
+                "no gateway binary supports the required providers; SCG scenarios will be skipped"
+            );
         }
         found
     } else {
@@ -404,9 +414,21 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
                 });
             }
             let (security, transport_name) = if ktls {
-                (GwSecurity::Tls { version, ktls: true }, "scg-ktls")
+                (
+                    GwSecurity::Tls {
+                        version,
+                        ktls: true,
+                    },
+                    "scg-ktls",
+                )
             } else {
-                (GwSecurity::Tls { version, ktls: false }, "scg-tls")
+                (
+                    GwSecurity::Tls {
+                        version,
+                        ktls: false,
+                    },
+                    "scg-tls",
+                )
             };
             Some(GatewayPlan {
                 security,
@@ -569,10 +591,20 @@ fn run_gateway_scenario(
         .map(|hz| SystemSampler::start(dut.pids(), hz));
 
     // F-13b perf backend: attach `perf stat` when configured.
-    let perf_sampler = if defaults.metrics_backend == MetricsBackend::Perf {
-        dut.pids().first().and_then(|&pid| {
-            system::PerfSampler::start(pid, &work_dir)
-        })
+    let perf_sampler = if defaults.collect_system_metrics
+        && defaults.metrics_backend == MetricsBackend::Perf
+    {
+        let pids = dut.pids();
+        match system::PerfSampler::start(&pids, &work_dir) {
+            Some(sampler) => Some(sampler),
+            None => {
+                log::warn!(
+                    "scenario '{}': perf backend requested but perf stat could not attach; perf_* result fields will be empty",
+                    scenario.name
+                );
+                None
+            }
+        }
     } else {
         None
     };
@@ -624,6 +656,7 @@ fn run_gateway_scenario(
             &stats,
             &ScenarioArtifacts {
                 sys: sys_agg.as_ref(),
+                perf: perf_result.as_ref(),
                 effective: Some(&effective),
                 loss_threshold_pct: defaults.loss_threshold_pct,
                 ..Default::default()
@@ -697,6 +730,7 @@ fn run_gateway_scenario(
             cal: Some(&cal),
             sweep: sweep.as_ref(),
             sys: sys_agg.as_ref(),
+            perf: perf_result.as_ref(),
             effective: Some(&effective),
             loss_threshold_pct: defaults.loss_threshold_pct,
         },
@@ -748,11 +782,12 @@ fn run_multistream_scenario(
     };
 
     // Convert config streams → workload StreamConfigs + transport pairs.
-    let warmup = Duration::from_secs(
-        scenario.warmup_secs.unwrap_or(defaults.warmup_secs),
-    );
+    let warmup = Duration::from_secs(scenario.warmup_secs.unwrap_or(defaults.warmup_secs));
     let measure = Duration::from_secs(
-        scenario.duration_secs.unwrap_or(defaults.duration_secs).max(1),
+        scenario
+            .duration_secs
+            .unwrap_or(defaults.duration_secs)
+            .max(1),
     );
 
     let mut configs = Vec::with_capacity(scenario.streams.len());
@@ -761,13 +796,11 @@ fn run_multistream_scenario(
     for (i, stream) in scenario.streams.iter().enumerate() {
         let msg_bytes = stream.message_size_bytes.max(HEADER_LEN as u32);
         let rate_limit = match stream.pattern {
-            config::Pattern::Periodic => stream
-                .interval_us
-                .map(|iv| {
-                    let bits_per_msg = msg_bytes as f64 * 8.0;
-                    let msgs_per_sec = 1_000_000.0 / iv as f64;
-                    (bits_per_msg * msgs_per_sec) / 1_000_000.0
-                }),
+            config::Pattern::Periodic => stream.interval_us.map(|iv| {
+                let bits_per_msg = msg_bytes as f64 * 8.0;
+                let msgs_per_sec = 1_000_000.0 / iv as f64;
+                (bits_per_msg * msgs_per_sec) / 1_000_000.0
+            }),
             _ => None,
         };
 
@@ -791,7 +824,11 @@ fn run_multistream_scenario(
     console::kv("Streams", &scenario.streams.len().to_string(), 10);
     console::kv(
         "Schedule",
-        &format!("{}s warmup / {}s measure", warmup.as_secs(), measure.as_secs()),
+        &format!(
+            "{}s warmup / {}s measure",
+            warmup.as_secs(),
+            measure.as_secs()
+        ),
         10,
     );
 
@@ -814,9 +851,7 @@ fn run_multistream_scenario(
             &format!("  {}", sr.name),
             &format!(
                 "{:.3} Gbit/s  p99={:.0}µs  loss={}",
-                sr.summary.throughput_gbps,
-                sr.summary.latency_us.p99,
-                sr.summary.integrity.lost
+                sr.summary.throughput_gbps, sr.summary.latency_us.p99, sr.summary.integrity.lost
             ),
             16,
         );
@@ -824,7 +859,11 @@ fn run_multistream_scenario(
     console::kv("  Fairness", &format!("{:.3}", result.fairness_ratio), 16);
     console::kv(
         "  Safety loss-free",
-        if result.safety_loss_free { "PASS" } else { "FAIL" },
+        if result.safety_loss_free {
+            "PASS"
+        } else {
+            "FAIL"
+        },
         16,
     );
     if let Some(p99) = result.safety_p99_us {
@@ -876,9 +915,7 @@ fn run_multistream_scenario(
         runs: 1,
         warmup,
         measure,
-        cooldown: Duration::from_secs(
-            scenario.cooldown_secs.unwrap_or(defaults.cooldown_secs),
-        ),
+        cooldown: Duration::from_secs(scenario.cooldown_secs.unwrap_or(defaults.cooldown_secs)),
         remove_outliers: matches!(defaults.outlier_removal, OutlierRemoval::Iqr),
         sender_cores: cores.sender.clone(),
         receiver_cores: cores.receiver.clone(),
@@ -903,7 +940,10 @@ fn run_multistream_scenario(
         &stats,
         &ScenarioArtifacts {
             effective: Some(&effective),
-            sys: system_samples.as_deref().and_then(system::aggregate).as_ref(),
+            sys: system_samples
+                .as_deref()
+                .and_then(system::aggregate)
+                .as_ref(),
             loss_threshold_pct: defaults.loss_threshold_pct,
             ..Default::default()
         },
@@ -936,27 +976,40 @@ fn run_hotreload_scenario(
         GwSecurity::Routing => SecuritySpec::routing_tcp(),
         GwSecurity::Tls { version, ktls } => {
             if !crate::pki::openssl_available() {
-                log::warn!("scenario '{}': openssl unavailable; skipping", scenario.name);
+                log::warn!(
+                    "scenario '{}': openssl unavailable; skipping",
+                    scenario.name
+                );
                 return Ok(false);
             }
             let id = crate::pki::generate_self_signed(&work_dir, 2)?;
             let mut spec = SecuritySpec::tls_server(version, &id.cert, &id.key);
-            if ktls { spec = spec.provider("ktls"); }
+            if ktls {
+                spec = spec.provider("ktls");
+            }
             spec
         }
         GwSecurity::Mtls { version, ktls } => {
             if !crate::pki::openssl_available() {
-                log::warn!("scenario '{}': openssl unavailable; skipping", scenario.name);
+                log::warn!(
+                    "scenario '{}': openssl unavailable; skipping",
+                    scenario.name
+                );
                 return Ok(false);
             }
             let bundle = crate::pki::generate_mtls_bundle(&work_dir, 2)?;
             let mut spec = SecuritySpec::tls_mutual(version, &bundle);
-            if ktls { spec = spec.provider("ktls"); }
+            if ktls {
+                spec = spec.provider("ktls");
+            }
             spec
         }
         GwSecurity::IntegrityOnly { version } => {
             if !crate::pki::openssl_available() {
-                log::warn!("scenario '{}': openssl unavailable; skipping", scenario.name);
+                log::warn!(
+                    "scenario '{}': openssl unavailable; skipping",
+                    scenario.name
+                );
                 return Ok(false);
             }
             let id = crate::pki::generate_self_signed(&work_dir, 2)?;
@@ -964,7 +1017,10 @@ fn run_hotreload_scenario(
         }
         GwSecurity::Dtls { version, mutual } => {
             if !crate::pki::openssl_available() {
-                log::warn!("scenario '{}': openssl unavailable; skipping", scenario.name);
+                log::warn!(
+                    "scenario '{}': openssl unavailable; skipping",
+                    scenario.name
+                );
                 return Ok(false);
             }
             if mutual {
@@ -1024,8 +1080,7 @@ fn run_hotreload_scenario(
 
     // Spawn the run engine in a thread so we can inject the reload at the right time.
     let transport: &dyn Transport = dut.as_transport();
-    let reload_trigger_dur = Duration::from_secs(trigger_secs)
-        + extended_params.warmup; // trigger offset from thread start
+    let reload_trigger_dur = Duration::from_secs(trigger_secs) + extended_params.warmup; // trigger offset from thread start
 
     // Get process info for reload injection before entering the run.
     let process_ref = dut.first_process();
@@ -1045,7 +1100,10 @@ fn run_hotreload_scenario(
             // Re-write the same config (simulates a no-op reload that still
             // exercises the full reload code path in the gateway).
             let _ = unsafe { libc::kill(pid, libc::SIGHUP) };
-            log::info!("hot-reload: SIGHUP sent to gateway (pid={pid}) at {}s", trigger_secs);
+            log::info!(
+                "hot-reload: SIGHUP sent to gateway (pid={pid}) at {}s",
+                trigger_secs
+            );
             let _ = path; // config_path available for future swap variants
         }
         reload_fired_clone.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -1061,10 +1119,7 @@ fn run_hotreload_scenario(
     let stats = match run_result {
         Ok(stats) => stats,
         Err(e) => {
-            log::warn!(
-                "scenario '{}': run failed ({e}); skipping",
-                scenario.name
-            );
+            log::warn!("scenario '{}': run failed ({e}); skipping", scenario.name);
             dut.shutdown()?;
             return Ok(false);
         }
@@ -1073,7 +1128,11 @@ fn run_hotreload_scenario(
     // Report hot-reload specific metrics.
     let reload_actually_fired = reload_fired.load(std::sync::atomic::Ordering::Relaxed);
     console::line("");
-    console::kv("  Reload fired", if reload_actually_fired { "yes" } else { "no" }, 16);
+    console::kv(
+        "  Reload fired",
+        if reload_actually_fired { "yes" } else { "no" },
+        16,
+    );
     if let Some(run) = stats.runs.first() {
         let drops = run.integrity.lost;
         console::kv("  Drops", &drops.to_string(), 16);
@@ -1137,9 +1196,7 @@ fn resolve_core_plan(d: &Defaults) -> CorePlan {
         let sender = parts.get(1).cloned().unwrap_or_default();
         let receiver = parts.get(2).cloned().unwrap_or_default();
         if gateway.is_empty() {
-            log::warn!(
-                "auto-affinity: only {total} logical core(s) available; running unpinned"
-            );
+            log::warn!("auto-affinity: only {total} logical core(s) available; running unpinned");
         } else {
             log::info!(
                 "auto-affinity: gateway={gateway:?} sender={sender:?} receiver={receiver:?}"
@@ -1199,21 +1256,24 @@ const DEFAULT_MESSAGE_BYTES: u32 = 1024;
 
 fn render_scenario_header(s: &Scenario, params: &RunParams, transport_label: &str) {
     console::section(&format!("Scenario: {}", s.name));
-    console::card("", &[
-        ("Transport", transport_label.to_string()),
-        ("Message", human_bytes(params.message_bytes)),
-        ("Connections", params.connections.to_string()),
-        (
-            "Schedule",
-            format!(
-                "{} run(s) × {}s warmup / {}s measure / {}s cooldown",
-                params.runs,
-                params.warmup.as_secs(),
-                params.measure.as_secs(),
-                params.cooldown.as_secs()
+    console::card(
+        "",
+        &[
+            ("Transport", transport_label.to_string()),
+            ("Message", human_bytes(params.message_bytes)),
+            ("Connections", params.connections.to_string()),
+            (
+                "Schedule",
+                format!(
+                    "{} run(s) × {}s warmup / {}s measure / {}s cooldown",
+                    params.runs,
+                    params.warmup.as_secs(),
+                    params.measure.as_secs(),
+                    params.cooldown.as_secs()
+                ),
             ),
-        ),
-    ]);
+        ],
+    );
 }
 
 fn render_run_line(index: usize, total: usize, s: &FlowSummary) {
@@ -1232,20 +1292,26 @@ fn render_scenario_result(stats: &RunStats) {
     let thr = &stats.throughput_gbps;
     let lat = &stats.latency_mean_us;
     let p99 = &stats.latency_p99_us;
-    console::card("Result", &[
-        (
-            "Throughput",
-            format!("{:.3} ± {:.3} Gbit/s", thr.mean, thr.ci95),
-        ),
-        (
-            "Latency",
-            format!(
-                "mean {:.1} ± {:.1} µs    p99 {:.1} ± {:.1} µs",
-                lat.mean, lat.ci95, p99.mean, p99.ci95
+    console::card(
+        "Result",
+        &[
+            (
+                "Throughput",
+                format!("{:.3} ± {:.3} Gbit/s", thr.mean, thr.ci95),
             ),
-        ),
-        ("Loss", format!("{:.3} % ({} msg)", stats.loss_pct, stats.total_lost)),
-    ]);
+            (
+                "Latency",
+                format!(
+                    "mean {:.1} ± {:.1} µs    p99 {:.1} ± {:.1} µs",
+                    lat.mean, lat.ci95, p99.mean, p99.ci95
+                ),
+            ),
+            (
+                "Loss",
+                format!("{:.3} % ({} msg)", stats.loss_pct, stats.total_lost),
+            ),
+        ],
+    );
 }
 
 /// Per-run progress line for a closed-loop ping-pong scenario: RTT, not Gbit/s.
@@ -1265,16 +1331,19 @@ fn render_pingpong_run_line(index: usize, total: usize, s: &FlowSummary) {
 fn render_pingpong_result(stats: &RunStats) {
     match stats.rtt {
         Some(rtt) => {
-            console::card("Result — Round-Trip Time", &[
-                (
-                    "RTT",
-                    format!(
-                        "mean {:.1} ± {:.1} µs    p50 {:.1} µs    p99 {:.1} µs",
-                        rtt.mean_us, rtt.mean_ci95, rtt.p50_us, rtt.p99_us
+            console::card(
+                "Result — Round-Trip Time",
+                &[
+                    (
+                        "RTT",
+                        format!(
+                            "mean {:.1} ± {:.1} µs    p50 {:.1} µs    p99 {:.1} µs",
+                            rtt.mean_us, rtt.mean_ci95, rtt.p50_us, rtt.p99_us
+                        ),
                     ),
-                ),
-                ("Samples", rtt.samples.to_string()),
-            ]);
+                    ("Samples", rtt.samples.to_string()),
+                ],
+            );
         }
         None => render_scenario_result(stats),
     }
@@ -1297,17 +1366,26 @@ fn render_connrate_run_line(index: usize, total: usize, s: &FlowSummary) {
 fn render_connrate_result(stats: &RunStats) {
     match stats.conn {
         Some(conn) => {
-            console::card("Result — Connection Rate", &[
-                (
-                    "Rate",
-                    format!("{:.0} ± {:.0} conn/s", conn.conns_per_sec, conn.conns_per_sec_ci95),
-                ),
-                (
-                    "Handshake",
-                    format!("p50 {:.1} µs    p99 {:.1} µs", conn.handshake_p50_us, conn.handshake_p99_us),
-                ),
-                ("Connections", conn.total_conns.to_string()),
-            ]);
+            console::card(
+                "Result — Connection Rate",
+                &[
+                    (
+                        "Rate",
+                        format!(
+                            "{:.0} ± {:.0} conn/s",
+                            conn.conns_per_sec, conn.conns_per_sec_ci95
+                        ),
+                    ),
+                    (
+                        "Handshake",
+                        format!(
+                            "p50 {:.1} µs    p99 {:.1} µs",
+                            conn.handshake_p50_us, conn.handshake_p99_us
+                        ),
+                    ),
+                    ("Connections", conn.total_conns.to_string()),
+                ],
+            );
         }
         None => render_scenario_result(stats),
     }
@@ -1370,20 +1448,20 @@ fn warn_if_protocol_fallback(scenario: &Scenario, effective: &Effective) {
 }
 
 fn render_saturation_result(result: &SweepResult, loss_threshold_pct: f64) {
-    console::card("Saturation Sweep", &[
-        (
-            "Ceiling",
-            format!("{:.3} Gbit/s", result.saturation_gbps),
-        ),
-        (
-            "Loss-free",
-            format!(
-                "{:.3} Gbit/s (≤{:.1} % loss) @ {:.0} Mbit/s offered",
-                result.max_lossfree_gbps, loss_threshold_pct, result.knee_offered_mbps
+    console::card(
+        "Saturation Sweep",
+        &[
+            ("Ceiling", format!("{:.3} Gbit/s", result.saturation_gbps)),
+            (
+                "Loss-free",
+                format!(
+                    "{:.3} Gbit/s (≤{:.1} % loss) @ {:.0} Mbit/s offered",
+                    result.max_lossfree_gbps, loss_threshold_pct, result.knee_offered_mbps
+                ),
             ),
-        ),
-        ("Points", result.points.len().to_string()),
-    ]);
+            ("Points", result.points.len().to_string()),
+        ],
+    );
 }
 
 /// On-loopback (no SCG) ceiling probe duration per distinct scenario shape.
@@ -1438,10 +1516,7 @@ fn render_calibration(cal: &Calibration) {
         cal.ceiling_gbps, cal.headroom, cal.dut, cal.bottleneck
     );
     if cal.harness_limited {
-        value.push_str(&format!(
-            "  {}",
-            console::yellow("⚠ HARNESS-LIMITED (<3×)")
-        ));
+        value.push_str(&format!("  {}", console::yellow("⚠ HARNESS-LIMITED (<3×)")));
     } else if cal.bottleneck == "scg-cpu" {
         value.push_str(&format!("  {}", console::dim("[SCG CPU-bound]")));
     }
@@ -1478,10 +1553,8 @@ fn render_suite_summary(outcomes: &[ScenarioOutcome], skipped: usize, root: &Pat
 
     console::table(headers, &rows, b"rlrrr");
 
-    if let (Some(best), Some(worst)) = (
-        best_by_throughput(outcomes),
-        worst_by_throughput(outcomes),
-    ) {
+    if let (Some(best), Some(worst)) = (best_by_throughput(outcomes), worst_by_throughput(outcomes))
+    {
         println!();
         console::kv(
             "Best",
@@ -1527,14 +1600,18 @@ fn apply_overrides(cfg: &mut Config, args: &RunArgs) -> CmdResult {
         let before = cfg.scenarios.len();
         cfg.scenarios.retain(|s| &s.name == name);
         if cfg.scenarios.is_empty() {
-            return Err(format!(
-                "no scenario named '{name}' (config has {before} scenario(s))"
-            )
-            .into());
+            return Err(
+                format!("no scenario named '{name}' (config has {before} scenario(s))").into(),
+            );
         }
+    }
+    if let Some(backend) = args.metrics_backend {
+        cfg.defaults.metrics_backend = backend.into();
+        cfg.defaults.collect_system_metrics = cfg.defaults.metrics_backend != MetricsBackend::None;
     }
     if args.no_system_metrics {
         cfg.defaults.collect_system_metrics = false;
+        cfg.defaults.metrics_backend = MetricsBackend::None;
     }
     Ok(())
 }
@@ -1581,6 +1658,19 @@ fn render_dry_run(args: &RunArgs, cfg: &Config, report: &ValidationReport) {
     console::kv("Output", &output, 10);
     console::kv("Tag", args.tag.as_deref().unwrap_or("(none)"), 10);
     console::kv(
+        "Metrics",
+        &format!(
+            "{} ({})",
+            if cfg.defaults.collect_system_metrics {
+                "on"
+            } else {
+                "off"
+            },
+            cfg.defaults.metrics_backend.label()
+        ),
+        10,
+    );
+    console::kv(
         "CPU pin",
         &format!(
             "sender={:?} receiver={:?}",
@@ -1602,11 +1692,7 @@ fn render_dry_run(args: &RunArgs, cfg: &Config, report: &ValidationReport) {
 }
 
 fn sender(args: SenderArgs) -> CmdResult {
-    log::info!(
-        "sender: scenario={}, target={}",
-        args.scenario,
-        args.target
-    );
+    log::info!("sender: scenario={}, target={}", args.scenario, args.target);
 
     let cfg = config::load(&args.config)?;
     let scenario = cfg
@@ -1615,21 +1701,18 @@ fn sender(args: SenderArgs) -> CmdResult {
         .find(|s| s.name == args.scenario)
         .ok_or_else(|| format!("scenario '{}' not found in config", args.scenario))?;
 
-    let sender_spec = scenario
-        .sender
-        .clone()
-        .unwrap_or_else(|| config::Sender {
-            interface: Interface::Tcp,
-            target_addr: args.target.clone(),
-            pattern: config::Pattern::Sustained,
-            rate_limit_mbps: None,
-            interval_us: None,
-            burst_count: None,
-            burst_pause_us: None,
-            ramp_start_mbps: None,
-            ramp_step_mbps: None,
-            ramp_step_interval_secs: None,
-        });
+    let sender_spec = scenario.sender.clone().unwrap_or_else(|| config::Sender {
+        interface: Interface::Tcp,
+        target_addr: args.target.clone(),
+        pattern: config::Pattern::Sustained,
+        rate_limit_mbps: None,
+        interval_us: None,
+        burst_count: None,
+        burst_pause_us: None,
+        ramp_start_mbps: None,
+        ramp_step_mbps: None,
+        ramp_step_interval_secs: None,
+    });
 
     let params = engine::DistributedParams {
         message_bytes: scenario
@@ -1637,18 +1720,14 @@ fn sender(args: SenderArgs) -> CmdResult {
             .unwrap_or(1024)
             .max(HEADER_LEN as u32),
         connections: scenario.connections.max(1) as usize,
-        warmup: Duration::from_secs(
-            scenario.warmup_secs.unwrap_or(cfg.defaults.warmup_secs),
-        ),
+        warmup: Duration::from_secs(scenario.warmup_secs.unwrap_or(cfg.defaults.warmup_secs)),
         measure: Duration::from_secs(
             scenario
                 .duration_secs
                 .unwrap_or(cfg.defaults.duration_secs)
                 .max(1),
         ),
-        cooldown: Duration::from_secs(
-            scenario.cooldown_secs.unwrap_or(cfg.defaults.cooldown_secs),
-        ),
+        cooldown: Duration::from_secs(scenario.cooldown_secs.unwrap_or(cfg.defaults.cooldown_secs)),
         cores: args.cpu_affinity,
         sender: sender_spec,
         remove_outliers: matches!(cfg.defaults.outlier_removal, OutlierRemoval::Iqr),
@@ -1676,21 +1755,18 @@ fn receiver(args: ReceiverArgs) -> CmdResult {
         .find(|s| s.name == args.scenario)
         .ok_or_else(|| format!("scenario '{}' not found in config", args.scenario))?;
 
-    let sender_spec = scenario
-        .sender
-        .clone()
-        .unwrap_or_else(|| config::Sender {
-            interface: Interface::Tcp,
-            target_addr: args.bind.clone(),
-            pattern: config::Pattern::Sustained,
-            rate_limit_mbps: None,
-            interval_us: None,
-            burst_count: None,
-            burst_pause_us: None,
-            ramp_start_mbps: None,
-            ramp_step_mbps: None,
-            ramp_step_interval_secs: None,
-        });
+    let sender_spec = scenario.sender.clone().unwrap_or_else(|| config::Sender {
+        interface: Interface::Tcp,
+        target_addr: args.bind.clone(),
+        pattern: config::Pattern::Sustained,
+        rate_limit_mbps: None,
+        interval_us: None,
+        burst_count: None,
+        burst_pause_us: None,
+        ramp_start_mbps: None,
+        ramp_step_mbps: None,
+        ramp_step_interval_secs: None,
+    });
 
     let params = engine::DistributedParams {
         message_bytes: scenario
@@ -1698,18 +1774,14 @@ fn receiver(args: ReceiverArgs) -> CmdResult {
             .unwrap_or(1024)
             .max(HEADER_LEN as u32),
         connections: scenario.connections.max(1) as usize,
-        warmup: Duration::from_secs(
-            scenario.warmup_secs.unwrap_or(cfg.defaults.warmup_secs),
-        ),
+        warmup: Duration::from_secs(scenario.warmup_secs.unwrap_or(cfg.defaults.warmup_secs)),
         measure: Duration::from_secs(
             scenario
                 .duration_secs
                 .unwrap_or(cfg.defaults.duration_secs)
                 .max(1),
         ),
-        cooldown: Duration::from_secs(
-            scenario.cooldown_secs.unwrap_or(cfg.defaults.cooldown_secs),
-        ),
+        cooldown: Duration::from_secs(scenario.cooldown_secs.unwrap_or(cfg.defaults.cooldown_secs)),
         cores: args.cpu_affinity,
         sender: sender_spec,
         remove_outliers: matches!(cfg.defaults.outlier_removal, OutlierRemoval::Iqr),
@@ -1722,8 +1794,16 @@ fn receiver(args: ReceiverArgs) -> CmdResult {
 
     let summary = engine::run_distributed_receiver(&params, &args.bind)
         .map_err(|e| format!("receiver failed: {e}"))?;
-    console::kv("Throughput", &format!("{:.3} Gbit/s", summary.throughput_gbps), 10);
-    console::kv("Latency p99", &format!("{:.0} µs", summary.latency_us.p99), 10);
+    console::kv(
+        "Throughput",
+        &format!("{:.3} Gbit/s", summary.throughput_gbps),
+        10,
+    );
+    console::kv(
+        "Latency p99",
+        &format!("{:.0} µs", summary.latency_us.p99),
+        10,
+    );
     console::kv("Lost", &summary.integrity.lost.to_string(), 10);
     Ok(())
 }
@@ -1742,10 +1822,7 @@ fn report(args: ReportArgs) -> CmdResult {
     // Walk the result directory structure and regenerate the summary CSV.
     let scenarios_dir = args.input.join("scenarios");
     if !scenarios_dir.is_dir() {
-        return Err(format!(
-            "no scenarios/ subdirectory in {}",
-            args.input.display()
-        ).into());
+        return Err(format!("no scenarios/ subdirectory in {}", args.input.display()).into());
     }
 
     let mut summary_rows = Vec::new();
@@ -1859,10 +1936,18 @@ fn render_validation(path: &str, cfg: &Config, report: &ValidationReport) {
             println!("  \u{2502}    \u{2514}\u{2500} {}", console::dim(note));
         }
         for warn in &sr.warnings {
-            println!("  \u{2502}    \u{2514}\u{2500} {} {}", console::warn(), console::yellow(warn));
+            println!(
+                "  \u{2502}    \u{2514}\u{2500} {} {}",
+                console::warn(),
+                console::yellow(warn)
+            );
         }
         for err in &sr.errors {
-            println!("  \u{2502}    \u{2514}\u{2500} {} {}", console::cross(), console::red(err));
+            println!(
+                "  \u{2502}    \u{2514}\u{2500} {} {}",
+                console::cross(),
+                console::red(err)
+            );
         }
     }
 
@@ -1890,7 +1975,15 @@ fn list(args: ListArgs) -> CmdResult {
         cfg.scenarios.len()
     );
 
-    let headers = &["#", "Name", "Category", "Interface", "Protocol", "Conns", "MsgSize"];
+    let headers = &[
+        "#",
+        "Name",
+        "Category",
+        "Interface",
+        "Protocol",
+        "Conns",
+        "MsgSize",
+    ];
     let rows: Vec<Vec<String>> = cfg
         .scenarios
         .iter()
@@ -2021,10 +2114,18 @@ fn calibrate(args: CalibrateArgs) -> CmdResult {
 
     let overhead = calibrate::record_overhead_ns(200_000);
     console::kv("Stats cost", &format!("{overhead:.1} ns/sample"), 13);
-    console::kv("Headroom min", &format!("{:.1}x", calibrate::HEADROOM_MIN), 13);
+    console::kv(
+        "Headroom min",
+        &format!("{:.1}x", calibrate::HEADROOM_MIN),
+        13,
+    );
     console::kv(
         "Probe",
-        &format!("{} conn, {:.2}s each", args.connections, args.duration.as_secs_f64()),
+        &format!(
+            "{} conn, {:.2}s each",
+            args.connections,
+            args.duration.as_secs_f64()
+        ),
         13,
     );
     console::line("");
@@ -2101,7 +2202,9 @@ fn setup(args: SetupArgs) -> CmdResult {
             std::mem::forget(topo);
             log::info!(
                 "veth topology created: {} ↔ {} (prefix /{})",
-                args.left_ip, args.right_ip, args.subnet_mask
+                args.left_ip,
+                args.right_ip,
+                args.subnet_mask
             );
         }
         TopologyKind::Netns => {
@@ -2116,8 +2219,10 @@ fn setup(args: SetupArgs) -> CmdResult {
             std::mem::forget(topo);
             log::info!(
                 "netns topology created: {}({}) ↔ {}({})",
-                args.left_namespace, args.left_ip,
-                args.right_namespace, args.right_ip
+                args.left_namespace,
+                args.left_ip,
+                args.right_namespace,
+                args.right_ip
             );
         }
     }
@@ -2144,8 +2249,7 @@ fn teardown(args: TeardownArgs) -> CmdResult {
         veth_pair: Some(("seshat-a".to_string(), "seshat-b".to_string())),
         addrs: (String::new(), String::new()),
     };
-    topology::teardown_topology(&topo)
-        .map_err(|e| format!("teardown failed: {e}"))?;
+    topology::teardown_topology(&topo).map_err(|e| format!("teardown failed: {e}"))?;
     log::info!("topology torn down");
     Ok(())
 }
@@ -2198,4 +2302,68 @@ fn impair(args: ImpairArgs) -> CmdResult {
     std::mem::forget(applied);
     log::info!("impairment applied to {}", args.interface);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::MetricsBackendArg;
+    use crate::config::Suite;
+
+    fn base_config() -> Config {
+        Config {
+            schema: None,
+            suite: Suite {
+                name: "suite".to_string(),
+                description: String::new(),
+                author: String::new(),
+                version: "1.0.0".to_string(),
+            },
+            defaults: Defaults::default(),
+            scenarios: Vec::new(),
+        }
+    }
+
+    fn base_args() -> RunArgs {
+        RunArgs {
+            config: PathBuf::from("./cfg.json"),
+            output_dir: None,
+            runs: None,
+            duration: None,
+            warmup: None,
+            cooldown: None,
+            scenario: None,
+            tag: None,
+            cpu_affinity: Vec::new(),
+            no_system_metrics: false,
+            metrics_backend: None,
+            scg_pid: None,
+            dry_run: false,
+        }
+    }
+
+    #[test]
+    fn metrics_backend_override_updates_defaults() {
+        let mut cfg = base_config();
+        let mut args = base_args();
+        args.metrics_backend = Some(MetricsBackendArg::Perf);
+
+        apply_overrides(&mut cfg, &args).unwrap();
+
+        assert_eq!(cfg.defaults.metrics_backend, MetricsBackend::Perf);
+        assert!(cfg.defaults.collect_system_metrics);
+    }
+
+    #[test]
+    fn no_system_metrics_disables_backend() {
+        let mut cfg = base_config();
+        let mut args = base_args();
+        args.metrics_backend = Some(MetricsBackendArg::Perf);
+        args.no_system_metrics = true;
+
+        apply_overrides(&mut cfg, &args).unwrap();
+
+        assert_eq!(cfg.defaults.metrics_backend, MetricsBackend::None);
+        assert!(!cfg.defaults.collect_system_metrics);
+    }
 }

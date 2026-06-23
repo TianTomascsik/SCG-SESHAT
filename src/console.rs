@@ -105,11 +105,7 @@ pub fn banner() {
 ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   
 "#;
     println!("{}", bold(art.trim_end_matches('\n')));
-    println!(
-        "    v{} | {}",
-        env!("CARGO_PKG_VERSION"),
-        dim(TAGLINE)
-    );
+    println!("    v{} | {}", env!("CARGO_PKG_VERSION"), dim(TAGLINE));
     println!();
 }
 
@@ -152,7 +148,7 @@ pub fn section(title: &str) {
 /// `card_title` is shown in the top border; `rows` are `(label, value)` pairs.
 pub fn card(card_title: &str, rows: &[(&str, String)]) {
     let inner = WIDTH - 4; // 2 for `│ ` + 2 for ` │`
-    // Top border with optional title
+                           // Top border with optional title
     if card_title.is_empty() {
         println!(" ┌{}┐", "─".repeat(inner + 2));
     } else {
@@ -161,7 +157,11 @@ pub fn card(card_title: &str, rows: &[(&str, String)]) {
         println!(" ┌{}{}┐", title_str, "─".repeat(rest));
     }
     // Find max label width for alignment
-    let max_label = rows.iter().map(|(l, _)| l.chars().count()).max().unwrap_or(0);
+    let max_label = rows
+        .iter()
+        .map(|(l, _)| l.chars().count())
+        .max()
+        .unwrap_or(0);
     for (label, value) in rows {
         let content = format!("{:<width$}  │  {}", label, value, width = max_label);
         let pad = inner.saturating_sub(content.chars().count());

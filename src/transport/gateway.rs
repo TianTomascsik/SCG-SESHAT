@@ -31,7 +31,9 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use super::{tcp, udp, DataSink, DataSource, DuplexEnd, Transport, RECV_POLL_TIMEOUT};
-use crate::gateway::{build_path, reserve_local_port, start_path, RunningPath, SecuritySpec, Topology};
+use crate::gateway::{
+    build_path, reserve_local_port, start_path, RunningPath, SecuritySpec, Topology,
+};
 
 /// How long to wait for each gateway process to become ready.
 const READY_TIMEOUT: Duration = Duration::from_secs(15);
@@ -371,8 +373,16 @@ impl GatewayDut {
     /// Config paths of the gateway process(es) (for hot-reload injection).
     pub fn config_paths(&self) -> Vec<PathBuf> {
         match self {
-            Self::Tcp(t) => t.running.as_ref().map(|r| r.config_paths()).unwrap_or_default(),
-            Self::Udp(t) => t.running.as_ref().map(|r| r.config_paths()).unwrap_or_default(),
+            Self::Tcp(t) => t
+                .running
+                .as_ref()
+                .map(|r| r.config_paths())
+                .unwrap_or_default(),
+            Self::Udp(t) => t
+                .running
+                .as_ref()
+                .map(|r| r.config_paths())
+                .unwrap_or_default(),
         }
     }
 
@@ -470,10 +480,8 @@ mod tests {
     /// forward progress (not zero loss like the TCP path).
     fn drive_udp_engine(topology: Topology) {
         let _guard = crate::gateway::gateway_test_guard();
-        let work_dir = std::env::temp_dir().join(format!(
-            "seshat-gw-udp-{}-{topology:?}",
-            std::process::id()
-        ));
+        let work_dir =
+            std::env::temp_dir().join(format!("seshat-gw-udp-{}-{topology:?}", std::process::id()));
         let Some(binary) = locate_working_binary(&work_dir) else {
             eprintln!("skip: no gateway binary supports the routing provider");
             let _ = std::fs::remove_dir_all(&work_dir);

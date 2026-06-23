@@ -137,7 +137,10 @@ impl Pacer {
                 *pos += 1;
                 if *pos >= *count {
                     *pos = 0;
-                    self.next_ns = self.next_ns.saturating_add(*gap_ns).saturating_add(*pause_ns);
+                    self.next_ns = self
+                        .next_ns
+                        .saturating_add(*gap_ns)
+                        .saturating_add(*pause_ns);
                 } else {
                     self.next_ns = self.next_ns.saturating_add(*gap_ns);
                 }
@@ -299,10 +302,7 @@ mod tests {
         s.burst_pause_us = Some(10); // 10 µs = 10_000 ns
         let mut p = Pacer::from_sender(&s, 128);
         // 3 back-to-back (gap 0), then a 10_000 ns pause, then 3 more.
-        assert_eq!(
-            deadlines(&mut p, 6),
-            vec![0, 0, 0, 10_000, 10_000, 10_000]
-        );
+        assert_eq!(deadlines(&mut p, 6), vec![0, 0, 0, 10_000, 10_000, 10_000]);
     }
 
     #[test]
@@ -325,7 +325,10 @@ mod tests {
         // Gap for a message in the higher-rate (>= 20 Mbit/s) step must shrink.
         let nxt = p.next_deadline_ns();
         let gap_step1 = nxt - d;
-        assert!(gap_step1 < 1_000_000, "ramp gap did not shrink: {gap_step1}");
+        assert!(
+            gap_step1 < 1_000_000,
+            "ramp gap did not shrink: {gap_step1}"
+        );
         assert!(gap_step1 <= 500_000, "expected <= 500 µs, got {gap_step1}");
     }
 

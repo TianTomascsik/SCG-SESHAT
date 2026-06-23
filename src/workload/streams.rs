@@ -71,16 +71,17 @@ pub struct MultiStreamResult {
 impl MultiStreamResult {
     /// Compute aggregate metrics from per-stream results.
     pub fn from_streams(streams: Vec<StreamResult>) -> Self {
-        let throughputs: Vec<f64> = streams
-            .iter()
-            .map(|s| s.summary.throughput_gbps)
-            .collect();
+        let throughputs: Vec<f64> = streams.iter().map(|s| s.summary.throughput_gbps).collect();
         let fairness_ratio = if throughputs.is_empty() {
             0.0
         } else {
             let min = throughputs.iter().copied().fold(f64::INFINITY, f64::min);
             let max = throughputs.iter().copied().fold(0.0_f64, f64::max);
-            if max > 0.0 { min / max } else { 0.0 }
+            if max > 0.0 {
+                min / max
+            } else {
+                0.0
+            }
         };
 
         let safety_loss_free = streams
@@ -206,9 +207,9 @@ pub fn run_multi_stream(
     let mut results = Vec::new();
     for (recv_handle, send_handle, cfg) in handles {
         let _ = send_handle.join();
-        let mut metrics: FlowMetrics = recv_handle.join().map_err(|_| {
-            io::Error::other(format!("stream '{}' receiver panicked", cfg.name))
-        })?;
+        let mut metrics: FlowMetrics = recv_handle
+            .join()
+            .map_err(|_| io::Error::other(format!("stream '{}' receiver panicked", cfg.name)))?;
         metrics.set_duration(measure_duration.as_secs_f64());
         let summary = metrics.finish(true);
         results.push(StreamResult {

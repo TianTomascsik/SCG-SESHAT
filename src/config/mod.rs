@@ -89,7 +89,9 @@ pub fn validate(config: &Config) -> ValidationReport {
         report.suite_errors.push("suite.name is empty".to_string());
     }
     if config.suite.version.trim().is_empty() {
-        report.suite_errors.push("suite.version is empty".to_string());
+        report
+            .suite_errors
+            .push("suite.version is empty".to_string());
     }
 
     let d = &config.defaults;
@@ -158,9 +160,9 @@ fn validate_scenario(s: &Scenario) -> ScenarioReport {
         ProtocolType::Wireguard => r.errors.push(
             "protocol.type=wireguard is an SCG stub; set enabled=false (see WP6.1)".to_string(),
         ),
-        ProtocolType::Ipsec => r.errors.push(
-            "protocol.type=ipsec is an SCG stub; set enabled=false (see WP6.1)".to_string(),
-        ),
+        ProtocolType::Ipsec => r
+            .errors
+            .push("protocol.type=ipsec is an SCG stub; set enabled=false (see WP6.1)".to_string()),
         _ => {}
     }
 
@@ -172,7 +174,12 @@ fn validate_scenario(s: &Scenario) -> ScenarioReport {
 
     // Single-stream sender checks.
     if let Some(sender) = &s.sender {
-        validate_addr(sender.interface, &sender.target_addr, "sender.target_addr", &mut r);
+        validate_addr(
+            sender.interface,
+            &sender.target_addr,
+            "sender.target_addr",
+            &mut r,
+        );
         validate_pattern(sender, &mut r);
         validate_transport_needs_gateway(sender.interface, &s.gateway, &mut r);
         validate_protocol_transport(s, sender.interface, &mut r);
@@ -347,7 +354,11 @@ fn validate_pattern(sender: &Sender, r: &mut ScenarioReport) {
     }
 }
 
-fn validate_transport_needs_gateway(interface: Interface, gateway: &Gateway, r: &mut ScenarioReport) {
+fn validate_transport_needs_gateway(
+    interface: Interface,
+    gateway: &Gateway,
+    r: &mut ScenarioReport,
+) {
     if matches!(interface, Interface::Unix | Interface::Shm) && !gateway.enabled {
         r.errors.push(format!(
             "interface={} requires gateway.enabled=true (provisioned via the gRPC management API)",
@@ -384,8 +395,7 @@ const KNOWN_DSCP: &[&str] = &[
 
 fn validate_dscp(tag: &str, ctx: &str, r: &mut ScenarioReport) {
     if !KNOWN_DSCP.contains(&tag) {
-        r.warnings
-            .push(format!("{ctx}: unknown DSCP tag '{tag}'"));
+        r.warnings.push(format!("{ctx}: unknown DSCP tag '{tag}'"));
     }
 }
 

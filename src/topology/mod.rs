@@ -66,11 +66,7 @@ pub fn has_net_admin() -> bool {
 /// Create a veth pair topology.
 ///
 /// Creates `veth_a`/`veth_b` with the specified IP addresses and prefix length.
-pub fn setup_veth(
-    ip_a: &str,
-    ip_b: &str,
-    prefix_len: u8,
-) -> io::Result<ProvisionedTopology> {
+pub fn setup_veth(ip_a: &str, ip_b: &str, prefix_len: u8) -> io::Result<ProvisionedTopology> {
     if !has_net_admin() {
         return Err(io::Error::new(
             io::ErrorKind::PermissionDenied,
@@ -82,9 +78,12 @@ pub fn setup_veth(
     let veth_b = "seshat-b".to_string();
 
     // ip link add seshat-a type veth peer name seshat-b
-    run_cmd("ip", &[
-        "link", "add", &veth_a, "type", "veth", "peer", "name", &veth_b,
-    ])?;
+    run_cmd(
+        "ip",
+        &[
+            "link", "add", &veth_a, "type", "veth", "peer", "name", &veth_b,
+        ],
+    )?;
 
     // Assign IPs.
     let cidr_a = format!("{ip_a}/{prefix_len}");
@@ -127,9 +126,12 @@ pub fn setup_netns(
     run_cmd("ip", &["netns", "add", ns_b])?;
 
     // Create veth pair.
-    run_cmd("ip", &[
-        "link", "add", &veth_a, "type", "veth", "peer", "name", &veth_b,
-    ])?;
+    run_cmd(
+        "ip",
+        &[
+            "link", "add", &veth_a, "type", "veth", "peer", "name", &veth_b,
+        ],
+    )?;
 
     // Move each end into its namespace.
     run_cmd("ip", &["link", "set", &veth_a, "netns", ns_a])?;
@@ -138,14 +140,36 @@ pub fn setup_netns(
     // Configure addresses inside each namespace.
     let cidr_a = format!("{ip_a}/{prefix_len}");
     let cidr_b = format!("{ip_b}/{prefix_len}");
-    run_cmd("ip", &["netns", "exec", ns_a, "ip", "addr", "add", &cidr_a, "dev", &veth_a])?;
-    run_cmd("ip", &["netns", "exec", ns_b, "ip", "addr", "add", &cidr_b, "dev", &veth_b])?;
+    run_cmd(
+        "ip",
+        &[
+            "netns", "exec", ns_a, "ip", "addr", "add", &cidr_a, "dev", &veth_a,
+        ],
+    )?;
+    run_cmd(
+        "ip",
+        &[
+            "netns", "exec", ns_b, "ip", "addr", "add", &cidr_b, "dev", &veth_b,
+        ],
+    )?;
 
     // Bring up interfaces + loopback inside namespaces.
-    run_cmd("ip", &["netns", "exec", ns_a, "ip", "link", "set", &veth_a, "up"])?;
-    run_cmd("ip", &["netns", "exec", ns_a, "ip", "link", "set", "lo", "up"])?;
-    run_cmd("ip", &["netns", "exec", ns_b, "ip", "link", "set", &veth_b, "up"])?;
-    run_cmd("ip", &["netns", "exec", ns_b, "ip", "link", "set", "lo", "up"])?;
+    run_cmd(
+        "ip",
+        &["netns", "exec", ns_a, "ip", "link", "set", &veth_a, "up"],
+    )?;
+    run_cmd(
+        "ip",
+        &["netns", "exec", ns_a, "ip", "link", "set", "lo", "up"],
+    )?;
+    run_cmd(
+        "ip",
+        &["netns", "exec", ns_b, "ip", "link", "set", &veth_b, "up"],
+    )?;
+    run_cmd(
+        "ip",
+        &["netns", "exec", ns_b, "ip", "link", "set", "lo", "up"],
+    )?;
 
     Ok(ProvisionedTopology {
         mode: TopologyMode::Netns,

@@ -58,7 +58,9 @@ pub fn sleep_until_ns(deadline_ns: u64) {
         }
         let remaining = deadline_ns - now;
         if remaining > SPIN_THRESHOLD_NS {
-            std::thread::sleep(std::time::Duration::from_nanos(remaining - SPIN_THRESHOLD_NS));
+            std::thread::sleep(std::time::Duration::from_nanos(
+                remaining - SPIN_THRESHOLD_NS,
+            ));
         } else {
             std::hint::spin_loop();
         }

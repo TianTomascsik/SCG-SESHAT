@@ -138,8 +138,10 @@ fn build_runtime() -> Result<tokio::runtime::Runtime, String> {
 /// Dial the management socket over UDS.
 async fn dial(
     path: &Path,
-) -> Result<scg_proto::v1::management_api_client::ManagementApiClient<tonic::transport::Channel>, String>
-{
+) -> Result<
+    scg_proto::v1::management_api_client::ManagementApiClient<tonic::transport::Channel>,
+    String,
+> {
     use hyper_util::rt::TokioIo;
     use tonic::transport::{Endpoint, Uri};
     use tower::service_fn;
@@ -168,10 +170,7 @@ fn health_probe(socket_path: &Path) -> bool {
         let Ok(mut client) = dial(socket_path).await else {
             return false;
         };
-        client
-            .health(scg_proto::v1::HealthRequest {})
-            .await
-            .is_ok()
+        client.health(scg_proto::v1::HealthRequest {}).await.is_ok()
     })
 }
 

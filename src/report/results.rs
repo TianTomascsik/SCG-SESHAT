@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 use crate::config::{Config, Scenario};
 use crate::gateway::logscan::{effective_protocol_label, Effective};
 use crate::metrics::app::FlowSummary;
-use crate::metrics::system::{SysAgg, SystemSample};
+use crate::metrics::system::{PerfResult, SysAgg, SystemSample};
 use crate::proto::wire::HEADER_LEN;
 use crate::run::calibrate::Calibration;
 use crate::run::engine::RunParams;
@@ -74,6 +74,14 @@ const SUMMARY_HEADERS: &[&str] = &[
     "conns_per_sec_ci95",
     "conn_handshake_p50_us",
     "conn_handshake_p99_us",
+    "perf_cycles",
+    "perf_instructions",
+    "perf_ipc",
+    "perf_cache_references",
+    "perf_cache_misses",
+    "perf_context_switches",
+    "perf_task_clock_ms",
+    "perf_duration_s",
 ];
 
 /// Per-run header for each scenario's `runs.csv`.
@@ -110,14 +118,16 @@ pub struct ScenarioOutcome {
 }
 
 /// Optional analysis artifacts attached to a recorded scenario: the calibration
-/// outcome, the saturation sweep (Phase D), the gateway CPU aggregate, and the
-/// effective-protocol scan (Phase E). All are absent for a plain loopback run,
-/// so each is an `Option`; `loss_threshold_pct` drives the `overloaded` flag.
+/// outcome, the saturation sweep (Phase D), gateway `/proc` CPU aggregates,
+/// optional `perf stat` counters, and the effective-protocol scan (Phase E).
+/// All are absent for a plain loopback run, so each is an `Option`;
+/// `loss_threshold_pct` drives the `overloaded` flag.
 #[derive(Clone, Copy, Default)]
 pub struct ScenarioArtifacts<'a> {
     pub cal: Option<&'a Calibration>,
     pub sweep: Option<&'a SweepResult>,
     pub sys: Option<&'a SysAgg>,
+    pub perf: Option<&'a PerfResult>,
     pub effective: Option<&'a Effective>,
     pub loss_threshold_pct: f64,
 }
@@ -164,9 +174,10 @@ impl ResultDir {
     /// Write a scenario's per-run artifacts and append its summary row.
     ///
     /// `art` bundles the optional calibration, saturation sweep (Phase D),
-    /// gateway CPU aggregate, and effective-protocol scan (Phase E). The sweep,
-    /// when present, is written as `saturation.csv`; `loss_threshold_pct` flags
-    /// the run as `overloaded` when its measured loss exceeds the budget.
+    /// gateway CPU aggregates, optional `perf stat` counters, and the
+    /// effective-protocol scan (Phase E). The sweep, when present, is written
+    /// as `saturation.csv`; `loss_threshold_pct` flags the run as `overloaded`
+    /// when its measured loss exceeds the budget.
     pub fn record_scenario(
         &mut self,
         scenario: &Scenario,
@@ -178,6 +189,7 @@ impl ResultDir {
             cal,
             sweep,
             sys,
+            perf,
             effective,
             loss_threshold_pct,
         } = *art;
@@ -210,6 +222,16 @@ impl ResultDir {
         let bottleneck_s = cal.map(|c| c.bottleneck.to_string()).unwrap_or_default();
         let (rtt_mean_s, rtt_ci_s, rtt_p50_s, rtt_p99_s) = rtt_cells(stats);
         let (cps_s, cps_ci_s, hs_p50_s, hs_p99_s) = conn_cells(stats);
+        let (
+            perf_cycles_s,
+            perf_instructions_s,
+            perf_ipc_s,
+            perf_cache_refs_s,
+            perf_cache_misses_s,
+            perf_ctx_switches_s,
+            perf_task_clock_s,
+            perf_duration_s,
+        ) = perf_cells(perf);
         self.summary.row(vec![
             scenario.name.clone(),
             transport,
@@ -249,6 +271,14 @@ impl ResultDir {
             cps_ci_s,
             hs_p50_s,
             hs_p99_s,
+            perf_cycles_s,
+            perf_instructions_s,
+            perf_ipc_s,
+            perf_cache_refs_s,
+            perf_cache_misses_s,
+            perf_ctx_switches_s,
+            perf_task_clock_s,
+            perf_duration_s,
         ]);
 
         self.outcomes.push(ScenarioOutcome {
@@ -294,6 +324,11 @@ impl ResultDir {
             .kv("started_utc", format_datetime(self.started_unix))
             .kv("scenarios_executed", executed.to_string())
             .kv("scenarios_skipped", skipped.to_string())
+            .kv(
+                "collect_system_metrics",
+                cfg.defaults.collect_system_metrics.to_string(),
+            )
+            .kv("metrics_backend", cfg.defaults.metrics_backend.label())
             .kv("host_wsl", host.wsl.to_string())
             .kv("ktls_usable", host.ktls_usable.to_string());
         meta.write(&self.root.join("meta.csv"))?;
@@ -324,7 +359,10 @@ fn scenario_config_csv(s: &Scenario, params: &RunParams) -> Csv {
         .kv("category", s.category.clone().unwrap_or_default())
         .kv("transport", params.sender.interface.label())
         .kv("protocol", s.protocol_label())
-        .kv("pattern", format!("{:?}", params.sender.pattern).to_lowercase())
+        .kv(
+            "pattern",
+            format!("{:?}", params.sender.pattern).to_lowercase(),
+        )
         .kv("message_bytes", params.message_bytes.to_string())
         .kv("payload_bytes", payload.to_string())
         .kv("connections", params.connections.to_string())
@@ -379,6 +417,32 @@ fn scenario_summary_csv(
             c.kv("gbps_per_core", num(thr.mean / (a.cpu_pct_peak / 100.0), 4));
         }
     }
+    if let Some(p) = art.perf {
+        if let Some(v) = p.cycles {
+            c.kv("perf_cycles", v.to_string());
+        }
+        if let Some(v) = p.instructions {
+            c.kv("perf_instructions", v.to_string());
+        }
+        if let Some(v) = p.ipc {
+            c.kv("perf_ipc", num(v, 3));
+        }
+        if let Some(v) = p.cache_references {
+            c.kv("perf_cache_references", v.to_string());
+        }
+        if let Some(v) = p.cache_misses {
+            c.kv("perf_cache_misses", v.to_string());
+        }
+        if let Some(v) = p.context_switches {
+            c.kv("perf_context_switches", v.to_string());
+        }
+        if let Some(v) = p.task_clock_ms {
+            c.kv("perf_task_clock_ms", num(v, 3));
+        }
+        if let Some(v) = p.duration_s {
+            c.kv("perf_duration_s", num(v, 6));
+        }
+    }
     if let Some(s) = art.sweep {
         c.kv("saturation_gbps", num(s.saturation_gbps, 4))
             .kv("max_lossfree_gbps", num(s.max_lossfree_gbps, 4))
@@ -412,12 +476,7 @@ fn rtt_cells(stats: &RunStats) -> (String, String, String, String) {
             num(r.p50_us, 3),
             num(r.p99_us, 3),
         ),
-        None => (
-            String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
-        ),
+        None => (String::new(), String::new(), String::new(), String::new()),
     }
 }
 
@@ -432,12 +491,7 @@ fn conn_cells(stats: &RunStats) -> (String, String, String, String) {
             num(c.handshake_p50_us, 3),
             num(c.handshake_p99_us, 3),
         ),
-        None => (
-            String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
-        ),
+        None => (String::new(), String::new(), String::new(), String::new()),
     }
 }
 
@@ -455,6 +509,47 @@ fn cpu_cells(sys: Option<&SysAgg>, throughput_gbps: f64) -> (String, String, Str
             (num(a.cpu_pct_peak, 1), num(a.cpu_pct_mean, 1), per_core)
         }
         None => (String::new(), String::new(), String::new()),
+    }
+}
+
+/// Perf-stat summary cells: raw counters plus IPC/task-clock/duration.
+fn perf_cells(
+    perf: Option<&PerfResult>,
+) -> (
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+) {
+    match perf {
+        Some(p) => (
+            p.cycles.map(|v| v.to_string()).unwrap_or_default(),
+            p.instructions.map(|v| v.to_string()).unwrap_or_default(),
+            p.ipc.map(|v| num(v, 3)).unwrap_or_default(),
+            p.cache_references
+                .map(|v| v.to_string())
+                .unwrap_or_default(),
+            p.cache_misses.map(|v| v.to_string()).unwrap_or_default(),
+            p.context_switches
+                .map(|v| v.to_string())
+                .unwrap_or_default(),
+            p.task_clock_ms.map(|v| num(v, 3)).unwrap_or_default(),
+            p.duration_s.map(|v| num(v, 6)).unwrap_or_default(),
+        ),
+        None => (
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
+        ),
     }
 }
 
@@ -489,12 +584,7 @@ fn calibration_cells(cal: Option<&Calibration>) -> (String, String, String, Stri
             c.harness_limited.to_string(),
             c.dut.to_string(),
         ),
-        None => (
-            String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
-        ),
+        None => (String::new(), String::new(), String::new(), String::new()),
     }
 }
 
@@ -544,10 +634,16 @@ fn sysinfo_csv(info: &SysInfo) -> Csv {
         .kv("cpu_model", info.cpu_model.clone())
         .kv("cpu_logical", info.cpu_logical.to_string())
         .kv("cpu_physical", opt(info.cpu_physical))
-        .kv("cpu_mhz", info.cpu_mhz.map(|v| num(v, 1)).unwrap_or_default())
+        .kv(
+            "cpu_mhz",
+            info.cpu_mhz.map(|v| num(v, 1)).unwrap_or_default(),
+        )
         .kv("governor", info.governor.clone().unwrap_or_default())
         .kv("smt", opt(info.smt))
-        .kv("isolated_cpus", info.isolated_cpus.clone().unwrap_or_default())
+        .kv(
+            "isolated_cpus",
+            info.isolated_cpus.clone().unwrap_or_default(),
+        )
         .kv("mem_total_kb", opt(info.mem_total_kb))
         .kv("thp", info.thp.clone().unwrap_or_default())
         .kv("ktls", info.ktls.to_string())
@@ -622,6 +718,23 @@ fn civil_from_unix(unix_secs: u64) -> (i64, u32, u32, u32, u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::metrics::stats::Summary;
+    use crate::run::engine::{RunMode, RunStats};
+
+    fn empty_run_stats() -> RunStats {
+        RunStats {
+            runs: Vec::new(),
+            throughput_gbps: Summary::empty(),
+            latency_mean_us: Summary::empty(),
+            latency_p99_us: Summary::empty(),
+            handshake_us: Summary::empty(),
+            total_lost: 0,
+            loss_pct: 0.0,
+            mode: RunMode::Throughput,
+            rtt: None,
+            conn: None,
+        }
+    }
 
     #[test]
     fn timestamp_epoch_is_known() {
@@ -629,15 +742,43 @@ mod tests {
         assert_eq!(format_timestamp(0), "19700101-000000");
         // 1_700_000_000 → 2023-11-14 22:13:20 UTC (verified externally).
         assert_eq!(format_timestamp(1_700_000_000), "20231114-221320");
-        assert_eq!(
-            format_datetime(1_700_000_000),
-            "2023-11-14 22:13:20 UTC"
-        );
+        assert_eq!(format_datetime(1_700_000_000), "2023-11-14 22:13:20 UTC");
     }
 
     #[test]
     fn sanitize_keeps_safe_chars() {
         assert_eq!(sanitize("perf_tcp-1.4KB"), "perf_tcp-1.4KB");
         assert_eq!(sanitize("a/b c:d"), "a_b_c_d");
+    }
+
+    #[test]
+    fn scenario_summary_includes_perf_metrics() {
+        let stats = empty_run_stats();
+        let perf = PerfResult {
+            cycles: Some(123),
+            instructions: Some(456),
+            ipc: Some(3.5),
+            cache_references: Some(789),
+            cache_misses: Some(12),
+            context_switches: Some(34),
+            task_clock_ms: Some(56.789),
+            duration_s: Some(1.234567),
+        };
+
+        let csv = scenario_summary_csv(
+            &stats,
+            &ScenarioArtifacts {
+                perf: Some(&perf),
+                ..Default::default()
+            },
+            false,
+            "ktls/1.3",
+        )
+        .render();
+
+        assert!(csv.contains("perf_cycles,123\r\n"));
+        assert!(csv.contains("perf_instructions,456\r\n"));
+        assert!(csv.contains("perf_ipc,3.500\r\n"));
+        assert!(csv.contains("perf_duration_s,1.234567\r\n"));
     }
 }

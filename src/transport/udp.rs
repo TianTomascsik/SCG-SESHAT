@@ -11,7 +11,9 @@ use std::io;
 use std::net::{SocketAddr, UdpSocket};
 use std::os::unix::io::AsRawFd;
 
-use super::{BatchOutcome, DataSink, DataSource, DuplexEnd, RecvOutcome, Transport, RECV_POLL_TIMEOUT};
+use super::{
+    BatchOutcome, DataSink, DataSource, DuplexEnd, RecvOutcome, Transport, RECV_POLL_TIMEOUT,
+};
 
 /// UDP transport factory.
 pub struct UdpTransport;
@@ -126,8 +128,7 @@ impl DataSink for UdpSink {
         }
         // SAFETY: fd is a valid datagram socket; hdrs/iovecs outlive the call
         // and describe `msgs.len()` messages.
-        let ret =
-            unsafe { libc::sendmmsg(fd, hdrs.as_mut_ptr(), hdrs.len() as libc::c_uint, 0) };
+        let ret = unsafe { libc::sendmmsg(fd, hdrs.as_mut_ptr(), hdrs.len() as libc::c_uint, 0) };
         if ret < 0 {
             let e = io::Error::last_os_error();
             // A full socket buffer on a blocking socket is transient: report 0
@@ -153,8 +154,7 @@ impl DataSource for UdpSource {
         match self.sock.recv(buf) {
             Ok(n) => Ok(RecvOutcome::Message(n)),
             Err(e)
-                if e.kind() == io::ErrorKind::WouldBlock
-                    || e.kind() == io::ErrorKind::TimedOut =>
+                if e.kind() == io::ErrorKind::WouldBlock || e.kind() == io::ErrorKind::TimedOut =>
             {
                 Ok(RecvOutcome::Timeout)
             }

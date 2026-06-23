@@ -447,8 +447,12 @@ pub fn build_path(
 
     let mut encrypt =
         spec.apply_encrypt(RuleConfig::new("seshat-encrypt", "encrypt", &ingress, &mid));
-    let mut decrypt =
-        spec.apply_decrypt(RuleConfig::new("seshat-decrypt", "decrypt", &mid, backend_addr));
+    let mut decrypt = spec.apply_decrypt(RuleConfig::new(
+        "seshat-decrypt",
+        "decrypt",
+        &mid,
+        backend_addr,
+    ));
 
     // Apply per-direction proto overrides for asymmetric paths (ALE/RAW).
     if let Some(lp) = &spec.encrypt_listen_proto {
@@ -563,11 +567,8 @@ pub fn start_path(
     let mut processes = Vec::with_capacity(plan.gateways.len());
     for named in plan.gateways.iter().rev() {
         let config = ensure_readiness_api(&named.config, work_dir);
-        let mut proc =
-            GatewayProcess::spawn(binary, &config, work_dir, &named.label, "info")?;
-        if !gateway_cores.is_empty()
-            && !crate::run::affinity::pin_pid(proc.pid(), gateway_cores)
-        {
+        let mut proc = GatewayProcess::spawn(binary, &config, work_dir, &named.label, "info")?;
+        if !gateway_cores.is_empty() && !crate::run::affinity::pin_pid(proc.pid(), gateway_cores) {
             log::warn!(
                 "could not pin gateway '{}' (pid {}) to cores {:?}",
                 named.label,
@@ -743,7 +744,9 @@ mod tests {
 
         let addr = ingress.to_socket_addrs().unwrap().next().unwrap();
         let mut client = TcpStream::connect_timeout(&addr, Duration::from_secs(2)).unwrap();
-        client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        client
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
         client.write_all(b"ping").unwrap();
         client.flush().unwrap();
         let mut resp = [0u8; 4];
@@ -772,10 +775,8 @@ mod tests {
 
     fn run_tls_roundtrip(topology: Topology) {
         let _guard = gateway_test_guard();
-        let work_dir = std::env::temp_dir().join(format!(
-            "seshat-gw-tls-{}-{topology:?}",
-            std::process::id()
-        ));
+        let work_dir =
+            std::env::temp_dir().join(format!("seshat-gw-tls-{}-{topology:?}", std::process::id()));
         let Some(binary) = find_routing_capable_binary(&work_dir) else {
             eprintln!("skip: no modern gateway binary available");
             let _ = std::fs::remove_dir_all(&work_dir);

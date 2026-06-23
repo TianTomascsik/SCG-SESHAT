@@ -101,7 +101,11 @@ impl SysInfo {
         if let Some(mhz) = self.cpu_mhz {
             console::kv("Frequency", &format!("{mhz:.0} MHz"), 12);
         }
-        console::kv("Governor", self.governor.as_deref().unwrap_or("unknown"), 12);
+        console::kv(
+            "Governor",
+            self.governor.as_deref().unwrap_or("unknown"),
+            12,
+        );
         console::kv("SMT/HT", fmt_bool(self.smt), 12);
         console::kv(
             "Isolated",
@@ -123,7 +127,11 @@ impl SysInfo {
         console::kv("kTLS", &ktls, 12);
         console::kv("io_uring", fmt_bool(self.io_uring), 12);
         if self.wsl {
-            console::kv("Platform", &console::yellow("WSL (kTLS offload unavailable)"), 12);
+            console::kv(
+                "Platform",
+                &console::yellow("WSL (kTLS offload unavailable)"),
+                12,
+            );
         }
         console::end_rule();
 

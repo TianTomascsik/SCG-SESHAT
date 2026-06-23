@@ -58,7 +58,7 @@ fi
 
 # Perf backend
 if [[ "$PERF" == true ]]; then
-  EXTRA_ARGS+=(--no-system-metrics)  # We'll use perf instead
+  EXTRA_ARGS+=(--metrics-backend perf)
 fi
 
 # ─── Colors ──────────────────────────────────────────────────────────────────

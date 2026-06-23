@@ -88,20 +88,14 @@ pub fn inject_invalid_reload(
 }
 
 /// Add a UDS endpoint via the gRPC management API (zero-drop hot-add).
-pub fn inject_add_endpoint(
-    mgmt: &MgmtClient,
-    app_id: &str,
-) -> Result<u32, String> {
+pub fn inject_add_endpoint(mgmt: &MgmtClient, app_id: &str) -> Result<u32, String> {
     use crate::gateway::grpc_client::{Direction, TrafficClass};
     let ep = mgmt.create_uds(app_id, TrafficClass::Normal, Direction::Encrypt)?;
     Ok(ep.endpoint_id)
 }
 
 /// Remove an endpoint via the gRPC management API.
-pub fn inject_remove_endpoint(
-    mgmt: &MgmtClient,
-    endpoint_id: u32,
-) -> Result<(), String> {
+pub fn inject_remove_endpoint(mgmt: &MgmtClient, endpoint_id: u32) -> Result<(), String> {
     mgmt.close_endpoint(endpoint_id)
 }
 

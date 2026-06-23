@@ -106,10 +106,7 @@ mod tests {
 
     #[test]
     fn ktls_requested_without_warning_is_active() {
-        let (dir, log) = write_log(
-            "active",
-            "[enc] TLS listener ready\n[enc] relay started\n",
-        );
+        let (dir, log) = write_log("active", "[enc] TLS listener ready\n[enc] relay started\n");
         let eff = scan_effective(&[log], true);
         assert!(eff.kernel_requested);
         assert!(eff.kernel_active);

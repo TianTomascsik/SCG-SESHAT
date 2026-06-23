@@ -132,6 +132,18 @@ pub enum MetricsBackend {
     None,
 }
 
+impl MetricsBackend {
+    /// Stable lowercase label used in CLI output and result metadata.
+    pub fn label(self) -> &'static str {
+        match self {
+            MetricsBackend::Procfs => "procfs",
+            MetricsBackend::Perf => "perf",
+            MetricsBackend::Ebpf => "ebpf",
+            MetricsBackend::None => "none",
+        }
+    }
+}
+
 /// Traffic mode for a scenario (Phases F & G). `throughput` is the default
 /// open-loop blast/pace; `pingpong` is the closed-loop request/echo round-trip
 /// that reports RTT; `connrate` churns fresh connections and reports

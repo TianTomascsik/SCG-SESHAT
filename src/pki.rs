@@ -100,8 +100,24 @@ pub fn generate_mtls_bundle(dir: &Path, days: u32) -> io::Result<CaBundle> {
         "keyUsage=critical,keyCertSign,cRLSign",
     ])?;
 
-    let server = sign_leaf(dir, "server", "localhost", &ca_cert, &ca_key, "serverAuth", &days)?;
-    let client = sign_leaf(dir, "client", "seshat-client", &ca_cert, &ca_key, "clientAuth", &days)?;
+    let server = sign_leaf(
+        dir,
+        "server",
+        "localhost",
+        &ca_cert,
+        &ca_key,
+        "serverAuth",
+        &days,
+    )?;
+    let client = sign_leaf(
+        dir,
+        "client",
+        "seshat-client",
+        &ca_cert,
+        &ca_key,
+        "clientAuth",
+        &days,
+    )?;
     Ok(CaBundle {
         ca_cert,
         server,

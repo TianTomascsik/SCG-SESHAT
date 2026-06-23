@@ -110,8 +110,7 @@ impl GatewayShmTransport {
         let backend_addr = format!("127.0.0.1:{}", gateway::reserve_local_port()?);
         let plan = gateway::build_path(spec, topology, &backend_addr)?;
 
-        let running =
-            gateway::start_path(&plan, binary, work_dir, READY_TIMEOUT, gateway_cores)?;
+        let running = gateway::start_path(&plan, binary, work_dir, READY_TIMEOUT, gateway_cores)?;
 
         let mgmt_socket = running.mgmt_socket_path().ok_or_else(|| {
             io::Error::other("gateway has no management socket path for SHM provisioning")
