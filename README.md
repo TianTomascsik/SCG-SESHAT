@@ -139,6 +139,71 @@ Ready-made configs ship in [`configs/`](configs):
 
 ---
 
+## Benchmark matrix and measurements
+
+[`run_all.sh`](run_all.sh) is the canonical non-overlapping execution plan. It
+runs `full_suite`, `latency`, `saturation`, `pingpong`, and `connrate`—not
+`gateway_smoke` or `full_matrix`, because those focused suites duplicate shapes
+already covered by the canonical plan. At present this schedules **57 enabled
+scenarios** (42 in the full feature suite, plus 5 latency, 4 saturation, 4
+loopback RTT, and 2 connection-rate scenarios). The runner rejects duplicate
+enabled benchmark shapes before it starts a run when `jq` is available.
+
+### What is measured
+
+| Measurement | How it is driven | Primary result |
+| --- | --- | --- |
+| Baseline throughput | Direct TCP or UDP loopback, without SCG | Harness ceiling used to identify harness-limited runs |
+| Gateway throughput and one-way latency | Sustained or paced framed traffic through one or two real gateway processes | Gbit/s, latency percentiles, jitter, loss/duplicates/reordering |
+| Sub-saturation latency | Periodic, rate-limited traffic kept below the saturation knee | One-way latency without queueing/bufferbloat dominating the result |
+| Saturation | Increasing offered-load sweep for each path | Loss-free ceiling, saturation knee, and headroom |
+| Round-trip time | Closed-loop request/echo with one message in flight | RTT percentiles and samples |
+| Connection establishment | TCP connect/accept/close churn across configurable connector threads | Connections/second and handshake latency percentiles |
+| Multi-stream QoS | Concurrent safety and bulk streams with DSCP/traffic-class settings | Per-stream throughput/latency/loss, Jain fairness, and safety-starvation verdict |
+| Reliability and reload | Traffic continues while an endpoint is added/removed or a configuration reload is triggered | Drop count and continuity verdict during the event |
+| System resource use | Samples attached gateway PIDs during every gateway-backed run | CPU, RSS, context switches, I/O; `--perf` additionally records cycles, instructions, IPC, cache references/misses, syscalls, task-clock, and elapsed time |
+
+`perf` metrics are collected only when `--perf` is explicitly requested and the
+host can attach `perf stat`; the runner fails rather than publishing a report
+with blank requested hardware counters.
+
+### Full feature suite coverage
+
+The exact definitions live in [`configs/full_suite.json`](configs/full_suite.json).
+The groups below make the scenario names and intent visible at a glance.
+
+| Coverage | Scenarios |
+| --- | --- |
+| Loopback baselines | `baseline_tcp_loopback_1KB`, `baseline_tcp_loopback_64KB`, `baseline_udp_loopback_1400B` |
+| TCP routing, topology, and optimization | `scg_routing_tcp_4KB`, `scg_routing_tcp_4KB_zerocopy`, `scg_routing_tcp_scgscg_4KB`, `scg_routing_tcp_256conn`, `scg_ktls13_tcp_4KB`, `scg_ktls13_tcp_4KB_zerocopy` |
+| TLS and security profiles | `scg_tls12_tcp_4KB`, `scg_tls13_tcp_4KB`, `scg_tls13_tcp_scgscg_4KB`, `scg_mtls13_tcp_4KB`, `scg_integrity_tls12_tcp_4KB`, `scg_subset146_pki_tls12_tcp_4KB`, `scg_subset146_psk_tls12_tcp_4KB` |
+| DTLS and UDP-over-TLS applications | `scg_dtls12_udp_1400B`, `scg_dtls12_mtls_udp_1400B`, `scg_ale_udp_over_tls13_1400B`, `scg_raw_udp_over_tls13_1400B` |
+| Local interfaces | `scg_uds_routing_4KB`, `scg_uds_tls13_4KB`, `scg_shm_routing_4KB`, `scg_shm_routing_4KB_spinwait` |
+| Transparent proxy | `scg_tproxy_tls13_4KB` (requires `CAP_NET_ADMIN`) |
+| Payload and connection scaling | TLS 1.3 TCP at 64B, 256B, 1KB, 4KB, 16KB, and 64KB (`scg_tls13_tcp_*`); plus `scg_tls13_tcp_1024conn` and the routing 256-connection case above |
+| Gateway RTT | `scg_tls13_pingpong_rtt_1KB`, `scg_routing_pingpong_rtt_1KB` |
+| Scheduling and DSCP | `multistream_safety_bulk`, `multistream_dscp_preservation` |
+| Hot reload | `hotreload_add_remove_endpoint`, `hotreload_invalid_config_rollback`, `hotreload_tls_profile_update` |
+| Virtual topology and impairment | `scg_routing_veth_4KB`, `scg_tls13_netns_4KB`, `scg_routing_netem_50ms_4KB`, `scg_routing_netem_1pct_loss_4KB` (all require `CAP_NET_ADMIN`) |
+
+Four entries are deliberately disabled, so they cannot be mistaken for tested
+coverage: `scg_dtls12_udp_4conn` (the DTLS transport has one shared backend
+flow), `scg_tls13_connrate` (gateway connection-rate mode is not implemented),
+`wireguard_tcp_4KB`, and `ipsec_ikev2_tcp_4KB` (SCG provider stubs). A missing
+gateway binary, `openssl`, or required privileges produces a recorded skip
+rather than a fabricated result.
+
+### Focused suites
+
+| Suite | Scenarios and purpose |
+| --- | --- |
+| [`latency.json`](configs/latency.json) | `lat_tcp_loopback_1KB`, `lat_udp_loopback_1KB`, `lat_scg_routing_tcp_1KB`, `lat_scg_tls13_tcp_1KB`, `lat_scg_dtls12_udp_1KB`: paced one-way latency comparisons |
+| [`saturation.json`](configs/saturation.json) | `sat_tcp_loopback_1KB`, `sat_udp_loopback_1KB`, `sat_scg_routing_tcp_1KB`, `sat_scg_dtls12_udp_1KB`: offered-load sweeps and loss-free ceilings |
+| [`pingpong.json`](configs/pingpong.json) | `pp_tcp_loopback_64B`, `pp_tcp_loopback_1KB`, `pp_udp_loopback_64B`, `pp_udp_loopback_1KB`: loopback closed-loop RTT controls |
+| [`connrate.json`](configs/connrate.json) | `conn_tcp_loopback_1thread`, `conn_tcp_loopback_4thread`: TCP connection/handshake rate controls |
+
+---
+
 ## CLI reference
 
 ```
