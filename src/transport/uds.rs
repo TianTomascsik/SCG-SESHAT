@@ -81,7 +81,7 @@ impl DataSource for UdsSource {
 /// interface, provisioned via the gRPC management API.
 pub struct GatewayUdsTransport {
     name: &'static str,
-    mgmt_socket: PathBuf,
+    pub(crate) mgmt_socket: PathBuf,
     app_id: String,
     running: Option<RunningPath>,
 }
@@ -102,13 +102,87 @@ impl GatewayUdsTransport {
         gateway_cores: &[usize],
         app_id: &str,
     ) -> io::Result<Self> {
+        use crate::gateway::config::{ApiConfig, GatewayConfig, RuleConfig};
+        use crate::gateway::NamedGateway;
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static UDS_MGMT_ID: AtomicU64 = AtomicU64::new(0);
+
         std::fs::create_dir_all(work_dir)?;
 
-        // For UDS transport, the gateway rules use listen_proto=uds. The backend
-        // address is unused (UDS traffic goes through the local interface, not a
-        // TCP upstream). We set a dummy backend address.
-        let backend_addr = format!("127.0.0.1:{}", gateway::reserve_local_port()?);
-        let plan = gateway::build_path(spec, topology, &backend_addr)?;
+        let uid = unsafe { libc::getuid() };
+
+        // Build UDS rules: the gateway needs `listen_proto: "uds"` rules with an
+        // `app_id` so that the management API can create endpoints for this app.
+        // A dummy upstream_addr is still needed for the security pipeline.
+        // NB: apply_encrypt/apply_decrypt call .proto() which resets listen_proto,
+        // so we must set listen_proto("uds") AFTER applying the security spec.
+        let upstream_addr = format!("127.0.0.1:{}", gateway::reserve_local_port()?);
+        let encrypt = spec.apply_encrypt(
+            RuleConfig::new("seshat-encrypt", "encrypt", "unused", &upstream_addr)
+                .app_id(app_id)
+                .traffic_class("normal")
+                .allowed_uid(uid),
+        ).listen_proto("uds");
+        let decrypt = spec.apply_decrypt(
+            RuleConfig::new("seshat-decrypt", "decrypt", "unused", &upstream_addr)
+                .app_id(app_id)
+                .traffic_class("normal")
+                .allowed_uid(uid),
+        ).listen_proto("uds");
+
+        // Build plan with API config (required for UDS endpoint provisioning).
+        let id = UDS_MGMT_ID.fetch_add(1, Ordering::Relaxed);
+        let runtime_dir = std::env::temp_dir().join(format!("scg-uds-{}-{id}", std::process::id()));
+        std::fs::create_dir_all(&runtime_dir)?;
+        let sock = runtime_dir.join("mgmt.sock");
+        let api = ApiConfig::new(
+            &sock.to_string_lossy(),
+            &runtime_dir.to_string_lossy(),
+            1024 * 1024,
+        );
+
+        let gateways = match topology {
+            Topology::SingleGateway => vec![NamedGateway {
+                label: "scg".to_string(),
+                config: GatewayConfig::new(vec![encrypt, decrypt])
+                    .log_level("info")
+                    .allow_all()
+                    .api(api),
+            }],
+            Topology::ScgToScg => {
+                let id2 = UDS_MGMT_ID.fetch_add(1, Ordering::Relaxed);
+                let runtime_dir2 = std::env::temp_dir().join(format!("scg-uds-{}-{id2}", std::process::id()));
+                std::fs::create_dir_all(&runtime_dir2)?;
+                let sock2 = runtime_dir2.join("mgmt.sock");
+                let api2 = ApiConfig::new(
+                    &sock2.to_string_lossy(),
+                    &runtime_dir2.to_string_lossy(),
+                    1024 * 1024,
+                );
+                vec![
+                    NamedGateway {
+                        label: "scg-a".to_string(),
+                        config: GatewayConfig::new(vec![encrypt])
+                            .log_level("info")
+                            .allow_all()
+                            .api(api),
+                    },
+                    NamedGateway {
+                        label: "scg-b".to_string(),
+                        config: GatewayConfig::new(vec![decrypt])
+                            .log_level("info")
+                            .allow_all()
+                            .api(api2),
+                    },
+                ]
+            }
+        };
+
+        let plan = gateway::PathPlan {
+            ingress_addr: "unused".to_string(),
+            backend_addr: upstream_addr,
+            gateways,
+        };
 
         let running = gateway::start_path(&plan, binary, work_dir, READY_TIMEOUT, gateway_cores)?;
 

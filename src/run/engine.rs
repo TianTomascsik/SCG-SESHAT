@@ -145,6 +145,12 @@ pub struct ConnSummary {
     pub handshake_p99_us: f64,
     /// Total connections established across all runs.
     pub total_conns: u64,
+    /// Mean latency of the first (full/cold) handshake per connector (µs).
+    /// Useful for measuring session-resumption speedup vs cold starts.
+    pub first_handshake_us: f64,
+    /// Mean latency of subsequent (potentially resumed) handshakes (µs).
+    /// Compared with `first_handshake_us` to quantify resumption benefit.
+    pub resumed_handshake_us: f64,
 }
 
 /// Receiver worker: record during MEASURE, validate-and-discard otherwise.
@@ -580,10 +586,14 @@ where
     F: FnMut(usize, &FlowSummary),
 {
     let mut runs = Vec::with_capacity(params.runs);
+    let mut first_hs_all = Vec::with_capacity(params.runs);
+    let mut resumed_hs_all = Vec::with_capacity(params.runs);
     for i in 0..params.runs.max(1) {
-        let summary = run_once_connrate(transport, params)?;
+        let (summary, first_us, resumed_us) = run_once_connrate(transport, params)?;
         on_run(i, &summary);
         runs.push(summary);
+        first_hs_all.push(first_us);
+        resumed_hs_all.push(resumed_us);
     }
 
     let rate: Vec<f64> = runs.iter().map(|r| r.message_rate).collect();
@@ -594,12 +604,26 @@ where
     let total_conns: u64 = runs.iter().map(|r| r.messages).sum();
     let rate_summary = stats::summarize(&rate);
     let hs_mean = stats::summarize(&hs_mean_v);
+
+    let first_hs_mean = if first_hs_all.is_empty() {
+        0.0
+    } else {
+        first_hs_all.iter().sum::<f64>() / first_hs_all.len() as f64
+    };
+    let resumed_hs_mean = if resumed_hs_all.is_empty() {
+        0.0
+    } else {
+        resumed_hs_all.iter().sum::<f64>() / resumed_hs_all.len() as f64
+    };
+
     let conn = ConnSummary {
         conns_per_sec: rate_summary.mean,
         conns_per_sec_ci95: rate_summary.ci95,
         handshake_p50_us: stats::summarize(&hs_p50).mean,
         handshake_p99_us: stats::summarize(&hs_p99).mean,
         total_conns,
+        first_handshake_us: first_hs_mean,
+        resumed_handshake_us: resumed_hs_mean,
     };
 
     Ok(RunStats {
@@ -622,7 +646,10 @@ where
 /// `connections` connector threads that churn fresh connections, drive the
 /// phase clock, then pool the per-connector handshake samples into one
 /// [`FlowSummary`] whose `message_rate` is the connection rate.
-fn run_once_connrate(transport: &dyn Transport, params: &RunParams) -> io::Result<FlowSummary> {
+///
+/// Returns `(summary, first_handshake_us, resumed_handshake_us)` for session-
+/// resumption analysis (C3).
+fn run_once_connrate(transport: &dyn Transport, params: &RunParams) -> io::Result<(FlowSummary, f64, f64)> {
     let (acceptor, factory) = transport.conn_harness(params.message_bytes)?;
     let phase = Arc::new(AtomicU8::new(PHASE_WARMUP));
     let stop = Arc::new(AtomicBool::new(false));
@@ -650,19 +677,38 @@ fn run_once_connrate(transport: &dyn Transport, params: &RunParams) -> io::Resul
     phase.store(PHASE_DONE, Ordering::Relaxed);
 
     let mut metrics = Vec::with_capacity(client_handles.len());
+    let mut first_hs_samples = Vec::new();
+    let mut resumed_hs_samples = Vec::new();
     for h in client_handles {
-        if let Ok(m) = h.join() {
+        if let Ok((m, first, resumed)) = h.join() {
             metrics.push(m);
+            if let Some(ns) = first {
+                first_hs_samples.push(ns as f64 / 1000.0);
+            }
+            if let Some(ns) = resumed {
+                resumed_hs_samples.push(ns as f64 / 1000.0);
+            }
         }
     }
     // Connectors are done; stop draining and reclaim the acceptor thread.
     stop.store(true, Ordering::Relaxed);
     let _ = acc_handle.join();
 
-    Ok(app::aggregate_run(
-        &metrics,
-        measure_secs,
-        params.remove_outliers,
+    let first_us = if first_hs_samples.is_empty() {
+        0.0
+    } else {
+        first_hs_samples.iter().sum::<f64>() / first_hs_samples.len() as f64
+    };
+    let resumed_us = if resumed_hs_samples.is_empty() {
+        0.0
+    } else {
+        resumed_hs_samples.iter().sum::<f64>() / resumed_hs_samples.len() as f64
+    };
+
+    Ok((
+        app::aggregate_run(&metrics, measure_secs, params.remove_outliers),
+        first_us,
+        resumed_us,
     ))
 }
 
@@ -674,12 +720,14 @@ fn connrate_client_loop(
     factory: Arc<dyn ConnFactory>,
     phase: Arc<AtomicU8>,
     cores: Vec<usize>,
-) -> FlowMetrics {
+) -> (FlowMetrics, Option<u64>, Option<u64>) {
     if !cores.is_empty() {
         affinity::pin_current_thread(&cores);
     }
     let mut metrics = FlowMetrics::with_capacity(4096);
     let mut seq = 0u64;
+    let mut first_hs_ns: Option<u64> = None;
+    let mut second_hs_ns: Option<u64> = None;
     loop {
         let p = phase.load(Ordering::Relaxed);
         if p == PHASE_DONE {
@@ -689,13 +737,19 @@ fn connrate_client_loop(
             Ok(handshake_ns) => {
                 if p == PHASE_MEASURE {
                     metrics.record(seq, handshake_ns, 0);
+                    // Track first vs second handshake for resumption analysis.
+                    if first_hs_ns.is_none() {
+                        first_hs_ns = Some(handshake_ns);
+                    } else if second_hs_ns.is_none() {
+                        second_hs_ns = Some(handshake_ns);
+                    }
                     seq = seq.wrapping_add(1);
                 }
             }
             Err(_) => thread::sleep(Duration::from_micros(50)),
         }
     }
-    metrics
+    (metrics, first_hs_ns, second_hs_ns)
 }
 
 /// Estimate how many messages a run will record, to pre-size buffers.

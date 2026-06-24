@@ -124,6 +124,10 @@ Ready-made configs ship in [`configs/`](configs):
   suite (performance, scheduling, a disabled WireGuard example).
 - [`configs/full_matrix.json`](configs/full_matrix.json) — every
   protocol/transport/topology path SESHAT can currently drive end-to-end.
+- [`configs/full_suite.json`](configs/full_suite.json) — all features: UDS, SHM,
+  TPROXY, ALE/RAW, hot-reload, veth/netns topology, tc-netem impairment,
+  optimization flags (zero_copy, spin_wait), multi-stream DSCP scheduling,
+  session-resumption connrate, and disabled WireGuard/IPSec stubs.
 - [`configs/latency.json`](configs/latency.json) — **paced** sub-saturation
   one-way latency (periodic senders, so buffers stay empty).
 - [`configs/saturation.json`](configs/saturation.json) — offered-load sweeps
@@ -297,6 +301,8 @@ Additional columns surface the later improvements:
 | `bottleneck` | Calibration verdict: `harness-io`, `scg`, … (who limited the result) |
 | `rtt_us_mean/ci95/p50/p99` | Closed-loop round-trip time (populated only for `pingpong` scenarios) |
 | `conns_per_sec`, `conns_per_sec_ci95`, `conn_handshake_p50_us`, `conn_handshake_p99_us` | Connection rate + handshake latency (populated only for `connrate` scenarios) |
+| `conn_first_handshake_us`, `conn_resumed_handshake_us` | Session-resumption analysis: first (cold) vs subsequent (potentially resumed) TLS handshake latency |
+| `perf_syscalls` | System calls during the scenario (from `raw_syscalls:sys_enter` tracepoint via `perf stat`) |
 
 Each `runs.csv` adds the full latency percentile spread
 (`p50/p90/p95/p99/p999/min/max`) and duplicate/reordered/outlier counts. For

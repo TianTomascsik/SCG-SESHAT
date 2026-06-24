@@ -315,6 +315,19 @@ fn validate_addr(interface: Interface, addr: &str, ctx: &str, r: &mut ScenarioRe
                     .push(format!("{ctx}: shm address must be 'shm:///<name>'"));
             }
         }
+        Interface::Tproxy => {
+            // TPROXY uses a standard TCP address for the redirect target.
+            if addr.parse::<SocketAddr>().is_err() {
+                let ok = addr
+                    .rsplit_once(':')
+                    .map(|(host, port)| !host.is_empty() && port.parse::<u16>().is_ok())
+                    .unwrap_or(false);
+                if !ok {
+                    r.errors
+                        .push(format!("{ctx}: tproxy address must be a valid host:port"));
+                }
+            }
+        }
     }
 }
 

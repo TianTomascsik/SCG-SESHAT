@@ -761,6 +761,7 @@ mod tests {
             cache_references: Some(789),
             cache_misses: Some(12),
             context_switches: Some(34),
+            syscalls: None,
             task_clock_ms: Some(56.789),
             duration_s: Some(1.234567),
         };

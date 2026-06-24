@@ -113,6 +113,11 @@ pub trait DataSource: Send {
             RecvOutcome::Closed => Ok(BatchOutcome::Closed),
         }
     }
+    /// Return the underlying OS file descriptor, if applicable. Used for
+    /// DSCP/TOS verification via `recvmsg` ancillary data.
+    fn raw_fd(&self) -> Option<i32> {
+        None
+    }
     /// Release the underlying resource.
     fn close(&mut self);
 }

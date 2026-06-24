@@ -86,7 +86,7 @@ impl DataSource for ShmSource {
 /// local interface, provisioned via the gRPC management API.
 pub struct GatewayShmTransport {
     name: &'static str,
-    mgmt_socket: PathBuf,
+    pub(crate) mgmt_socket: PathBuf,
     app_id: String,
     ring_capacity: u64,
     running: Option<RunningPath>,
@@ -105,10 +105,89 @@ impl GatewayShmTransport {
         app_id: &str,
         ring_capacity: u64,
     ) -> io::Result<Self> {
+        use crate::gateway::config::{ApiConfig, GatewayConfig, RuleConfig};
+        use crate::gateway::NamedGateway;
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static SHM_MGMT_ID: AtomicU64 = AtomicU64::new(0);
+
         std::fs::create_dir_all(work_dir)?;
 
-        let backend_addr = format!("127.0.0.1:{}", gateway::reserve_local_port()?);
-        let plan = gateway::build_path(spec, topology, &backend_addr)?;
+        let uid = unsafe { libc::getuid() };
+        let shm_ring = if ring_capacity == 0 {
+            DEFAULT_RING_CAPACITY as usize
+        } else {
+            ring_capacity as usize
+        };
+
+        // Build SHM rules: listen_proto="shm" with app_id and allowed_uids.
+        // apply_encrypt/apply_decrypt reset listen_proto, so set it after.
+        let upstream_addr = format!("127.0.0.1:{}", gateway::reserve_local_port()?);
+        let encrypt = spec.apply_encrypt(
+            RuleConfig::new("seshat-encrypt", "encrypt", "unused", &upstream_addr)
+                .app_id(app_id)
+                .traffic_class("normal")
+                .allowed_uid(uid),
+        ).listen_proto("shm");
+        let decrypt = spec.apply_decrypt(
+            RuleConfig::new("seshat-decrypt", "decrypt", "unused", &upstream_addr)
+                .app_id(app_id)
+                .traffic_class("normal")
+                .allowed_uid(uid),
+        ).listen_proto("shm");
+
+        // Build plan with API config (required for SHM endpoint provisioning).
+        let id = SHM_MGMT_ID.fetch_add(1, Ordering::Relaxed);
+        let runtime_dir = std::env::temp_dir().join(format!("scg-shm-{}-{id}", std::process::id()));
+        std::fs::create_dir_all(&runtime_dir)?;
+        let sock = runtime_dir.join("mgmt.sock");
+        let api = ApiConfig::new(
+            &sock.to_string_lossy(),
+            &runtime_dir.to_string_lossy(),
+            shm_ring,
+        );
+
+        let gateways = match topology {
+            Topology::SingleGateway => vec![NamedGateway {
+                label: "scg".to_string(),
+                config: GatewayConfig::new(vec![encrypt, decrypt])
+                    .log_level("info")
+                    .allow_all()
+                    .api(api),
+            }],
+            Topology::ScgToScg => {
+                let id2 = SHM_MGMT_ID.fetch_add(1, Ordering::Relaxed);
+                let runtime_dir2 = std::env::temp_dir().join(format!("scg-shm-{}-{id2}", std::process::id()));
+                std::fs::create_dir_all(&runtime_dir2)?;
+                let sock2 = runtime_dir2.join("mgmt.sock");
+                let api2 = ApiConfig::new(
+                    &sock2.to_string_lossy(),
+                    &runtime_dir2.to_string_lossy(),
+                    shm_ring,
+                );
+                vec![
+                    NamedGateway {
+                        label: "scg-a".to_string(),
+                        config: GatewayConfig::new(vec![encrypt])
+                            .log_level("info")
+                            .allow_all()
+                            .api(api),
+                    },
+                    NamedGateway {
+                        label: "scg-b".to_string(),
+                        config: GatewayConfig::new(vec![decrypt])
+                            .log_level("info")
+                            .allow_all()
+                            .api(api2),
+                    },
+                ]
+            }
+        };
+
+        let plan = gateway::PathPlan {
+            ingress_addr: "unused".to_string(),
+            backend_addr: upstream_addr,
+            gateways,
+        };
 
         let running = gateway::start_path(&plan, binary, work_dir, READY_TIMEOUT, gateway_cores)?;
 
@@ -116,17 +195,11 @@ impl GatewayShmTransport {
             io::Error::other("gateway has no management socket path for SHM provisioning")
         })?;
 
-        let capacity = if ring_capacity == 0 {
-            DEFAULT_RING_CAPACITY
-        } else {
-            ring_capacity
-        };
-
         Ok(GatewayShmTransport {
             name,
             mgmt_socket,
             app_id: app_id.to_string(),
-            ring_capacity: capacity,
+            ring_capacity: shm_ring as u64,
             running: Some(running),
         })
     }

@@ -185,6 +185,7 @@ declare -A CONFIG_DESC
 CONFIGS=(
   configs/gateway_smoke.json
   configs/full_matrix.json
+  configs/full_suite.json
   configs/latency.json
   configs/saturation.json
   configs/pingpong.json
@@ -193,6 +194,7 @@ CONFIGS=(
 CONFIG_DESC=(
   [configs/gateway_smoke.json]="Quick smoke test (routing + TLS baseline)"
   [configs/full_matrix.json]="Full protocol/transport matrix (throughput)"
+  [configs/full_suite.json]="All features: UDS/SHM/TPROXY/ALE/topology/hot-reload/optimization"
   [configs/latency.json]="Paced sub-saturation one-way latency"
   [configs/saturation.json]="Offered-load sweep (find loss-free ceiling)"
   [configs/pingpong.json]="Closed-loop round-trip time"

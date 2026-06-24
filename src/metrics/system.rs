@@ -105,6 +105,8 @@ pub struct PerfResult {
     pub cache_misses: Option<u64>,
     /// Context switches (perf-counted, may differ from /proc).
     pub context_switches: Option<u64>,
+    /// System calls (raw_syscalls:sys_enter tracepoint or syscalls event).
+    pub syscalls: Option<u64>,
     /// Task-clock in milliseconds.
     pub task_clock_ms: Option<f64>,
     /// Wall-clock duration in seconds.
@@ -141,7 +143,7 @@ impl PerfSampler {
             .arg(&pid_list)
             .args([
                 "-e",
-                "cycles,instructions,cache-references,cache-misses,context-switches,task-clock",
+                "cycles,instructions,cache-references,cache-misses,context-switches,raw_syscalls:sys_enter,task-clock",
                 "--log-fd",
                 "2",
             ])
@@ -227,6 +229,8 @@ fn parse_perf_output(path: &std::path::Path) -> PerfResult {
             result.cache_misses = value_str.parse().ok();
         } else if label.contains("context-switches") || label.contains("cs") {
             result.context_switches = value_str.parse().ok();
+        } else if label.contains("raw_syscalls:sys_enter") || label.contains("syscalls") {
+            result.syscalls = value_str.parse().ok();
         } else if label.contains("task-clock") {
             // task-clock is in ms (float format: "123.456 msec task-clock")
             result.task_clock_ms = parts[0].replace(',', "").parse().ok();

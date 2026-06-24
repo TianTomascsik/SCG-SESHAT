@@ -137,6 +137,10 @@ pub struct SecuritySpec {
     pub encrypt_upstream_proto: Option<String>,
     pub decrypt_listen_proto: Option<String>,
     pub decrypt_upstream_proto: Option<String>,
+    /// Enable zero-copy relay path (splice/sendfile). Only valid for routing/kTLS.
+    pub zero_copy: bool,
+    /// SHM ring busy-poll microseconds before blocking (0 = immediate block).
+    pub spin_wait_us: u64,
 }
 
 impl SecuritySpec {
@@ -164,6 +168,8 @@ impl SecuritySpec {
             encrypt_upstream_proto: None,
             decrypt_listen_proto: None,
             decrypt_upstream_proto: None,
+            zero_copy: false,
+            spin_wait_us: 0,
         }
     }
 
@@ -193,6 +199,8 @@ impl SecuritySpec {
             encrypt_upstream_proto: None,
             decrypt_listen_proto: None,
             decrypt_upstream_proto: None,
+            zero_copy: false,
+            spin_wait_us: 0,
         }
     }
 
@@ -223,6 +231,8 @@ impl SecuritySpec {
             encrypt_upstream_proto: None,
             decrypt_listen_proto: None,
             decrypt_upstream_proto: None,
+            zero_copy: false,
+            spin_wait_us: 0,
         }
     }
 
@@ -253,6 +263,8 @@ impl SecuritySpec {
             encrypt_upstream_proto: None,
             decrypt_listen_proto: None,
             decrypt_upstream_proto: None,
+            zero_copy: false,
+            spin_wait_us: 0,
         }
     }
 
@@ -283,6 +295,8 @@ impl SecuritySpec {
             encrypt_upstream_proto: None,
             decrypt_listen_proto: None,
             decrypt_upstream_proto: None,
+            zero_copy: false,
+            spin_wait_us: 0,
         }
     }
 
@@ -333,6 +347,13 @@ impl SecuritySpec {
         self
     }
 
+    /// Apply optimization flags from the scenario config (F1/F2).
+    pub fn with_optimizations(mut self, flags: &crate::config::schema::OptimizationFlags) -> Self {
+        self.zero_copy = flags.zero_copy;
+        self.spin_wait_us = flags.spin_wait_us.unwrap_or(0);
+        self
+    }
+
     /// Apply common provider/transport settings shared by both directions.
     fn apply_common(&self, mut rule: RuleConfig) -> RuleConfig {
         rule = rule
@@ -360,12 +381,15 @@ impl SecuritySpec {
         if let Some(v) = &self.ciphersuites {
             rule = rule.param("ciphersuites", v.clone());
         }
+        // Optimization flags (F1/F2).
+        rule.zero_copy = self.zero_copy;
+        rule.spin_wait_us = self.spin_wait_us;
         rule
     }
 
     /// Build the encrypt rule (TLS client side: trusts the peer, optionally
     /// presents a client identity for mutual auth).
-    fn apply_encrypt(&self, rule: RuleConfig) -> RuleConfig {
+    pub(crate) fn apply_encrypt(&self, rule: RuleConfig) -> RuleConfig {
         let mut rule = self.apply_common(rule);
         // Client-side verification is decided per direction (it differs from the
         // server's `verify`): verify the server only when we both trust a CA and
@@ -396,7 +420,7 @@ impl SecuritySpec {
 
     /// Build the decrypt rule (TLS server side: presents an identity, optionally
     /// verifies the client against the CA for mutual auth).
-    fn apply_decrypt(&self, rule: RuleConfig) -> RuleConfig {
+    pub(crate) fn apply_decrypt(&self, rule: RuleConfig) -> RuleConfig {
         let mut rule = self.apply_common(rule);
         // Server-side verification policy (`none` | `server` | `mutual`).
         if let Some(v) = &self.verify {

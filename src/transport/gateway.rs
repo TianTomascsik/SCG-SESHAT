@@ -329,12 +329,16 @@ impl Transport for GatewayUdpTransport {
 }
 
 /// A started gateway data-plane transport: TCP (routing / TLS / mTLS /
-/// integrity-only) or UDP (DTLS). Wraps the concrete transports so the run
-/// wiring can sample PIDs and shut down uniformly while still handing the engine
-/// a `&dyn Transport`.
+/// integrity-only), UDP (DTLS), UDS (gRPC-provisioned), SHM
+/// (gRPC-provisioned ring buffer), or TPROXY (transparent interception).
+/// Wraps the concrete transports so the run wiring can sample PIDs and shut
+/// down uniformly while still handing the engine a `&dyn Transport`.
 pub enum GatewayDut {
     Tcp(GatewayTcpTransport),
     Udp(GatewayUdpTransport),
+    Uds(super::uds::GatewayUdsTransport),
+    Shm(super::shm::GatewayShmTransport),
+    Tproxy(super::tproxy::TproxyTransport),
 }
 
 impl GatewayDut {
@@ -343,6 +347,9 @@ impl GatewayDut {
         match self {
             Self::Tcp(t) => t,
             Self::Udp(t) => t,
+            Self::Uds(t) => t,
+            Self::Shm(t) => t,
+            Self::Tproxy(t) => t,
         }
     }
 
@@ -351,6 +358,9 @@ impl GatewayDut {
         match self {
             Self::Tcp(t) => t.pids(),
             Self::Udp(t) => t.pids(),
+            Self::Uds(t) => t.pids(),
+            Self::Shm(t) => t.pids(),
+            Self::Tproxy(t) => t.pids(),
         }
     }
 
@@ -359,6 +369,9 @@ impl GatewayDut {
         match self {
             Self::Tcp(t) => t.log_paths(),
             Self::Udp(t) => t.log_paths(),
+            Self::Uds(t) => t.log_paths(),
+            Self::Shm(t) => t.log_paths(),
+            Self::Tproxy(t) => t.log_paths(),
         }
     }
 
@@ -367,6 +380,9 @@ impl GatewayDut {
         match self {
             Self::Tcp(t) => t.shutdown(),
             Self::Udp(t) => t.shutdown(),
+            Self::Uds(t) => t.shutdown(),
+            Self::Shm(t) => t.shutdown(),
+            Self::Tproxy(t) => t.shutdown(),
         }
     }
 
@@ -383,6 +399,7 @@ impl GatewayDut {
                 .as_ref()
                 .map(|r| r.config_paths())
                 .unwrap_or_default(),
+            Self::Uds(_) | Self::Shm(_) | Self::Tproxy(_) => Vec::new(),
         }
     }
 
@@ -391,6 +408,18 @@ impl GatewayDut {
         match self {
             Self::Tcp(t) => t.running.as_ref().and_then(|r| r.first_process()),
             Self::Udp(t) => t.running.as_ref().and_then(|r| r.first_process()),
+            Self::Uds(_) | Self::Shm(_) | Self::Tproxy(_) => None,
+        }
+    }
+
+    /// Management socket path for gRPC operations (hot-reload add/remove).
+    pub fn mgmt_socket_path(&self) -> Option<PathBuf> {
+        match self {
+            Self::Tcp(t) => t.running.as_ref().and_then(|r| r.mgmt_socket_path()),
+            Self::Udp(t) => t.running.as_ref().and_then(|r| r.mgmt_socket_path()),
+            Self::Uds(t) => Some(t.mgmt_socket.clone()),
+            Self::Shm(t) => Some(t.mgmt_socket.clone()),
+            Self::Tproxy(_) => None,
         }
     }
 }

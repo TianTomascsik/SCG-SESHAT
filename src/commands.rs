@@ -9,8 +9,9 @@ use crate::cli::{
     SetupArgs, SysinfoArgs, SysinfoFormat, TeardownArgs, TopologyKind, ValidateArgs,
 };
 use crate::config::{
-    self, Config, Defaults, GatewayChain, Interface, MetricsBackend, Mode, OutlierRemoval,
-    ProtectionMode, ProtocolType, Scenario, TlsVersion, TopologyMode, ValidationReport,
+    self, AppProtocol, Config, Defaults, GatewayChain, Interface, MetricsBackend, Mode,
+    OutlierRemoval, ProtectionMode, ProtocolType, Scenario, TlsVersion, TopologyMode,
+    ValidationReport,
 };
 use crate::console;
 use crate::gateway::logscan::{self, Effective};
@@ -25,6 +26,8 @@ use crate::run::calibrate::{self, Calibration};
 use crate::run::engine::{self, RunMode, RunParams, RunStats};
 use crate::run::saturation::{self, SweepPlan, SweepResult};
 use crate::transport::gateway::{GatewayDut, GatewayTcpTransport, GatewayUdpTransport};
+use crate::transport::shm::GatewayShmTransport;
+use crate::transport::uds::GatewayUdsTransport;
 use crate::transport::{tcp::TcpTransport, udp::UdpTransport, Transport};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -292,8 +295,8 @@ fn loopback_transport(s: &Scenario) -> Option<Box<dyn Transport>> {
     match sender.interface {
         Interface::Tcp => Some(Box::new(TcpTransport)),
         Interface::Udp => Some(Box::new(UdpTransport)),
-        // unix/shm endpoints are provisioned by the gateway (Phase 2).
-        Interface::Unix | Interface::Shm => None,
+        // UDS/SHM/TPROXY require the gateway.
+        Interface::Unix | Interface::Shm | Interface::Tproxy => None,
     }
 }
 
@@ -321,16 +324,123 @@ struct GatewayPlan {
     transport_name: &'static str,
 }
 
-/// Decide whether a scenario can be driven through the gateway in this slice and
-/// how. Returns `None` for paths still pending later work packages (UDS/SHM,
-/// DTLS/UDP, WireGuard/IPSec, or a non-loopback network topology).
-fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
-    if !s.gateway.enabled
-        || s.network_impairment.is_some()
-        || s.topology.mode != TopologyMode::Loopback
+/// Map a scenario's protocol configuration to the appropriate `GwSecurity`. Used
+/// by interface-agnostic dispatch (UDS, SHM) where the transport is orthogonal
+/// to the security layer.
+fn resolve_security(s: &Scenario) -> GwSecurity {
+    if s.protocol.kind == ProtocolType::None
+        || s.protocol.protection_mode == ProtectionMode::RoutingOnly
     {
+        return GwSecurity::Routing;
+    }
+    match s.protocol.kind {
+        ProtocolType::Tls => {
+            let version = match s.protocol.version {
+                TlsVersion::V1_2 => "tls1.2",
+                TlsVersion::V1_3 => "tls1.3",
+            };
+            let ktls = s.protocol.kernel;
+            if s.protocol.protection_mode == ProtectionMode::IntegrityOnly {
+                GwSecurity::IntegrityOnly { version }
+            } else if s.protocol.mutual_auth {
+                GwSecurity::Mtls { version, ktls }
+            } else {
+                GwSecurity::Tls { version, ktls }
+            }
+        }
+        ProtocolType::Dtls => {
+            let mutual = s.protocol.mutual_auth;
+            GwSecurity::Dtls {
+                version: "dtls1.2",
+                mutual,
+            }
+        }
+        _ => GwSecurity::Routing,
+    }
+}
+
+/// Build a `SecuritySpec` for multi-stream scenarios. Uses routing by default
+/// (each stream routes through the same gateway rules), but honors the scenario-
+/// level protocol selection when specified.
+fn build_multistream_spec(
+    plan: &GatewayPlan,
+    scenario: &Scenario,
+    work_dir: &Path,
+) -> Result<SecuritySpec, Box<dyn std::error::Error>> {
+    let spec = match plan.security {
+        GwSecurity::Routing => SecuritySpec::routing_tcp(),
+        GwSecurity::Tls { version, ktls } => {
+            if !crate::pki::openssl_available() {
+                return Err("openssl unavailable for multi-stream TLS".into());
+            }
+            let id = crate::pki::generate_self_signed(work_dir, 2)?;
+            let mut s = SecuritySpec::tls_server(version, &id.cert, &id.key);
+            if ktls {
+                s = s.provider("ktls");
+            }
+            s
+        }
+        GwSecurity::Mtls { version, ktls } => {
+            if !crate::pki::openssl_available() {
+                return Err("openssl unavailable for multi-stream mTLS".into());
+            }
+            let bundle = crate::pki::generate_mtls_bundle(work_dir, 2)?;
+            let mut s = SecuritySpec::tls_mutual(version, &bundle);
+            if ktls {
+                s = s.provider("ktls");
+            }
+            s
+        }
+        GwSecurity::IntegrityOnly { version } => {
+            if !crate::pki::openssl_available() {
+                return Err("openssl unavailable for multi-stream integrity-only".into());
+            }
+            let id = crate::pki::generate_self_signed(work_dir, 2)?;
+            SecuritySpec::tls_server(version, &id.cert, &id.key).with_profile("integrity-only")
+        }
+        GwSecurity::Dtls { version, mutual } => {
+            if !crate::pki::openssl_available() {
+                return Err("openssl unavailable for multi-stream DTLS".into());
+            }
+            if mutual {
+                let bundle = crate::pki::generate_mtls_bundle(work_dir, 2)?;
+                SecuritySpec::dtls_mutual(version, &bundle)
+            } else {
+                let id = crate::pki::generate_self_signed(work_dir, 2)?;
+                SecuritySpec::dtls_server(version, &id.cert, &id.key)
+            }
+        }
+    };
+
+    // Apply cipher/PSK from scenario-level protocol config.
+    let spec = if let Some(ref cipher) = scenario.protocol.cipher_suite {
+        spec.with_cipher_list(cipher).with_ciphersuites(cipher)
+    } else {
+        spec
+    };
+    let spec = match (&scenario.protocol.psk_identity, &scenario.protocol.psk_hex) {
+        (Some(identity), Some(hex_key)) => spec.with_psk(identity, hex_key),
+        _ => spec,
+    };
+    let spec = if let Some(ref profile) = scenario.protocol.profile {
+        spec.with_profile(profile)
+    } else {
+        spec
+    };
+    Ok(spec)
+}
+
+/// Decide whether a scenario can be driven through the gateway in this slice and
+/// how. Returns `None` for paths still pending later work packages (WireGuard/
+/// IPSec).
+fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
+    if !s.gateway.enabled {
         return None;
     }
+
+    // Non-loopback topologies and network impairment are allowed; they require
+    // CAP_NET_ADMIN which is checked at runtime (the scenario is skipped with a
+    // warning if capabilities are missing).
 
     // Multi-stream and hot-reload scenarios are handled by dedicated execution
     // paths; they still need a gateway plan to know the security/topology.
@@ -361,7 +471,7 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
     // DTLS runs over UDP datagrams. The two-rule path converges every flow onto
     // one backend address, so it models a single logical flow only.
     if s.protocol.kind == ProtocolType::Dtls {
-        if sender.interface != Interface::Udp || s.connections.max(1) > 1 {
+        if sender.interface != Interface::Udp {
             return None;
         }
         // The gateway's DTLS provider tops out at DTLS 1.2; map 1.3 down.
@@ -374,9 +484,65 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
         });
     }
 
+    // UDS/SHM endpoints are provisioned via the gateway's gRPC management API.
+    // They only support routing (the crypto is handled gateway-internally
+    // regardless of the interface).
+    if sender.interface == Interface::Unix {
+        return Some(GatewayPlan {
+            security: resolve_security(s),
+            topology,
+            transport_name: "scg-uds",
+        });
+    }
+    if sender.interface == Interface::Shm {
+        return Some(GatewayPlan {
+            security: resolve_security(s),
+            topology,
+            transport_name: "scg-shm",
+        });
+    }
+
+    // TPROXY transparent interception. Requires CAP_NET_ADMIN; the transport
+    // will skip gracefully at runtime if capabilities are absent.
+    if sender.interface == Interface::Tproxy {
+        return Some(GatewayPlan {
+            security: resolve_security(s),
+            topology,
+            transport_name: "scg-tproxy",
+        });
+    }
+
+    // UDP-over-TLS (ALE/RAW framing): tunnels UDP datagrams through a TLS TCP
+    // stream using the gateway's `ale` or `raw` app_protocol.
+    if sender.interface == Interface::Udp && s.protocol.kind == ProtocolType::Tls {
+        if s.protocol.app_protocol == AppProtocol::None {
+            // Plain UDP through TLS needs an explicit framing protocol.
+            return None;
+        }
+        let version = match s.protocol.version {
+            TlsVersion::V1_2 => "tls1.2",
+            TlsVersion::V1_3 => "tls1.3",
+        };
+        let ktls = s.protocol.kernel;
+        let mutual = s.protocol.mutual_auth;
+        let security = if mutual {
+            GwSecurity::Mtls { version, ktls }
+        } else {
+            GwSecurity::Tls { version, ktls }
+        };
+        let transport_name = match s.protocol.app_protocol {
+            AppProtocol::Ale => "scg-udp-ale",
+            AppProtocol::Raw => "scg-udp-raw",
+            AppProtocol::None => unreachable!(),
+        };
+        return Some(GatewayPlan {
+            security,
+            topology,
+            transport_name,
+        });
+    }
+
     if sender.interface != Interface::Tcp {
-        // UDS/SHM gateway endpoints and the UDP-over-TLS (ALE/RAW) paths land in
-        // later work packages.
         return None;
     }
 
@@ -478,6 +644,106 @@ fn run_gateway_scenario(
     let work_dir = rdir.root().join("gateway").join(sanitize(&scenario.name));
     std::fs::create_dir_all(&work_dir)?;
 
+    // Provision non-loopback topology if requested (E1).
+    let _provisioned_topology = match scenario.topology.mode {
+        TopologyMode::Loopback => None,
+        TopologyMode::Veth => {
+            match crate::topology::setup_veth(
+                &scenario.topology.left_ip,
+                &scenario.topology.right_ip,
+                scenario.topology.subnet_mask,
+            ) {
+                Ok(topo) => Some(topo),
+                Err(e) => {
+                    log::warn!(
+                        "scenario '{}': veth topology setup failed ({e}); skipping",
+                        scenario.name
+                    );
+                    return Ok(false);
+                }
+            }
+        }
+        TopologyMode::Netns => {
+            match crate::topology::setup_netns(
+                &scenario.topology.left_namespace,
+                &scenario.topology.right_namespace,
+                &scenario.topology.left_ip,
+                &scenario.topology.right_ip,
+                scenario.topology.subnet_mask,
+            ) {
+                Ok(topo) => Some(topo),
+                Err(e) => {
+                    log::warn!(
+                        "scenario '{}': netns topology setup failed ({e}); skipping",
+                        scenario.name
+                    );
+                    return Ok(false);
+                }
+            }
+        }
+        _ => {
+            log::warn!(
+                "scenario '{}': topology mode {:?} not yet supported; skipping",
+                scenario.name,
+                scenario.topology.mode
+            );
+            return Ok(false);
+        }
+    };
+
+    // Apply network impairment via tc netem if configured (E2).
+    let _applied_impairment = if let Some(ref imp) = scenario.network_impairment {
+        if imp.enabled {
+            use crate::topology::impair::{self, Impairment};
+            let netem = Impairment {
+                delay_ms: if imp.latency_ms > 0.0 {
+                    Some(imp.latency_ms as u32)
+                } else {
+                    None
+                },
+                jitter_ms: if imp.jitter_ms > 0.0 {
+                    Some(imp.jitter_ms as u32)
+                } else {
+                    None
+                },
+                loss_pct: if imp.loss_percent > 0.0 {
+                    Some(imp.loss_percent)
+                } else {
+                    None
+                },
+                bandwidth_mbit: if imp.bandwidth_limit_mbps > 0 {
+                    Some(imp.bandwidth_limit_mbps)
+                } else {
+                    None
+                },
+                reorder_pct: if imp.reorder_percent > 0.0 {
+                    Some(imp.reorder_percent)
+                } else {
+                    None
+                },
+                duplicate_pct: if imp.duplicate_percent > 0.0 {
+                    Some(imp.duplicate_percent)
+                } else {
+                    None
+                },
+            };
+            match impair::apply_impairment(&imp.apply_to, &netem) {
+                Ok(applied) => Some(applied),
+                Err(e) => {
+                    log::warn!(
+                        "scenario '{}': network impairment setup failed ({e}); skipping",
+                        scenario.name
+                    );
+                    return Ok(false);
+                }
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     let spec = match plan.security {
         GwSecurity::Routing => SecuritySpec::routing_tcp(),
         GwSecurity::Tls { version, ktls } => {
@@ -539,15 +805,113 @@ fn run_gateway_scenario(
         }
     };
 
+    // Apply cipher/PSK overrides from the scenario protocol config.
+    let spec = if let Some(ref cipher) = scenario.protocol.cipher_suite {
+        spec.with_cipher_list(cipher).with_ciphersuites(cipher)
+    } else {
+        spec
+    };
+
+    // Apply PSK if configured (subset146-psk).
+    let spec = match (&scenario.protocol.psk_identity, &scenario.protocol.psk_hex) {
+        (Some(identity), Some(hex_key)) => spec.with_psk(identity, hex_key),
+        _ => spec,
+    };
+
+    // Apply named profile override (e.g. subset146-pki, integrity-only).
+    let spec = if let Some(ref profile) = scenario.protocol.profile {
+        spec.with_profile(profile)
+    } else {
+        spec
+    };
+
+    // Apply ALE/RAW asymmetric framing for UDP-over-TLS scenarios.
+    let spec = match scenario.protocol.app_protocol {
+        AppProtocol::Ale => spec.with_asymmetric_ale("ale"),
+        AppProtocol::Raw => spec.with_asymmetric_ale("raw"),
+        AppProtocol::None => spec,
+    };
+
+    // Apply optimization flags (F1 zero_copy, F2 spin_wait_us).
+    let spec = spec.with_optimizations(&scenario.optimization_flags);
+
     let params = build_run_params(scenario, defaults, cores);
     render_scenario_header(scenario, &params, plan.transport_name);
 
-    // DTLS runs over UDP datagrams; everything else over TCP. Both wrap into a
-    // `GatewayDut` so PID sampling, the run engine, and shutdown stay uniform.
-    // The gateway is pinned to its own core pool so it never contends with the
-    // harness sender/receiver.
+    // DTLS runs over UDP datagrams; UDS/SHM use gRPC-provisioned local
+    // endpoints; everything else over TCP. All wrap into a `GatewayDut` so PID
+    // sampling, the run engine, and shutdown stay uniform. The gateway is pinned
+    // to its own core pool so it never contends with the harness sender/receiver.
     let is_udp = matches!(plan.security, GwSecurity::Dtls { .. });
-    let dut = if is_udp {
+    let is_uds = plan.transport_name == "scg-uds";
+    let is_shm = plan.transport_name == "scg-shm";
+    let is_tproxy = plan.transport_name == "scg-tproxy";
+    let is_ale_raw = matches!(
+        plan.transport_name,
+        "scg-udp-ale" | "scg-udp-raw"
+    );
+
+    let dut = if is_uds {
+        let app_id = format!("seshat-{}", sanitize(&scenario.name));
+        match GatewayUdsTransport::start(
+            plan.transport_name,
+            &spec,
+            plan.topology,
+            binary,
+            &work_dir,
+            &cores.gateway,
+            &app_id,
+        ) {
+            Ok(t) => GatewayDut::Uds(t),
+            Err(e) => {
+                log::warn!(
+                    "scenario '{}': UDS gateway failed to start ({e}); skipping",
+                    scenario.name
+                );
+                return Ok(false);
+            }
+        }
+    } else if is_shm {
+        let app_id = format!("seshat-{}", sanitize(&scenario.name));
+        match GatewayShmTransport::start(
+            plan.transport_name,
+            &spec,
+            plan.topology,
+            binary,
+            &work_dir,
+            &cores.gateway,
+            &app_id,
+            1024 * 1024, // default 1 MiB ring capacity
+        ) {
+            Ok(t) => GatewayDut::Shm(t),
+            Err(e) => {
+                log::warn!(
+                    "scenario '{}': SHM gateway failed to start ({e}); skipping",
+                    scenario.name
+                );
+                return Ok(false);
+            }
+        }
+    } else if is_tproxy {
+        use crate::transport::tproxy::TproxyTransport;
+        match TproxyTransport::start(plan.transport_name, binary, &work_dir) {
+            Ok(t) => GatewayDut::Tproxy(t),
+            Err(e) => {
+                if e.kind() == std::io::ErrorKind::PermissionDenied {
+                    log::warn!(
+                        "scenario '{}': TPROXY requires CAP_NET_ADMIN; skipping",
+                        scenario.name
+                    );
+                } else {
+                    log::warn!(
+                        "scenario '{}': TPROXY gateway failed to start ({e}); skipping",
+                        scenario.name
+                    );
+                }
+                return Ok(false);
+            }
+        }
+    } else if is_udp || is_ale_raw {
         match GatewayUdpTransport::start(
             plan.transport_name,
             &spec,
@@ -760,9 +1124,9 @@ fn run_multistream_scenario(
     let work_dir = rdir.root().join("gateway").join(sanitize(&scenario.name));
     std::fs::create_dir_all(&work_dir)?;
 
-    // Start the gateway with a routing config (each stream gets its own
-    // connection through the same rule set).
-    let spec = SecuritySpec::routing_tcp();
+    // Build the gateway SecuritySpec from the plan (respects per-scenario
+    // protocol selection instead of always hardcoding routing).
+    let spec = build_multistream_spec(plan, scenario, &work_dir)?;
     let dut = match GatewayTcpTransport::start(
         plan.transport_name,
         &spec,
@@ -1091,21 +1455,97 @@ fn run_hotreload_scenario(
     let reload_fired = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let reload_fired_clone = reload_fired.clone();
 
-    // Timer thread: sleep until trigger point, then SIGHUP.
+    // Timer thread: sleep until trigger point, then execute the reload action.
     let config_path = config_paths.first().cloned();
     let pid_for_reload = gw_pid;
+    let action = reload_event.action;
+    let mgmt_socket = dut.mgmt_socket_path();
     let _reload_thread = std::thread::spawn(move || {
+        use crate::config::ReloadAction;
         std::thread::sleep(reload_trigger_dur);
-        if let (Some(path), Some(pid)) = (config_path, pid_for_reload) {
-            // Re-write the same config (simulates a no-op reload that still
-            // exercises the full reload code path in the gateway).
-            let _ = unsafe { libc::kill(pid, libc::SIGHUP) };
-            log::info!(
-                "hot-reload: SIGHUP sent to gateway (pid={pid}) at {}s",
-                trigger_secs
-            );
-            let _ = path; // config_path available for future swap variants
+
+        match action {
+            ReloadAction::AddConnection | ReloadAction::RemoveConnection => {
+                // gRPC-based reload: add or remove a UDS endpoint mid-run.
+                if let Some(mgmt_path) = mgmt_socket {
+                    use crate::gateway::grpc_client::{Direction, MgmtClient, TrafficClass};
+                    let mgmt = MgmtClient::new(&mgmt_path);
+                    match action {
+                        ReloadAction::AddConnection => {
+                            match mgmt.create_uds(
+                                "hotreload-probe",
+                                TrafficClass::Normal,
+                                Direction::Encrypt,
+                            ) {
+                                Ok(ep) => {
+                                    log::info!(
+                                        "hot-reload: added endpoint via gRPC at {}s",
+                                        trigger_secs
+                                    );
+                                    // Close it after a brief pause to exercise remove.
+                                    std::thread::sleep(Duration::from_millis(500));
+                                    let _ = mgmt.close_endpoint(ep.endpoint_id);
+                                }
+                                Err(e) => {
+                                    log::warn!("hot-reload: gRPC add_connection failed: {e}");
+                                }
+                            }
+                        }
+                        ReloadAction::RemoveConnection => {
+                            // Create then immediately remove — exercises the close path.
+                            match mgmt.create_uds(
+                                "hotreload-remove",
+                                TrafficClass::Normal,
+                                Direction::Encrypt,
+                            ) {
+                                Ok(ep) => {
+                                    let _ = mgmt.close_endpoint(ep.endpoint_id);
+                                    log::info!(
+                                        "hot-reload: removed endpoint via gRPC at {}s",
+                                        trigger_secs
+                                    );
+                                }
+                                Err(e) => {
+                                    log::warn!("hot-reload: gRPC remove_connection failed: {e}");
+                                }
+                            }
+                        }
+                        _ => unreachable!(),
+                    }
+                } else {
+                    log::warn!("hot-reload: no management socket for gRPC reload");
+                }
+            }
+            ReloadAction::InvalidConfig => {
+                // Write an invalid config and SIGHUP — gateway should reject and keep running.
+                if let (Some(path), Some(pid)) = (&config_path, pid_for_reload) {
+                    let backup = std::fs::read_to_string(path).ok();
+                    let _ = std::fs::write(path, "{ invalid json!!!");
+                    let _ = unsafe { libc::kill(pid, libc::SIGHUP) };
+                    log::info!(
+                        "hot-reload: pushed invalid config + SIGHUP at {}s (expect rollback)",
+                        trigger_secs
+                    );
+                    // Restore valid config after a brief delay so subsequent scenarios work.
+                    std::thread::sleep(Duration::from_millis(500));
+                    if let Some(valid) = backup {
+                        let _ = std::fs::write(path, valid);
+                    }
+                }
+            }
+            ReloadAction::UpdateTlsProfile | ReloadAction::RotateCert => {
+                // Config-swap + SIGHUP: new connections get new config.
+                if let (Some(_path), Some(pid)) = (config_path, pid_for_reload) {
+                    let _ = unsafe { libc::kill(pid, libc::SIGHUP) };
+                    log::info!(
+                        "hot-reload: SIGHUP sent to gateway (pid={pid}) at {}s (action={:?})",
+                        trigger_secs,
+                        action
+                    );
+                }
+            }
         }
+
         reload_fired_clone.store(true, std::sync::atomic::Ordering::Relaxed);
     });
 

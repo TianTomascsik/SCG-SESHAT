@@ -8,6 +8,7 @@
 
 use std::io::{self, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::os::unix::io::AsRawFd;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -138,6 +139,10 @@ impl DataSource for TcpSource {
     fn recv_msg(&mut self, buf: &mut [u8]) -> io::Result<RecvOutcome> {
         let stream = &mut self.stream;
         self.reader.next_message(buf, |dst| stream.read(dst))
+    }
+
+    fn raw_fd(&self) -> Option<i32> {
+        Some(self.stream.as_raw_fd())
     }
 
     fn close(&mut self) {

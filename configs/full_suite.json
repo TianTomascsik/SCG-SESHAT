@@ -1,0 +1,527 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG Full Feature Suite",
+    "description": "Complete interface × protocol × mode × topology matrix. Exercises all newly-wired paths: UDS, SHM, TPROXY, ALE/RAW UDP-over-TLS, DSCP priority streams, hot-reload, optimization flags (zero_copy/spin_wait), network impairment, and multi-topology (veth/netns). WireGuard and IPSec scenarios are disabled (reason documented). Privileged tests (TPROXY, netns, netem) will be skipped with a warning when CAP_NET_ADMIN is unavailable.",
+    "author": "SESHAT",
+    "version": "2.0.0"
+  },
+  "defaults": {
+    "runs": 3,
+    "duration_secs": 5,
+    "warmup_secs": 2,
+    "cooldown_secs": 1,
+    "cpu_affinity_sender": [],
+    "cpu_affinity_receiver": [],
+    "scg_process_name": "gateway",
+    "collect_system_metrics": true,
+    "metrics_backend": "perf",
+    "metrics_sample_rate_hz": 10,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "baseline_tcp_loopback_1KB",
+      "category": "baseline",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12000", "pattern": "sustained" }
+    },
+    {
+      "name": "baseline_tcp_loopback_64KB",
+      "category": "baseline",
+      "message_size_bytes": 65536,
+      "connections": 4,
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12001", "pattern": "sustained" }
+    },
+    {
+      "name": "baseline_udp_loopback_1400B",
+      "category": "baseline",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:12010", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_routing_tcp_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12020", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_routing_tcp_4KB_zerocopy",
+      "category": "optimization",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "zero_copy": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12021", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_routing_tcp_scgscg_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-scg" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12022", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_routing_tcp_256conn",
+      "category": "scalability",
+      "message_size_bytes": 1024,
+      "connections": 256,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12023", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_tls12_tcp_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.2" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12030", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_tls13_tcp_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12031", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_tls13_tcp_scgscg_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-scg" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12032", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_ktls13_tcp_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12033", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_ktls13_tcp_4KB_zerocopy",
+      "category": "optimization",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "optimization_flags": { "zero_copy": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12034", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_mtls13_tcp_4KB",
+      "category": "protocol",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "mutual_auth": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12035", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_integrity_tls12_tcp_4KB",
+      "category": "protocol",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.2", "protection_mode": "integrity-only" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12036", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_subset146_pki_tls12_tcp_4KB",
+      "category": "protocol",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.2", "mutual_auth": true, "profile": "subset146-pki" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12037", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_subset146_psk_tls12_tcp_4KB",
+      "category": "protocol",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.2", "psk_identity": "seshat-test", "psk_hex": "deadbeef01020304deadbeef01020304", "profile": "subset146-psk" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12038", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_dtls12_udp_1400B",
+      "category": "performance",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "dtls", "version": "1.2" },
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:12040", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_dtls12_mtls_udp_1400B",
+      "category": "protocol",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "dtls", "version": "1.2", "mutual_auth": true },
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:12041", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_dtls12_udp_4conn",
+      "category": "scalability",
+      "message_size_bytes": 1400,
+      "connections": 4,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "dtls", "version": "1.2" },
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:12042", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_uds_routing_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "unix", "target_addr": "/tmp/seshat-uds-bench.sock", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_uds_tls13_4KB",
+      "category": "protocol",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "unix", "target_addr": "/tmp/seshat-uds-tls.sock", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_shm_routing_4KB",
+      "category": "performance",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-shm-bench", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_shm_routing_4KB_spinwait",
+      "category": "optimization",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "spin_wait": true, "spin_wait_us": 100 },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-shm-spin", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_tproxy_tls13_4KB",
+      "category": "protocol",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tproxy", "target_addr": "127.0.0.1:12060", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_ale_udp_over_tls13_1400B",
+      "category": "protocol",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "app_protocol": "ale" },
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:12070", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_raw_udp_over_tls13_1400B",
+      "category": "protocol",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "app_protocol": "raw" },
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:12071", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_tls13_pingpong_rtt_1KB",
+      "category": "latency",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12080", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_routing_pingpong_rtt_1KB",
+      "category": "latency",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12081", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_tls13_connrate",
+      "category": "scalability",
+      "mode": "connrate",
+      "message_size_bytes": 64,
+      "connections": 4,
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12090", "pattern": "sustained" }
+    },
+
+    {
+      "name": "multistream_safety_bulk",
+      "category": "scheduling",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:12100",
+          "message_size_bytes": 256,
+          "pattern": "periodic",
+          "interval_us": 200,
+          "priority": { "dscp_tag": "EF", "traffic_class": "safety" },
+          "protocol": { "type": "tls", "version": "1.3" }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:12100",
+          "message_size_bytes": 4096,
+          "priority": { "dscp_tag": "BE", "traffic_class": "normal" },
+          "protocol": { "type": "tls", "version": "1.3" }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:12100",
+          "message_size_bytes": 4096,
+          "priority": { "dscp_tag": "BE", "traffic_class": "normal" },
+          "protocol": { "type": "tls", "version": "1.3" }
+        }
+      ],
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12100", "pattern": "sustained" }
+    },
+    {
+      "name": "multistream_dscp_preservation",
+      "category": "scheduling",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:12101",
+          "message_size_bytes": 256,
+          "priority": { "dscp_tag": "EF", "traffic_class": "safety" },
+          "protocol": { "type": "none" }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:12101",
+          "message_size_bytes": 1024,
+          "priority": { "dscp_tag": "AF41", "traffic_class": "normal" },
+          "protocol": { "type": "none" }
+        }
+      ],
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12101", "pattern": "sustained" }
+    },
+
+    {
+      "name": "hotreload_add_remove_endpoint",
+      "category": "reliability",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "reload_event": {
+        "trigger_at_secs": 3,
+        "action": "add_connection"
+      },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12110", "pattern": "sustained" }
+    },
+    {
+      "name": "hotreload_invalid_config_rollback",
+      "category": "reliability",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "reload_event": {
+        "trigger_at_secs": 3,
+        "action": "invalid_config"
+      },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12111", "pattern": "sustained" }
+    },
+    {
+      "name": "hotreload_tls_profile_update",
+      "category": "reliability",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "reload_event": {
+        "trigger_at_secs": 3,
+        "action": "update_tls_profile"
+      },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12112", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_routing_veth_4KB",
+      "category": "topology",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "topology": {
+        "mode": "veth",
+        "auto_setup": true,
+        "left_ip": "10.0.0.1",
+        "right_ip": "10.0.0.2",
+        "subnet_mask": 24
+      },
+      "sender": { "interface": "tcp", "target_addr": "10.0.0.2:12120", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_tls13_netns_4KB",
+      "category": "topology",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "topology": {
+        "mode": "netns",
+        "auto_setup": true,
+        "left_namespace": "seshat_left",
+        "right_namespace": "seshat_right",
+        "left_ip": "10.0.1.1",
+        "right_ip": "10.0.1.2",
+        "subnet_mask": 24
+      },
+      "sender": { "interface": "tcp", "target_addr": "10.0.1.2:12121", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_routing_netem_50ms_4KB",
+      "category": "topology",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "topology": {
+        "mode": "veth",
+        "auto_setup": true,
+        "left_ip": "10.0.2.1",
+        "right_ip": "10.0.2.2",
+        "subnet_mask": 24
+      },
+      "network_impairment": {
+        "enabled": true,
+        "apply_to": "seshat-a",
+        "latency_ms": 50.0,
+        "jitter_ms": 5.0
+      },
+      "sender": { "interface": "tcp", "target_addr": "10.0.2.2:12122", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_routing_netem_1pct_loss_4KB",
+      "category": "topology",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "topology": {
+        "mode": "veth",
+        "auto_setup": true,
+        "left_ip": "10.0.3.1",
+        "right_ip": "10.0.3.2",
+        "subnet_mask": 24
+      },
+      "network_impairment": {
+        "enabled": true,
+        "apply_to": "seshat-a",
+        "loss_percent": 1.0
+      },
+      "sender": { "interface": "tcp", "target_addr": "10.0.3.2:12123", "pattern": "sustained" }
+    },
+
+    {
+      "name": "scg_tls13_message_sizes_sweep",
+      "category": "scalability",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12130", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_tls13_tcp_64KB",
+      "category": "scalability",
+      "message_size_bytes": 65536,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12131", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_tls13_tcp_1024conn",
+      "category": "scalability",
+      "message_size_bytes": 1024,
+      "connections": 1024,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12132", "pattern": "sustained" }
+    },
+
+    {
+      "name": "wireguard_tcp_4KB",
+      "enabled": false,
+      "category": "protocol",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "wireguard" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12200", "pattern": "sustained" },
+      "disabled_reason": "WireGuard provider not yet implemented in the SCG gateway"
+    },
+    {
+      "name": "ipsec_ikev2_tcp_4KB",
+      "enabled": false,
+      "category": "protocol",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "ipsec" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12201", "pattern": "sustained" },
+      "disabled_reason": "IPSec/IKEv2 provider not yet implemented in the SCG gateway"
+    }
+  ]
+}

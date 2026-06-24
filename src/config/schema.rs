@@ -288,6 +288,8 @@ pub enum Interface {
     Unix,
     /// Shared-memory ring buffer.
     Shm,
+    /// Transparent proxy (TPROXY) — requires CAP_NET_ADMIN.
+    Tproxy,
 }
 
 /// Traffic pattern (F-07).
@@ -330,6 +332,16 @@ pub struct Protocol {
     /// UDP-over-TLS application framing.
     #[serde(default)]
     pub app_protocol: AppProtocol,
+    /// TLS profile name (e.g. `subset146-pki`, `subset146-psk`,
+    /// `integrity-only`). When set, overrides the default profile.
+    #[serde(default)]
+    pub profile: Option<String>,
+    /// PSK identity for pre-shared key mode (subset146-psk).
+    #[serde(default)]
+    pub psk_identity: Option<String>,
+    /// PSK hex-encoded key material.
+    #[serde(default)]
+    pub psk_hex: Option<String>,
 }
 
 /// Base protocol type (F-06).
@@ -518,6 +530,9 @@ pub struct Stream {
     /// Inter-message interval for `periodic`.
     #[serde(default)]
     pub interval_us: Option<u64>,
+    /// Security protocol for this stream (overrides scenario-level default).
+    #[serde(default)]
+    pub protocol: Protocol,
     /// QoS priority.
     pub priority: Priority,
 }
@@ -542,6 +557,10 @@ pub struct Priority {
     pub dscp_tag: String,
     /// Traffic class label.
     pub traffic_class: String,
+    /// Expected DSCP tag after SCG processing (for DSCP manipulation tests).
+    /// If `None`, the tag should be preserved unchanged.
+    #[serde(default)]
+    pub expected_dscp: Option<String>,
 }
 
 /// Hot-reload event (F-11).
@@ -581,6 +600,8 @@ pub enum ReloadAction {
     RemoveConnection,
     /// Rotate a certificate.
     RotateCert,
+    /// Push an invalid config → verify rollback (gateway rejects, keeps running).
+    InvalidConfig,
 }
 
 /// SCG optimization toggles written into the generated gateway config (Phase 5).
@@ -619,6 +640,7 @@ impl Interface {
             Interface::Udp => "udp",
             Interface::Unix => "unix",
             Interface::Shm => "shm",
+            Interface::Tproxy => "tproxy",
         }
     }
 }

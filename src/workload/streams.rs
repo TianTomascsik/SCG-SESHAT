@@ -23,6 +23,7 @@ use std::time::{Duration, Instant};
 use crate::metrics::app::{FlowMetrics, FlowSummary};
 use crate::proto::wire::{self, WireHeader, HEADER_LEN};
 use crate::transport::{DataSink, DataSource, RecvOutcome};
+use crate::workload::dscp;
 
 /// Configuration for a single stream in a multi-stream scenario.
 #[derive(Debug, Clone)]
@@ -126,6 +127,14 @@ pub fn run_multi_stream(
         let stop_flag = Arc::clone(&stop);
         let msg_bytes = cfg.message_bytes as usize;
 
+        // Enable IP_RECVTOS on the receiver if DSCP checking is requested.
+        let expected_dscp = cfg.dscp_tag;
+        if expected_dscp.is_some() {
+            if let Some(fd) = source.raw_fd() {
+                let _ = dscp::enable_recvtos(fd);
+            }
+        }
+
         // Receiver thread — collects metrics.
         let recv_stop = Arc::clone(&stop);
         let recv_handle = thread::Builder::new()
@@ -133,6 +142,7 @@ pub fn run_multi_stream(
             .spawn(move || {
                 let mut buf = vec![0u8; msg_bytes + 64];
                 let mut metrics = FlowMetrics::new();
+                let mut observed_tos: Option<u8> = None;
                 while !recv_stop.load(Ordering::Relaxed) {
                     match source.recv_msg(&mut buf) {
                         Ok(RecvOutcome::Message(n)) => {
@@ -141,6 +151,14 @@ pub fn run_multi_stream(
                                 let latency_ns = recv_ns.saturating_sub(hdr.ts_ns);
                                 metrics.record(hdr.seq, latency_ns, n as u64);
                             }
+                            // Probe TOS on the first received message.
+                            if observed_tos.is_none() {
+                                if let Some(fd) = source.raw_fd() {
+                                    if let Ok((_n, tos)) = dscp::recv_one_with_tos(fd, &mut buf) {
+                                        observed_tos = Some(tos);
+                                    }
+                                }
+                            }
                         }
                         Ok(RecvOutcome::Timeout) => continue,
                         Ok(RecvOutcome::Closed) => break,
@@ -148,7 +166,7 @@ pub fn run_multi_stream(
                     }
                 }
                 source.close();
-                metrics
+                (metrics, observed_tos)
             })?;
 
         // Sender thread — generates traffic at configured rate.
@@ -207,17 +225,27 @@ pub fn run_multi_stream(
     let mut results = Vec::new();
     for (recv_handle, send_handle, cfg) in handles {
         let _ = send_handle.join();
-        let mut metrics: FlowMetrics = recv_handle
+        let (mut metrics, observed_tos): (FlowMetrics, Option<u8>) = recv_handle
             .join()
             .map_err(|_| io::Error::other(format!("stream '{}' receiver panicked", cfg.name)))?;
         metrics.set_duration(measure_duration.as_secs_f64());
         let summary = metrics.finish(true);
+
+        // Check DSCP preservation: compare expected (config) vs observed (cmsg).
+        let dscp_preserved = match (cfg.dscp_tag, observed_tos) {
+            (Some(expected), Some(tos)) => {
+                let observed_dscp = dscp::tos_to_dscp(tos);
+                Some(observed_dscp == expected)
+            }
+            _ => None,
+        };
+
         results.push(StreamResult {
             name: cfg.name,
             traffic_class: cfg.traffic_class,
             priority: cfg.priority,
             summary,
-            dscp_preserved: None, // TODO: DSCP read-back via IP_TOS ancillary data
+            dscp_preserved,
         });
     }
 

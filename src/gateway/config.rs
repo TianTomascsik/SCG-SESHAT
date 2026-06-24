@@ -117,6 +117,14 @@ pub struct WhitelistEntry {
     pub destination: String,
 }
 
+fn is_false(v: &bool) -> bool {
+    !*v
+}
+
+fn is_zero_u64(v: &u64) -> bool {
+    *v == 0
+}
+
 /// A single proxy rule (one direction of one path).
 #[derive(Debug, Clone, Serialize)]
 pub struct RuleConfig {
@@ -141,6 +149,12 @@ pub struct RuleConfig {
     /// captures them into its flattened `provider_params` map.
     #[serde(flatten)]
     pub provider_params: BTreeMap<String, serde_json::Value>,
+    /// Enable zero-copy relay (splice/sendfile). Routing/kTLS only.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub zero_copy: bool,
+    /// SHM ring busy-poll microseconds (0 = disabled).
+    #[serde(default, skip_serializing_if = "is_zero_u64")]
+    pub spin_wait_us: u64,
 }
 
 impl RuleConfig {
@@ -160,6 +174,8 @@ impl RuleConfig {
             app_id: None,
             allowed_uids: Vec::new(),
             provider_params: BTreeMap::new(),
+            zero_copy: false,
+            spin_wait_us: 0,
         }
     }
 

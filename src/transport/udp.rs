@@ -226,6 +226,10 @@ impl DataSource for UdpSource {
     }
 
     fn close(&mut self) {}
+
+    fn raw_fd(&self) -> Option<i32> {
+        Some(self.sock.as_raw_fd())
+    }
 }
 
 /// A full-duplex datagram endpoint for the ping-pong mode. The client side is
