@@ -132,8 +132,7 @@ impl GatewayUdsTransport {
 
         // Build plan with API config (required for UDS endpoint provisioning).
         let id = UDS_MGMT_ID.fetch_add(1, Ordering::Relaxed);
-        let runtime_dir = std::env::temp_dir().join(format!("scg-uds-{}-{id}", std::process::id()));
-        std::fs::create_dir_all(&runtime_dir)?;
+        let runtime_dir = gateway::short_runtime_dir("su", id)?;
         let sock = runtime_dir.join("mgmt.sock");
         let api = ApiConfig::new(
             &sock.to_string_lossy(),
@@ -151,8 +150,7 @@ impl GatewayUdsTransport {
             }],
             Topology::ScgToScg => {
                 let id2 = UDS_MGMT_ID.fetch_add(1, Ordering::Relaxed);
-                let runtime_dir2 = std::env::temp_dir().join(format!("scg-uds-{}-{id2}", std::process::id()));
-                std::fs::create_dir_all(&runtime_dir2)?;
+                let runtime_dir2 = gateway::short_runtime_dir("su", id2)?;
                 let sock2 = runtime_dir2.join("mgmt.sock");
                 let api2 = ApiConfig::new(
                     &sock2.to_string_lossy(),
@@ -235,14 +233,16 @@ impl Transport for GatewayUdsTransport {
     ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
         let mgmt = MgmtClient::new(&self.mgmt_socket);
 
-        // Create an encrypt endpoint (sender → gateway encrypts).
-        let encrypt_ep = mgmt
-            .create_uds(&self.app_id, TrafficClass::Normal, Direction::Encrypt)
-            .map_err(io::Error::other)?;
-
-        // Create a decrypt endpoint (gateway decrypts → receiver).
+        // Bring up the decrypt listener first. The encrypt endpoint dials it as
+        // part of its initial TLS handshake; provisioning encrypt first makes
+        // its first connect race a closed port and adds a one-second retry,
+        // which used to consume an entire short benchmark window.
         let decrypt_ep = mgmt
             .create_uds(&self.app_id, TrafficClass::Normal, Direction::Decrypt)
+            .map_err(io::Error::other)?;
+
+        let encrypt_ep = mgmt
+            .create_uds(&self.app_id, TrafficClass::Normal, Direction::Encrypt)
             .map_err(io::Error::other)?;
 
         let sink = Box::new(UdsSink {

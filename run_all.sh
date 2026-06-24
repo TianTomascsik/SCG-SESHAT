@@ -8,14 +8,15 @@
 #   ./run_all.sh --debug                # Debug build (slower, assertions on)
 #   ./run_all.sh --output-dir ./my_run  # Custom output directory
 #   ./run_all.sh --quick                # Shortened runs (2s measure, 1 run)
-#   ./run_all.sh --scenario-filter tcp  # Only run configs with 'tcp' in name
+#   ./run_all.sh --scenario-filter tcp  # Only run suite files with 'tcp' in name
 #   ./run_all.sh --skip-build           # Skip cargo build
 #   ./run_all.sh --perf                 # Enable perf stat collection
 #
 # This script:
 #  1. Builds SESHAT (release) and the SCG gateway
 #  2. Dumps system info for reproducibility
-#  3. Runs every benchmark config (throughput, latency, saturation, RTT, connrate)
+#  3. Runs the non-overlapping canonical suites (feature matrix, latency,
+#     saturation, RTT, connrate)
 #  4. Consolidates all results into a performance overview
 #  5. Generates a human-readable summary report
 #
@@ -48,8 +49,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 RUN_DIR="${OUTPUT_DIR}/${TIMESTAMP}"
-BIN="./target/${PROFILE}/seshat"
-GW_BIN="../SCG/target/${PROFILE}/gateway"
+# Environment overrides make it possible to validate an alternate build without
+# copying it into the default Cargo target directory.
+BIN="${SESHAT_BIN:-./target/${PROFILE}/seshat}"
+GW_BIN="${SCG_GATEWAY_BIN:-../SCG/target/${PROFILE}/gateway}"
 
 # Quick mode overrides: 2s measure, 1s warmup, 1 run
 if [[ "$QUICK" == true ]]; then
@@ -58,6 +61,14 @@ fi
 
 # Perf backend
 if [[ "$PERF" == true ]]; then
+  if ! command -v perf >/dev/null 2>&1; then
+    echo "--perf requires the 'perf' executable (install linux-tools/perf first)" >&2
+    exit 2
+  fi
+  if ! perf stat -x, -e task-clock -- true >/dev/null 2>&1; then
+    echo "--perf requires permission to collect perf events; check perf_event_paranoid/capabilities" >&2
+    exit 2
+  fi
   EXTRA_ARGS+=(--metrics-backend perf)
 fi
 
@@ -180,11 +191,12 @@ mkdir -p "${RUN_DIR}"
 # ─── Step 3: Run Benchmarks ──────────────────────────────────────────────────
 rule "BENCHMARK EXECUTION"
 
-# All available configs in execution order
+# The full suite is the canonical feature/payload matrix. `gateway_smoke` and
+# `full_matrix` are useful focused suites, but are intentionally not included
+# here because their scenarios overlap this plan and would measure the same
+# configurations twice.
 declare -A CONFIG_DESC
 CONFIGS=(
-  configs/gateway_smoke.json
-  configs/full_matrix.json
   configs/full_suite.json
   configs/latency.json
   configs/saturation.json
@@ -192,18 +204,46 @@ CONFIGS=(
   configs/connrate.json
 )
 CONFIG_DESC=(
-  [configs/gateway_smoke.json]="Quick smoke test (routing + TLS baseline)"
-  [configs/full_matrix.json]="Full protocol/transport matrix (throughput)"
-  [configs/full_suite.json]="All features: UDS/SHM/TPROXY/ALE/topology/hot-reload/optimization"
+  [configs/full_suite.json]="Canonical feature, interface, protocol, and payload matrix"
   [configs/latency.json]="Paced sub-saturation one-way latency"
   [configs/saturation.json]="Offered-load sweep (find loss-free ceiling)"
   [configs/pingpong.json]="Closed-loop round-trip time"
   [configs/connrate.json]="Connection establishment rate"
 )
 
+# Fail before touching the machine if future config edits accidentally schedule
+# the same benchmark shape twice. Target addresses are deliberately ignored:
+# they only prevent port collisions and do not change the measured path.
+if command -v jq >/dev/null 2>&1; then
+  duplicate_scenarios="$(jq -s -r '
+    [ .[] | .scenarios[]
+      | select(.enabled != false)
+      | { name,
+          shape: (
+            del(.name, .disabled_reason, .sender.target_addr)
+            | if .streams then .streams |= map(del(.target_addr)) else . end
+          )
+        }
+    ]
+    | sort_by(.shape | tojson)
+    | group_by(.shape | tojson)[]
+    | select(length > 1)
+    | map(.name) | join(", ")
+  ' "${CONFIGS[@]}")"
+  if [[ -n "$duplicate_scenarios" ]]; then
+    fail "duplicate benchmark shape(s) in execution plan: ${duplicate_scenarios}"
+    exit 2
+  fi
+else
+  warn "jq unavailable — cannot verify duplicate scenario shapes before running"
+fi
+
 PASSED=0
 FAILED=0
 SKIPPED=0
+SCENARIOS_EXECUTED=0
+SCENARIOS_SKIPPED=0
+PERF_INCOMPLETE=false
 RESULT_DIRS=()
 declare -A TIMING
 
@@ -244,6 +284,13 @@ for cfg in "${CONFIGS[@]}"; do
     for _d in "${_after[@]}"; do
       if [[ ! " ${_before[*]} " =~ " ${_d} " ]]; then
         RESULT_DIRS+=("$_d")
+        meta="${_d}/meta.csv"
+        if [[ -f "$meta" ]]; then
+          executed="$(awk -F, '$1 == "scenarios_executed" { sub(/\r$/, "", $2); print $2 }' "$meta")"
+          skipped="$(awk -F, '$1 == "scenarios_skipped" { sub(/\r$/, "", $2); print $2 }' "$meta")"
+          SCENARIOS_EXECUTED=$((SCENARIOS_EXECUTED + ${executed:-0}))
+          SCENARIOS_SKIPPED=$((SCENARIOS_SKIPPED + ${skipped:-0}))
+        fi
       fi
     done
   else
@@ -275,6 +322,40 @@ TOTAL_SCENARIOS=0
 if [[ -f "$COMBINED" ]]; then
   TOTAL_SCENARIOS=$(( $(wc -l < "$COMBINED") - 1 ))
   ok "Combined CSV: ${COMBINED} (${TOTAL_SCENARIOS} scenarios)"
+
+  # A requested perf run is only valid when each gateway-backed scenario has
+  # every requested counter. Do not produce a superficially successful report
+  # with blank hardware metrics.
+  if [[ "$PERF" == true ]]; then
+    if ! awk -F',' '
+      NR == 1 {
+        for (i = 1; i <= NF; i++) col[$i] = i
+        next
+      }
+      # Gateway scenarios have a procfs CPU aggregate; loopback-only cases do
+      # not have a gateway PID and are intentionally outside perf attachment.
+      col["cpu_pct_peak"] && $(col["cpu_pct_peak"]) != "" {
+        split("perf_cycles perf_instructions perf_ipc perf_cache_references perf_cache_misses perf_context_switches perf_syscalls perf_task_clock_ms perf_duration_s", required, " ")
+        missing = ""
+        for (i in required) {
+          field = required[i]
+          if (!col[field] || $(col[field]) == "") {
+            missing = missing (missing == "" ? "" : ",") field
+          }
+        }
+        if (missing != "") {
+          print "  " $(col["scenario"]) ": " missing
+          invalid = 1
+        }
+      }
+      END { exit invalid }
+    ' "$COMBINED"; then
+      fail "perf collection was incomplete for the scenario(s) above"
+      PERF_INCOMPLETE=true
+    else
+      ok "All requested perf counters were collected for gateway scenarios"
+    fi
+  fi
 else
   warn "No summary.csv files found in result directories"
 fi
@@ -292,7 +373,7 @@ OVERVIEW="${RUN_DIR}/PERFORMANCE_OVERVIEW.txt"
   echo " Host      : $(hostname) ($(uname -r))"
   echo " Profile   : ${PROFILE}"
   echo " Configs   : ${PASSED} passed / ${FAILED} failed / ${SKIPPED} skipped"
-  echo " Scenarios : ${TOTAL_SCENARIOS}"
+  echo " Scenarios : ${TOTAL_SCENARIOS} recorded / ${SCENARIOS_SKIPPED} skipped"
   echo " Directory : ${RUN_DIR}/"
   if [[ "$QUICK" == true ]]; then
     echo " Mode      : QUICK (shortened runs — not for publication)"
@@ -592,14 +673,14 @@ echo ""
 rule "COMPLETE"
 echo ""
 echo -e "  Configs    : ${GREEN}${PASSED} passed${NC} / ${RED}${FAILED} failed${NC} / ${DIM}${SKIPPED} skipped${NC}"
-echo -e "  Scenarios  : ${BOLD}${TOTAL_SCENARIOS}${NC}"
+echo -e "  Scenarios  : ${BOLD}${TOTAL_SCENARIOS} recorded${NC} / ${DIM}${SCENARIOS_SKIPPED} skipped${NC}"
 echo -e "  Results    : ${BOLD}${RUN_DIR}/${NC}"
 echo -e "  Overview   : ${BOLD}${OVERVIEW}${NC}"
 [[ -f "$COMBINED" ]] && echo -e "  CSV        : ${BOLD}${COMBINED}${NC}"
 echo ""
 
 # Exit with failure if any config failed
-[[ "$FAILED" -eq 0 ]] || exit 1
+[[ "$FAILED" -eq 0 && "$PERF_INCOMPLETE" == false ]] || exit 1
 
 # ── Ranked Leaderboard ──
 if [[ -f "$COMBINED" ]]; then

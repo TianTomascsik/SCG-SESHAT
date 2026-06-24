@@ -954,24 +954,7 @@ fn run_gateway_scenario(
         .filter(|_| !dut.pids().is_empty())
         .map(|hz| SystemSampler::start(dut.pids(), hz));
 
-    // F-13b perf backend: attach `perf stat` when configured.
-    let perf_sampler = if defaults.collect_system_metrics
-        && defaults.metrics_backend == MetricsBackend::Perf
-    {
-        let pids = dut.pids();
-        match system::PerfSampler::start(&pids, &work_dir) {
-            Some(sampler) => Some(sampler),
-            None => {
-                log::warn!(
-                    "scenario '{}': perf backend requested but perf stat could not attach; perf_* result fields will be empty",
-                    scenario.name
-                );
-                None
-            }
-        }
-    } else {
-        None
-    };
+    let perf_sampler = start_perf_sampler(defaults, scenario, &dut, &work_dir);
 
     let run_result = engine::run_scenario(dut.as_transport(), &params, |i, s| {
         render_run_line(i, params.runs, s);
@@ -993,10 +976,19 @@ fn run_gateway_scenario(
     let stats = match run_result {
         Ok(stats) => stats,
         Err(e) => {
+            log::warn!("scenario '{}': run failed ({e}); skipping", scenario.name);
             let _ = dut.shutdown();
-            return Err(e.into());
+            return Ok(false);
         }
     };
+    if !has_measurements(&stats) {
+        log::warn!(
+            "scenario '{}': no messages reached the receiver; skipping invalid zero-metric result",
+            scenario.name
+        );
+        let _ = dut.shutdown();
+        return Ok(false);
+    }
 
     // Closed-loop RTT path: report round-trip time and record the effective
     // protocol, but skip the throughput-oriented calibration and saturation
@@ -1200,10 +1192,12 @@ fn run_multistream_scenario(
     let sampler = sys_rate
         .filter(|_| !dut.pids().is_empty())
         .map(|hz| SystemSampler::start(dut.pids(), hz));
+    let perf_sampler = start_perf_sampler(defaults, scenario, &dut, &work_dir);
 
     let result: MultiStreamResult = streams::run_multi_stream(&configs, pairs, warmup, measure)?;
 
     let system_samples = sampler.map(SystemSampler::stop);
+    let perf_result = perf_sampler.map(system::PerfSampler::stop);
     if let Some(samples) = &system_samples {
         let _ = rdir.record_system_metrics(scenario, samples);
     }
@@ -1247,6 +1241,14 @@ fn run_multistream_scenario(
         .map(|s| s.summary.clone());
 
     let stats = if let Some(best) = best {
+        if best.messages == 0 {
+            log::warn!(
+                "scenario '{}': no multi-stream messages reached a receiver; skipping invalid zero-metric result",
+                scenario.name
+            );
+            dut.shutdown()?;
+            return Ok(false);
+        }
         use crate::metrics::stats::summarize;
         RunStats {
             runs: vec![best.clone()],
@@ -1308,6 +1310,7 @@ fn run_multistream_scenario(
                 .as_deref()
                 .and_then(system::aggregate)
                 .as_ref(),
+            perf: perf_result.as_ref(),
             loss_threshold_pct: defaults.loss_threshold_pct,
             ..Default::default()
         },
@@ -1399,15 +1402,34 @@ fn run_hotreload_scenario(
 
     let params = build_run_params(scenario, defaults, cores);
 
-    // Start the gateway.
-    let dut = match GatewayTcpTransport::start(
-        plan.transport_name,
-        &spec,
-        plan.topology,
-        binary,
-        &work_dir,
-        &cores.gateway,
-    ) {
+    // Start the gateway. Dynamic endpoint actions need an explicit management
+    // API plus a matching UDS endpoint template; ordinary signal-based reloads
+    // use the lean TCP-only data path.
+    let needs_management_endpoint = matches!(
+        reload_event.action,
+        config::ReloadAction::AddConnection | config::ReloadAction::RemoveConnection
+    );
+    let start_transport = if needs_management_endpoint {
+        GatewayTcpTransport::start_with_management_endpoint(
+            plan.transport_name,
+            &spec,
+            plan.topology,
+            binary,
+            &work_dir,
+            &cores.gateway,
+            "hotreload-probe",
+        )
+    } else {
+        GatewayTcpTransport::start(
+            plan.transport_name,
+            &spec,
+            plan.topology,
+            binary,
+            &work_dir,
+            &cores.gateway,
+        )
+    };
+    let dut = match start_transport {
         Ok(t) => GatewayDut::Tcp(t),
         Err(e) => {
             log::warn!(
@@ -1430,6 +1452,7 @@ fn run_hotreload_scenario(
     let sampler = sys_rate
         .filter(|_| !dut.pids().is_empty())
         .map(|hz| SystemSampler::start(dut.pids(), hz));
+    let perf_sampler = start_perf_sampler(defaults, scenario, &dut, &work_dir);
 
     // Run the measurement with a reload injected mid-flight.
     // We extend the measurement window to include both pre- and post-reload windows.
@@ -1454,6 +1477,8 @@ fn run_hotreload_scenario(
     // We run the engine on the main thread and inject reload from a spawned timer thread.
     let reload_fired = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let reload_fired_clone = reload_fired.clone();
+    let reload_succeeded = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let reload_succeeded_clone = reload_succeeded.clone();
 
     // Timer thread: sleep until trigger point, then execute the reload action.
     let config_path = config_paths.first().cloned();
@@ -1464,7 +1489,7 @@ fn run_hotreload_scenario(
         use crate::config::ReloadAction;
         std::thread::sleep(reload_trigger_dur);
 
-        match action {
+        let succeeded = match action {
             ReloadAction::AddConnection | ReloadAction::RemoveConnection => {
                 // gRPC-based reload: add or remove a UDS endpoint mid-run.
                 if let Some(mgmt_path) = mgmt_socket {
@@ -1484,10 +1509,17 @@ fn run_hotreload_scenario(
                                     );
                                     // Close it after a brief pause to exercise remove.
                                     std::thread::sleep(Duration::from_millis(500));
-                                    let _ = mgmt.close_endpoint(ep.endpoint_id);
+                                    match mgmt.close_endpoint(ep.endpoint_id) {
+                                        Ok(()) => true,
+                                        Err(e) => {
+                                            log::warn!("hot-reload: gRPC remove after add failed: {e}");
+                                            false
+                                        }
+                                    }
                                 }
                                 Err(e) => {
                                     log::warn!("hot-reload: gRPC add_connection failed: {e}");
+                                    false
                                 }
                             }
                         }
@@ -1499,14 +1531,23 @@ fn run_hotreload_scenario(
                                 Direction::Encrypt,
                             ) {
                                 Ok(ep) => {
-                                    let _ = mgmt.close_endpoint(ep.endpoint_id);
-                                    log::info!(
-                                        "hot-reload: removed endpoint via gRPC at {}s",
-                                        trigger_secs
-                                    );
+                                    match mgmt.close_endpoint(ep.endpoint_id) {
+                                        Ok(()) => {
+                                            log::info!(
+                                                "hot-reload: removed endpoint via gRPC at {}s",
+                                                trigger_secs
+                                            );
+                                            true
+                                        }
+                                        Err(e) => {
+                                            log::warn!("hot-reload: gRPC remove_connection failed: {e}");
+                                            false
+                                        }
+                                    }
                                 }
                                 Err(e) => {
                                     log::warn!("hot-reload: gRPC remove_connection failed: {e}");
+                                    false
                                 }
                             }
                         }
@@ -1514,6 +1555,7 @@ fn run_hotreload_scenario(
                     }
                 } else {
                     log::warn!("hot-reload: no management socket for gRPC reload");
+                    false
                 }
             }
             ReloadAction::InvalidConfig => {
@@ -1531,6 +1573,9 @@ fn run_hotreload_scenario(
                     if let Some(valid) = backup {
                         let _ = std::fs::write(path, valid);
                     }
+                    true
+                } else {
+                    false
                 }
             }
             ReloadAction::UpdateTlsProfile | ReloadAction::RotateCert => {
@@ -1542,10 +1587,14 @@ fn run_hotreload_scenario(
                         trigger_secs,
                         action
                     );
+                    true
+                } else {
+                    false
                 }
             }
-        }
+        };
 
+        reload_succeeded_clone.store(succeeded, std::sync::atomic::Ordering::Relaxed);
         reload_fired_clone.store(true, std::sync::atomic::Ordering::Relaxed);
     });
 
@@ -1554,6 +1603,7 @@ fn run_hotreload_scenario(
     });
 
     let system_samples = sampler.map(SystemSampler::stop);
+    let perf_result = perf_sampler.map(system::PerfSampler::stop);
     let sys_agg = system_samples.as_deref().and_then(system::aggregate);
 
     let stats = match run_result {
@@ -1564,13 +1614,35 @@ fn run_hotreload_scenario(
             return Ok(false);
         }
     };
+    if !has_measurements(&stats) {
+        log::warn!(
+            "scenario '{}': no messages reached the receiver; skipping invalid zero-metric result",
+            scenario.name
+        );
+        dut.shutdown()?;
+        return Ok(false);
+    }
 
     // Report hot-reload specific metrics.
     let reload_actually_fired = reload_fired.load(std::sync::atomic::Ordering::Relaxed);
+    let reload_action_succeeded = reload_succeeded.load(std::sync::atomic::Ordering::Relaxed);
+    if needs_management_endpoint && !reload_action_succeeded {
+        log::warn!(
+            "scenario '{}': management hot-reload action did not complete; skipping",
+            scenario.name
+        );
+        dut.shutdown()?;
+        return Ok(false);
+    }
     console::line("");
     console::kv(
         "  Reload fired",
         if reload_actually_fired { "yes" } else { "no" },
+        16,
+    );
+    console::kv(
+        "  Reload action",
+        if reload_action_succeeded { "succeeded" } else { "failed" },
         16,
     );
     if let Some(run) = stats.runs.first() {
@@ -1602,6 +1674,7 @@ fn run_hotreload_scenario(
         &stats,
         &ScenarioArtifacts {
             sys: sys_agg.as_ref(),
+            perf: perf_result.as_ref(),
             effective: Some(&effective),
             loss_threshold_pct: defaults.loss_threshold_pct,
             ..Default::default()
@@ -1688,6 +1761,39 @@ fn system_metrics_rate(d: &Defaults) -> Option<u32> {
         Some(d.metrics_sample_rate_hz.max(1))
     } else {
         None
+    }
+}
+
+/// A transport that completed without any received messages did not produce a
+/// usable benchmark measurement. Treat it as a skipped scenario rather than
+/// reporting zero throughput/latency as a successful result.
+fn has_measurements(stats: &RunStats) -> bool {
+    stats.runs.iter().any(|run| run.messages > 0)
+}
+
+/// Start a per-gateway `perf stat` sampler for every gateway-backed execution
+/// path.  Multi-stream and hot-reload used to omit this even when the caller
+/// explicitly selected the perf backend, which made their `perf_*` summaries
+/// silently incomplete.
+fn start_perf_sampler(
+    defaults: &Defaults,
+    scenario: &Scenario,
+    dut: &GatewayDut,
+    work_dir: &Path,
+) -> Option<system::PerfSampler> {
+    if !defaults.collect_system_metrics || defaults.metrics_backend != MetricsBackend::Perf {
+        return None;
+    }
+    let pids = dut.pids();
+    match system::PerfSampler::start(&pids, work_dir) {
+        Some(sampler) => Some(sampler),
+        None => {
+            log::warn!(
+                "scenario '{}': perf backend requested but perf stat could not attach; perf_* result fields will be empty",
+                scenario.name
+            );
+            None
+        }
     }
 }
 

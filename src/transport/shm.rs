@@ -137,8 +137,7 @@ impl GatewayShmTransport {
 
         // Build plan with API config (required for SHM endpoint provisioning).
         let id = SHM_MGMT_ID.fetch_add(1, Ordering::Relaxed);
-        let runtime_dir = std::env::temp_dir().join(format!("scg-shm-{}-{id}", std::process::id()));
-        std::fs::create_dir_all(&runtime_dir)?;
+        let runtime_dir = gateway::short_runtime_dir("ss", id)?;
         let sock = runtime_dir.join("mgmt.sock");
         let api = ApiConfig::new(
             &sock.to_string_lossy(),
@@ -156,8 +155,7 @@ impl GatewayShmTransport {
             }],
             Topology::ScgToScg => {
                 let id2 = SHM_MGMT_ID.fetch_add(1, Ordering::Relaxed);
-                let runtime_dir2 = std::env::temp_dir().join(format!("scg-shm-{}-{id2}", std::process::id()));
-                std::fs::create_dir_all(&runtime_dir2)?;
+                let runtime_dir2 = gateway::short_runtime_dir("ss", id2)?;
                 let sock2 = runtime_dir2.join("mgmt.sock");
                 let api2 = ApiConfig::new(
                     &sock2.to_string_lossy(),
@@ -240,22 +238,23 @@ impl Transport for GatewayShmTransport {
     ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
         let mgmt = MgmtClient::new(&self.mgmt_socket);
 
-        // Create an encrypt endpoint (sender → gateway encrypts).
-        let encrypt_ep = mgmt
-            .create_shm(
-                &self.app_id,
-                TrafficClass::Normal,
-                Direction::Encrypt,
-                self.ring_capacity,
-            )
-            .map_err(io::Error::other)?;
-
-        // Create a decrypt endpoint (gateway decrypts → receiver).
+        // The decrypt endpoint must be listening before encrypt performs its
+        // initial TLS handshake; otherwise the retry backoff can consume an
+        // entire short measurement window.
         let decrypt_ep = mgmt
             .create_shm(
                 &self.app_id,
                 TrafficClass::Normal,
                 Direction::Decrypt,
+                self.ring_capacity,
+            )
+            .map_err(io::Error::other)?;
+
+        let encrypt_ep = mgmt
+            .create_shm(
+                &self.app_id,
+                TrafficClass::Normal,
+                Direction::Encrypt,
                 self.ring_capacity,
             )
             .map_err(io::Error::other)?;

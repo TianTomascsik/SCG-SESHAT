@@ -15,7 +15,7 @@
     "cpu_affinity_receiver": [],
     "scg_process_name": "gateway",
     "collect_system_metrics": true,
-    "metrics_backend": "perf",
+    "metrics_backend": "procfs",
     "metrics_sample_rate_hz": 10,
     "outlier_removal": "iqr",
     "confidence_level": 0.95
@@ -184,6 +184,8 @@
     },
     {
       "name": "scg_dtls12_udp_4conn",
+      "enabled": false,
+      "disabled_reason": "The current DTLS gateway transport has one shared backend datagram flow; it cannot report four independent connections correctly",
       "category": "scalability",
       "message_size_bytes": 1400,
       "connections": 4,
@@ -283,6 +285,8 @@
 
     {
       "name": "scg_tls13_connrate",
+      "enabled": false,
+      "disabled_reason": "Gateway connection-rate benchmarking is not implemented; configs/connrate.json covers the supported loopback TCP mode",
       "category": "scalability",
       "mode": "connrate",
       "message_size_bytes": 64,
@@ -474,13 +478,40 @@
     },
 
     {
-      "name": "scg_tls13_message_sizes_sweep",
+      "name": "scg_tls13_tcp_64B",
       "category": "scalability",
       "message_size_bytes": 64,
       "connections": 1,
       "gateway": { "enabled": true, "chain": "scg-direct" },
       "protocol": { "type": "tls", "version": "1.3" },
       "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12130", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_tls13_tcp_256B",
+      "category": "scalability",
+      "message_size_bytes": 256,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12133", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_tls13_tcp_1KB",
+      "category": "scalability",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12134", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_tls13_tcp_16KB",
+      "category": "scalability",
+      "message_size_bytes": 16384,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12135", "pattern": "sustained" }
     },
     {
       "name": "scg_tls13_tcp_64KB",

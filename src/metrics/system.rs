@@ -139,7 +139,7 @@ impl PerfSampler {
         let stderr_file = fs::File::create(&stderr_path).ok()?;
 
         let child = Command::new("perf")
-            .args(["stat", "-p"])
+            .args(["stat", "-x,", "--no-big-num", "-p"])
             .arg(&pid_list)
             .args([
                 "-e",
@@ -191,54 +191,105 @@ impl Drop for PerfSampler {
 }
 
 /// Parse `perf stat` output for known counters.
+///
+/// New runs use `perf stat -x,`, whose CSV fields are stable across perf
+/// versions.  Keep the whitespace parser as a fallback so older result
+/// artifacts remain readable too.
 fn parse_perf_output(path: &std::path::Path) -> PerfResult {
     let mut result = PerfResult::default();
     let content = match fs::read_to_string(path) {
         Ok(c) => c,
         Err(_) => return result,
     };
-    for line in content.lines() {
-        let line = line.trim();
-        // perf stat output format: "  1,234,567      cycles"
-        let parts: Vec<&str> = line.splitn(2, char::is_whitespace).collect();
-        if parts.len() < 2 {
+    for raw_line in content.lines() {
+        let line = raw_line.trim();
+        if line.is_empty() {
             continue;
         }
-        let value_str = parts[0].replace(',', "");
-        let label = parts[1].trim();
 
-        if label.contains("cycles") && !label.contains("instructions") {
-            result.cycles = value_str.parse().ok();
-        } else if label.contains("instructions") {
-            result.instructions = value_str.parse().ok();
-            // Look for IPC in the same line: "# 1.23 insn per cycle"
-            if let Some(ipc_pos) = line.find('#') {
-                let ipc_str = &line[ipc_pos + 1..];
-                let ipc_val: f64 = ipc_str
-                    .split_whitespace()
-                    .next()
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(0.0);
-                if ipc_val > 0.0 {
-                    result.ipc = Some(ipc_val);
-                }
+        // `perf stat -x,` emits value,unit,event,... .  An unavailable event
+        // uses strings such as `<not counted>`; leave only that field empty
+        // instead of discarding the other counters from the same run.
+        if let Some((value, label)) = perf_csv_fields(line) {
+            record_perf_counter(&mut result, value, label, line);
+            continue;
+        }
+
+        // Human-readable perf output: `1,234 cycles` (after trimming leading
+        // spaces). `split_whitespace` deliberately avoids the old leading-space
+        // split bug that made every value parse as an empty string.
+        let mut fields = line.split_whitespace();
+        let Some(value) = fields.next() else {
+            continue;
+        };
+        let label = fields.collect::<Vec<_>>().join(" ");
+        if !label.is_empty() {
+            record_perf_counter(&mut result, value, &label, line);
+        }
+    }
+
+    // CSV perf output does not consistently include the derived IPC annotation
+    // that the human formatter prints, so compute it when both raw counters
+    // were successfully collected.
+    if result.ipc.is_none() {
+        if let (Some(instructions), Some(cycles)) = (result.instructions, result.cycles) {
+            if cycles > 0 {
+                result.ipc = Some(instructions as f64 / cycles as f64);
             }
-        } else if label.contains("cache-references") {
-            result.cache_references = value_str.parse().ok();
-        } else if label.contains("cache-misses") {
-            result.cache_misses = value_str.parse().ok();
-        } else if label.contains("context-switches") || label.contains("cs") {
-            result.context_switches = value_str.parse().ok();
-        } else if label.contains("raw_syscalls:sys_enter") || label.contains("syscalls") {
-            result.syscalls = value_str.parse().ok();
-        } else if label.contains("task-clock") {
-            // task-clock is in ms (float format: "123.456 msec task-clock")
-            result.task_clock_ms = parts[0].replace(',', "").parse().ok();
-        } else if label.contains("seconds time elapsed") {
-            result.duration_s = parts[0].replace(',', "").parse().ok();
         }
     }
     result
+}
+
+/// Extract `(value, event)` from one `perf stat -x,` line.
+fn perf_csv_fields(line: &str) -> Option<(&str, &str)> {
+    let fields: Vec<&str> = line.split(',').collect();
+    if fields.len() < 3 {
+        return None;
+    }
+    let event = fields[2].trim();
+    if event.is_empty() {
+        return None;
+    }
+    Some((fields[0].trim(), event))
+}
+
+/// Record one known perf counter from either CSV or human-readable output.
+fn record_perf_counter(result: &mut PerfResult, raw_value: &str, label: &str, line: &str) {
+    let integer = || parse_perf_u64(raw_value);
+    let decimal = || parse_perf_f64(raw_value);
+    if label.contains("cycles") && !label.contains("instructions") {
+        result.cycles = integer();
+    } else if label.contains("instructions") {
+        result.instructions = integer();
+        // The human formatter may append `# 1.23 insn per cycle`.
+        if let Some(ipc_pos) = line.find('#') {
+            result.ipc = line[ipc_pos + 1..]
+                .split_whitespace()
+                .next()
+                .and_then(parse_perf_f64);
+        }
+    } else if label.contains("cache-references") {
+        result.cache_references = integer();
+    } else if label.contains("cache-misses") {
+        result.cache_misses = integer();
+    } else if label.contains("context-switches") || label == "cs" {
+        result.context_switches = integer();
+    } else if label.contains("raw_syscalls:sys_enter") || label.contains("syscalls") {
+        result.syscalls = integer();
+    } else if label.contains("task-clock") {
+        result.task_clock_ms = decimal();
+    } else if label.contains("seconds time elapsed") {
+        result.duration_s = decimal();
+    }
+}
+
+fn parse_perf_u64(value: &str) -> Option<u64> {
+    value.trim().replace(',', "").parse::<u64>().ok()
+}
+
+fn parse_perf_f64(value: &str) -> Option<f64> {
+    value.trim().replace(',', "").parse::<f64>().ok()
 }
 
 /// Sampling loop: emit one sample per PID per tick until the stop flag is set.
@@ -579,6 +630,7 @@ mod tests {
   3,579      cache-references
   246      cache-misses
   12      context-switches
+  78      raw_syscalls:sys_enter
   45.678      task-clock
   0.123456      seconds time elapsed
 ",
@@ -592,6 +644,31 @@ mod tests {
         assert_eq!(perf.cache_references, Some(3579));
         assert_eq!(perf.cache_misses, Some(246));
         assert_eq!(perf.context_switches, Some(12));
+        assert_eq!(perf.syscalls, Some(78));
+        assert_eq!(perf.task_clock_ms, Some(45.678));
+        assert_eq!(perf.duration_s, Some(0.123456));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn parse_perf_csv_extracts_every_requested_counter() {
+        let dir = std::env::temp_dir().join(format!("seshat-perf-csv-{}", monotonic_tag()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("perf.csv");
+        fs::write(
+            &path,
+            "1234,,cycles,100.00,\n2468,,instructions,100.00,\n3579,,cache-references,100.00,\n246,,cache-misses,100.00,\n12,,context-switches,100.00,\n78,,raw_syscalls:sys_enter,100.00,\n45.678,msec,task-clock,100.00,\n0.123456,,seconds time elapsed,,,,\n",
+        )
+        .unwrap();
+
+        let perf = parse_perf_output(&path);
+        assert_eq!(perf.cycles, Some(1234));
+        assert_eq!(perf.instructions, Some(2468));
+        assert_eq!(perf.ipc, Some(2.0));
+        assert_eq!(perf.cache_references, Some(3579));
+        assert_eq!(perf.cache_misses, Some(246));
+        assert_eq!(perf.context_switches, Some(12));
+        assert_eq!(perf.syscalls, Some(78));
         assert_eq!(perf.task_clock_ms, Some(45.678));
         assert_eq!(perf.duration_s, Some(0.123456));
         let _ = fs::remove_dir_all(&dir);

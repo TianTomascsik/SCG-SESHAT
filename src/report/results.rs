@@ -80,6 +80,7 @@ const SUMMARY_HEADERS: &[&str] = &[
     "perf_cache_references",
     "perf_cache_misses",
     "perf_context_switches",
+    "perf_syscalls",
     "perf_task_clock_ms",
     "perf_duration_s",
 ];
@@ -229,6 +230,7 @@ impl ResultDir {
             perf_cache_refs_s,
             perf_cache_misses_s,
             perf_ctx_switches_s,
+            perf_syscalls_s,
             perf_task_clock_s,
             perf_duration_s,
         ) = perf_cells(perf);
@@ -277,6 +279,7 @@ impl ResultDir {
             perf_cache_refs_s,
             perf_cache_misses_s,
             perf_ctx_switches_s,
+            perf_syscalls_s,
             perf_task_clock_s,
             perf_duration_s,
         ]);
@@ -436,6 +439,9 @@ fn scenario_summary_csv(
         if let Some(v) = p.context_switches {
             c.kv("perf_context_switches", v.to_string());
         }
+        if let Some(v) = p.syscalls {
+            c.kv("perf_syscalls", v.to_string());
+        }
         if let Some(v) = p.task_clock_ms {
             c.kv("perf_task_clock_ms", num(v, 3));
         }
@@ -524,6 +530,7 @@ fn perf_cells(
     String,
     String,
     String,
+    String,
 ) {
     match perf {
         Some(p) => (
@@ -537,10 +544,12 @@ fn perf_cells(
             p.context_switches
                 .map(|v| v.to_string())
                 .unwrap_or_default(),
+            p.syscalls.map(|v| v.to_string()).unwrap_or_default(),
             p.task_clock_ms.map(|v| num(v, 3)).unwrap_or_default(),
             p.duration_s.map(|v| num(v, 6)).unwrap_or_default(),
         ),
         None => (
+            String::new(),
             String::new(),
             String::new(),
             String::new(),
@@ -761,7 +770,7 @@ mod tests {
             cache_references: Some(789),
             cache_misses: Some(12),
             context_switches: Some(34),
-            syscalls: None,
+            syscalls: Some(56),
             task_clock_ms: Some(56.789),
             duration_s: Some(1.234567),
         };
@@ -780,6 +789,7 @@ mod tests {
         assert!(csv.contains("perf_cycles,123\r\n"));
         assert!(csv.contains("perf_instructions,456\r\n"));
         assert!(csv.contains("perf_ipc,3.500\r\n"));
+        assert!(csv.contains("perf_syscalls,56\r\n"));
         assert!(csv.contains("perf_duration_s,1.234567\r\n"));
     }
 }

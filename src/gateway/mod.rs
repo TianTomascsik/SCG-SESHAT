@@ -35,6 +35,47 @@ static NEXT_MGMT_ID: AtomicU64 = AtomicU64::new(0);
 /// `uds`/`shm` app rules (none here), so the exact value is immaterial.
 const MGMT_RING_CAPACITY: usize = 1024;
 
+/// Long result-directory paths are fine for CSV artifacts but cannot be used
+/// as a base for Unix sockets: Linux limits a pathname socket address to about
+/// 108 bytes.  Local-interface endpoints append an app id, UID, traffic class,
+/// direction, and suffix, so reserve a deliberately short runtime directory.
+///
+/// `SESHAT_RUNTIME_DIR` gives operators an explicit override. Otherwise prefer
+/// the per-user runtime directory, then `/dev/shm` (both are normally short
+/// writable tmpfs locations), before falling back to the system temp directory.
+pub fn short_runtime_dir(prefix: &str, id: u64) -> io::Result<PathBuf> {
+    const MAX_DIR_BYTES: usize = 32;
+
+    let mut bases = Vec::new();
+    if let Some(base) = std::env::var_os("SESHAT_RUNTIME_DIR") {
+        bases.push(PathBuf::from(base));
+    }
+    if let Some(base) = std::env::var_os("XDG_RUNTIME_DIR") {
+        bases.push(PathBuf::from(base));
+    }
+    bases.push(PathBuf::from("/dev/shm"));
+    bases.push(std::env::temp_dir());
+
+    let pid = std::process::id();
+    let mut last_error = None;
+    for base in bases {
+        let dir = base.join(format!("{prefix}-{pid}-{id}"));
+        if dir.as_os_str().as_encoded_bytes().len() > MAX_DIR_BYTES {
+            continue;
+        }
+        match std::fs::create_dir_all(&dir) {
+            Ok(()) => return Ok(dir),
+            Err(e) => last_error = Some(e),
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| {
+        io::Error::other(
+            "could not create a short Unix-socket runtime directory; set SESHAT_RUNTIME_DIR to a writable path shorter than 32 bytes",
+        )
+    }))
+}
+
 /// Reserve a localhost TCP port for gateway plumbing.
 ///
 /// Ports are handed out from a dedicated range *below* the OS ephemeral range
@@ -396,7 +437,13 @@ impl SecuritySpec {
         // present a client identity (mutual TLS); otherwise skip (the self-signed
         // server-auth path uses `verify=none`).
         if self.provider != "routing" {
-            let v = if self.client_cert.is_some() && self.ca_cert.is_some() {
+            // The Subset-146 PKI profile validates the requested verify mode
+            // before role-specific TLS setup. It therefore requires `mutual`
+            // on the connector too (the connector implementation still only
+            // verifies its server peer). Ordinary mTLS keeps `server` here.
+            let v = if self.profile.as_deref() == Some("subset146-pki") {
+                "mutual"
+            } else if self.client_cert.is_some() && self.ca_cert.is_some() {
                 "server"
             } else {
                 "none"
@@ -522,6 +569,47 @@ pub fn build_path(
     })
 }
 
+/// Add the control-plane pieces needed to exercise dynamic local-endpoint
+/// creation on an otherwise TCP-based path.
+///
+/// The hot-reload benchmark keeps its measured data plane on TCP, but its
+/// `add_connection`/`remove_connection` action is a management-API operation.
+/// A UDS rule is therefore needed as an endpoint template; without it a gRPC
+/// request has no rule to instantiate. This is currently intentionally limited
+/// to the direct, single-gateway topology: the endpoint belongs on the encrypt
+/// process, while the management client needs that process's API socket.
+pub fn add_management_uds_template(plan: &mut PathPlan, app_id: &str) -> io::Result<()> {
+    if plan.gateways.len() != 1 {
+        return Err(io::Error::other(
+            "dynamic UDS endpoint benchmarks require the single-gateway topology",
+        ));
+    }
+
+    let config = &mut plan.gateways[0].config;
+    let mut template = config
+        .rules
+        .iter()
+        .find(|rule| rule.direction == "encrypt" && rule.listen_proto == "tcp")
+        .cloned()
+        .ok_or_else(|| io::Error::other("TCP encrypt rule missing for endpoint template"))?;
+    template.name = "seshat-hotreload-template".to_string();
+    template.listen_addr = "unused".to_string();
+    template.listen_proto = "uds".to_string();
+    template.app_id = Some(app_id.to_string());
+    template.allowed_uids = vec![unsafe { libc::getuid() }];
+    config.rules.push(template);
+
+    let id = NEXT_MGMT_ID.fetch_add(1, Ordering::Relaxed);
+    let runtime_dir = short_runtime_dir("sm", id)?;
+    let socket = runtime_dir.join("mgmt.sock");
+    config.api = Some(ApiConfig::new(
+        &socket.to_string_lossy(),
+        &runtime_dir.to_string_lossy(),
+        MGMT_RING_CAPACITY,
+    ));
+    Ok(())
+}
+
 /// A running secured path: the spawned gateway processes plus their endpoints.
 pub struct RunningPath {
     pub ingress_addr: String,
@@ -590,7 +678,7 @@ pub fn start_path(
 ) -> io::Result<RunningPath> {
     let mut processes = Vec::with_capacity(plan.gateways.len());
     for named in plan.gateways.iter().rev() {
-        let config = ensure_readiness_api(&named.config, work_dir);
+        let config = ensure_readiness_api(&named.config)?;
         let mut proc = GatewayProcess::spawn(binary, &config, work_dir, &named.label, "info")?;
         if !gateway_cores.is_empty() && !crate::run::affinity::pin_pid(proc.pid(), gateway_cores) {
             log::warn!(
@@ -615,32 +703,32 @@ pub fn start_path(
 /// listener to poll, so we inject a management-API block: its UDS appears once
 /// the process is fully initialised, which [`GatewayProcess::wait_ready`] polls.
 ///
-/// The socket lives in the system temp dir (kept short for the `AF_UNIX`
-/// 108-byte path limit) with a per-process-unique name; `runtime_dir` points at
-/// the work dir (unused by UDP/TCP rules). Configs that already have a TCP
-/// listener or an explicit API block are returned unchanged.
+/// The socket lives in a short per-process runtime directory to respect the
+/// `AF_UNIX` 108-byte path limit. Configs that already have a TCP listener or
+/// an explicit API block are returned unchanged.
 ///
 /// Note: we deliberately do **not** inject the API for configs that already have
 /// a TCP listener. Doing so makes `wait_ready` also gate on the management UDS,
 /// and some gateway builds bring that socket up late (or not at all) for TLS
 /// paths, which would stall readiness. The benign "management API server error"
 /// such builds log for TCP paths is harmless and does not affect measurements.
-fn ensure_readiness_api(config: &GatewayConfig, work_dir: &Path) -> GatewayConfig {
+fn ensure_readiness_api(config: &GatewayConfig) -> io::Result<GatewayConfig> {
     let has_tcp_listener = config
         .rules
         .iter()
         .any(|r| r.listen_proto == "tcp" && r.listen_addr != "unused");
     if has_tcp_listener || config.api.is_some() {
-        return config.clone();
+        return Ok(config.clone());
     }
     let id = NEXT_MGMT_ID.fetch_add(1, Ordering::Relaxed);
-    let sock = std::env::temp_dir().join(format!("scg-mgmt-{}-{id}.sock", std::process::id()));
+    let runtime_dir = short_runtime_dir("sm", id)?;
+    let sock = runtime_dir.join("mgmt.sock");
     let api = ApiConfig::new(
         &sock.to_string_lossy(),
-        &work_dir.to_string_lossy(),
+        &runtime_dir.to_string_lossy(),
         MGMT_RING_CAPACITY,
     );
-    config.clone().api(api)
+    Ok(config.clone().api(api))
 }
 
 fn path_str(p: &Path) -> String {

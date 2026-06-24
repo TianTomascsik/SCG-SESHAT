@@ -32,7 +32,8 @@ use std::time::{Duration, Instant};
 
 use super::{tcp, udp, DataSink, DataSource, DuplexEnd, Transport, RECV_POLL_TIMEOUT};
 use crate::gateway::{
-    build_path, reserve_local_port, start_path, RunningPath, SecuritySpec, Topology,
+    add_management_uds_template, build_path, reserve_local_port, start_path, RunningPath,
+    SecuritySpec, Topology,
 };
 
 /// How long to wait for each gateway process to become ready.
@@ -43,10 +44,15 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const ACCEPT_TIMEOUT: Duration = Duration::from_secs(5);
 /// Poll cadence while waiting on a non-blocking accept.
 const ACCEPT_POLL: Duration = Duration::from_millis(5);
-/// How long to peek a freshly accepted connection to tell a live forward from a
-/// closed readiness-probe connection. A real (idle) connection stays open and
-/// times out here; a probe connection returns EOF almost immediately.
-const LIVENESS_PROBE: Duration = Duration::from_millis(200);
+/// How long to peek a freshly accepted connection to catch a late closed
+/// readiness probe. Startup drains the normal probe connections before a run,
+/// so this is only a short safety net rather than a 200 ms cost per benchmark
+/// connection.
+const LIVENESS_PROBE: Duration = Duration::from_millis(10);
+/// Maximum wait while draining the forwarded TCP connections created by the
+/// gateway readiness probes. No SESHAT client can connect before `start`
+/// returns, so every connection in this window is safe to discard.
+const READINESS_DRAIN_TIMEOUT: Duration = Duration::from_millis(500);
 
 /// A benchmark transport whose data plane traverses real gateway process(es).
 pub struct GatewayTcpTransport {
@@ -69,18 +75,57 @@ impl GatewayTcpTransport {
         work_dir: &Path,
         gateway_cores: &[usize],
     ) -> io::Result<Self> {
+        Self::start_inner(name, spec, topology, binary, work_dir, gateway_cores, None)
+    }
+
+    /// Start a TCP data path with the management API and a UDS endpoint
+    /// template enabled. This is used by hot-reload scenarios that must
+    /// exercise a real add/remove endpoint control-plane action.
+    pub fn start_with_management_endpoint(
+        name: &'static str,
+        spec: &SecuritySpec,
+        topology: Topology,
+        binary: &Path,
+        work_dir: &Path,
+        gateway_cores: &[usize],
+        app_id: &str,
+    ) -> io::Result<Self> {
+        Self::start_inner(
+            name,
+            spec,
+            topology,
+            binary,
+            work_dir,
+            gateway_cores,
+            Some(app_id),
+        )
+    }
+
+    fn start_inner(
+        name: &'static str,
+        spec: &SecuritySpec,
+        topology: Topology,
+        binary: &Path,
+        work_dir: &Path,
+        gateway_cores: &[usize],
+        management_endpoint_app_id: Option<&str>,
+    ) -> io::Result<Self> {
         std::fs::create_dir_all(work_dir)?;
 
         // Reserve the backend port, point the decrypt rule at it, then bind the
         // real listener before launching the gateway.
         let backend_addr = format!("127.0.0.1:{}", reserve_local_port()?);
-        let plan = build_path(spec, topology, &backend_addr)?;
+        let mut plan = build_path(spec, topology, &backend_addr)?;
+        if let Some(app_id) = management_endpoint_app_id {
+            add_management_uds_template(&mut plan, app_id)?;
+        }
         let ingress_addr = plan.ingress_addr.clone();
 
         let backend = TcpListener::bind(&backend_addr)?;
         backend.set_nonblocking(true)?;
 
         let running = start_path(&plan, binary, work_dir, READY_TIMEOUT, gateway_cores)?;
+        drain_readiness_probes(&backend)?;
 
         Ok(GatewayTcpTransport {
             name,
@@ -156,6 +201,26 @@ impl GatewayTcpTransport {
                 }
                 Err(e) => return Err(e),
             }
+        }
+    }
+}
+
+/// Discard forwarded connections created solely by `start_path` readiness
+/// probing.  Previously `accept_forwarded` waited 200 ms on *every* new
+/// connection to distinguish these from a real client. At 256+ connections
+/// that serialized setup for tens of seconds before traffic could start.
+fn drain_readiness_probes(backend: &TcpListener) -> io::Result<()> {
+    let deadline = Instant::now() + READINESS_DRAIN_TIMEOUT;
+    loop {
+        match backend.accept() {
+            Ok((stream, _peer)) => drop(stream),
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                if Instant::now() >= deadline {
+                    return Ok(());
+                }
+                thread::sleep(ACCEPT_POLL);
+            }
+            Err(e) => return Err(e),
         }
     }
 }
