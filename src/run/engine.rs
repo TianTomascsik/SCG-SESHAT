@@ -246,10 +246,13 @@ fn sender_loop(
                 break;
             }
             let msg = builder.build(seq);
-            if sink.send_msg(msg).is_err() {
-                break;
+            match sink.send_msg(msg) {
+                Ok(()) => seq = seq.wrapping_add(1),
+                // A non-blocking local-interface ring is momentarily full.
+                // Yield, then loop so the phase flag remains observable.
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => std::thread::yield_now(),
+                Err(_) => break,
             }
-            seq = seq.wrapping_add(1);
         }
     }
     sink.close();

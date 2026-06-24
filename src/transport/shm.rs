@@ -41,9 +41,31 @@ struct ShmSink {
 
 impl DataSink for ShmSink {
     fn send_msg(&mut self, buf: &[u8]) -> io::Result<()> {
-        self.client
-            .send(self.traffic_id, buf)
-            .map_err(|e| io::Error::other(format!("SHM send: {e}")))
+        match self
+            .client
+            .try_send(self.traffic_id, buf)
+            .map_err(|e| io::Error::other(format!("SHM send: {e}")))?
+        {
+            true => Ok(()),
+            false => Err(io::Error::from(io::ErrorKind::WouldBlock)),
+        }
+    }
+
+    fn send_batch(&mut self, msgs: &[&[u8]]) -> io::Result<usize> {
+        let mut sent = 0;
+        for msg in msgs {
+            match self
+                .client
+                .try_send(self.traffic_id, msg)
+                .map_err(|e| io::Error::other(format!("SHM send: {e}")))?
+            {
+                true => sent += 1,
+                // Let the run engine yield and re-check its phase instead of
+                // waiting indefinitely when the receiver/gateway has stopped.
+                false => return Ok(sent),
+            }
+        }
+        Ok(sent)
     }
 
     fn close(&mut self) {
