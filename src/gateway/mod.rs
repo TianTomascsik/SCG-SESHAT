@@ -182,6 +182,8 @@ pub struct SecuritySpec {
     pub zero_copy: bool,
     /// SHM ring busy-poll microseconds before blocking (0 = immediate block).
     pub spin_wait_us: u64,
+    /// Gateway performance profile (`throughput | latency | balanced`).
+    pub perf_profile: Option<String>,
 }
 
 impl SecuritySpec {
@@ -211,6 +213,7 @@ impl SecuritySpec {
             decrypt_upstream_proto: None,
             zero_copy: false,
             spin_wait_us: 0,
+            perf_profile: None,
         }
     }
 
@@ -242,6 +245,7 @@ impl SecuritySpec {
             decrypt_upstream_proto: None,
             zero_copy: false,
             spin_wait_us: 0,
+            perf_profile: None,
         }
     }
 
@@ -274,6 +278,7 @@ impl SecuritySpec {
             decrypt_upstream_proto: None,
             zero_copy: false,
             spin_wait_us: 0,
+            perf_profile: None,
         }
     }
 
@@ -306,6 +311,7 @@ impl SecuritySpec {
             decrypt_upstream_proto: None,
             zero_copy: false,
             spin_wait_us: 0,
+            perf_profile: None,
         }
     }
 
@@ -338,6 +344,7 @@ impl SecuritySpec {
             decrypt_upstream_proto: None,
             zero_copy: false,
             spin_wait_us: 0,
+            perf_profile: None,
         }
     }
 
@@ -392,6 +399,7 @@ impl SecuritySpec {
     pub fn with_optimizations(mut self, flags: &crate::config::schema::OptimizationFlags) -> Self {
         self.zero_copy = flags.zero_copy;
         self.spin_wait_us = flags.spin_wait_us.unwrap_or(0);
+        self.perf_profile = flags.perf_profile.clone();
         self
     }
 
@@ -422,9 +430,10 @@ impl SecuritySpec {
         if let Some(v) = &self.ciphersuites {
             rule = rule.param("ciphersuites", v.clone());
         }
-        // Optimization flags (F1/F2).
+        // Optimization flags (F1/F2/perf_profile).
         rule.zero_copy = self.zero_copy;
         rule.spin_wait_us = self.spin_wait_us;
+        rule.perf_profile = self.perf_profile.clone();
         rule
     }
 

@@ -21,7 +21,7 @@ use std::time::Duration;
 
 use scg_client::ScgClient;
 
-use super::{DataSink, DataSource, RecvOutcome, Transport, RECV_POLL_TIMEOUT};
+use super::{DataSink, DataSource, DuplexEnd, RecvOutcome, Transport, RECV_POLL_TIMEOUT};
 use crate::gateway::grpc_client::{Direction, MgmtClient, TrafficClass};
 use crate::gateway::{self, RunningPath, SecuritySpec, Topology};
 
@@ -75,6 +75,66 @@ impl DataSource for UdsSource {
     fn close(&mut self) {
         // ScgClient deregisters on drop.
     }
+}
+
+/// Client-side full-duplex end for the closed-loop ping-pong RTT mode.
+///
+/// Mirrors the SHM duplex client: send on the encrypt endpoint, read the same
+/// framed message back off the decrypt endpoint once the gateway has relayed it.
+/// One message in flight yields a true closed-loop gateway latency.
+struct UdsDuplexClient {
+    tx: ScgClient,
+    rx: ScgClient,
+    traffic_id: u32,
+    timeout: Duration,
+}
+
+impl DuplexEnd for UdsDuplexClient {
+    fn send_msg(&mut self, buf: &[u8]) -> io::Result<()> {
+        self.tx
+            .send(self.traffic_id, buf)
+            .map_err(|e| io::Error::other(format!("UDS send: {e}")))
+    }
+
+    fn recv_msg(&mut self, buf: &mut [u8]) -> io::Result<RecvOutcome> {
+        match self.rx.recv_timeout(Some(self.timeout)) {
+            Ok(Some((_traffic_id, data))) => {
+                let len = data.len().min(buf.len());
+                buf[..len].copy_from_slice(&data[..len]);
+                Ok(RecvOutcome::Message(len))
+            }
+            Ok(None) => Ok(RecvOutcome::Timeout),
+            Err(e) => {
+                let msg = format!("{e}");
+                if msg.contains("closed") || msg.contains("EOF") {
+                    Ok(RecvOutcome::Closed)
+                } else {
+                    Err(io::Error::other(format!("UDS recv: {e}")))
+                }
+            }
+        }
+    }
+
+    fn close(&mut self) {
+        // ScgClients deregister on drop.
+    }
+}
+
+/// Server-side stub for UDS ping-pong: the gateway relays encrypt→decrypt, so
+/// this end just idles until the run completes.
+struct UdsNullServer;
+
+impl DuplexEnd for UdsNullServer {
+    fn send_msg(&mut self, _buf: &[u8]) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn recv_msg(&mut self, _buf: &mut [u8]) -> io::Result<RecvOutcome> {
+        std::thread::sleep(Duration::from_millis(5));
+        Ok(RecvOutcome::Timeout)
+    }
+
+    fn close(&mut self) {}
 }
 
 /// A benchmark transport that drives traffic through the gateway's UDS local
@@ -255,5 +315,32 @@ impl Transport for GatewayUdsTransport {
         });
 
         Ok((sink, source))
+    }
+
+    fn pingpong_pair(
+        &self,
+        _message_bytes: u32,
+    ) -> io::Result<(Box<dyn DuplexEnd>, Box<dyn DuplexEnd>)> {
+        let mgmt = MgmtClient::new(&self.mgmt_socket);
+
+        let decrypt_ep = mgmt
+            .create_uds(&self.app_id, TrafficClass::Normal, Direction::Decrypt)
+            .map_err(io::Error::other)?;
+
+        let encrypt_ep = mgmt
+            .create_uds(&self.app_id, TrafficClass::Normal, Direction::Encrypt)
+            .map_err(io::Error::other)?;
+
+        // The client sends on encrypt and reads the echo off decrypt; the
+        // gateway relays between them, so the server end is a no-op stub.
+        let client = Box::new(UdsDuplexClient {
+            tx: encrypt_ep.client,
+            rx: decrypt_ep.client,
+            traffic_id: 1,
+            timeout: RECV_POLL_TIMEOUT,
+        });
+        let server = Box::new(UdsNullServer);
+
+        Ok((client, server))
     }
 }

@@ -1095,6 +1095,19 @@ fn run_gateway_scenario(
         }
     } else if is_shm {
         let app_id = format!("seshat-{}", sanitize(&scenario.name));
+        // Ring capacity: scenario override, else 1 MiB. Enlarging the ring is
+        // opt-in (via optimization_flags.shm_ring_capacity) because a deeper
+        // ring inflates queueing latency for open-loop "sustained" senders.
+        let ring_capacity = scenario
+            .optimization_flags
+            .shm_ring_capacity
+            .unwrap_or(1024 * 1024) as u64;
+        let shm_tuning = crate::gateway::config::ShmTuning {
+            ring_kind: scenario.optimization_flags.shm_ring_kind.clone(),
+            segment_size: scenario.optimization_flags.shm_segment_size,
+            num_segments: scenario.optimization_flags.shm_num_segments,
+            g2c_notify: scenario.optimization_flags.shm_g2c_notify.clone(),
+        };
         match GatewayShmTransport::start(
             plan.transport_name,
             &spec,
@@ -1103,7 +1116,8 @@ fn run_gateway_scenario(
             &work_dir,
             &cores.gateway,
             &app_id,
-            1024 * 1024, // default 1 MiB ring capacity
+            ring_capacity,
+            &shm_tuning,
         ) {
             Ok(t) => GatewayDut::Shm(t),
             Err(e) => {

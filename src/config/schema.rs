@@ -656,7 +656,7 @@ pub enum ReloadAction {
 }
 
 /// SCG optimization toggles written into the generated gateway config (Phase 5).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct OptimizationFlags {
     /// Enable the zero-copy relay path (routing/kTLS only).
@@ -673,6 +673,17 @@ pub struct OptimizationFlags {
     pub buffer_slot_size: Option<usize>,
     /// SHM ring capacity.
     pub shm_ring_capacity: Option<usize>,
+    /// SHM ring implementation: `byte_stream` (default) or `slot`.
+    pub shm_ring_kind: Option<String>,
+    /// Fixed slot size in bytes (slot ring only).
+    pub shm_segment_size: Option<usize>,
+    /// Number of slots per direction (slot ring only).
+    pub shm_num_segments: Option<usize>,
+    /// Slot-ring gateway→client wakeup: `eventfd` (default) or `futex`.
+    pub shm_g2c_notify: Option<String>,
+    /// Gateway performance profile written into the config: `throughput`,
+    /// `latency`, or `balanced` (gateway default when unset).
+    pub perf_profile: Option<String>,
 }
 
 fn default_true() -> bool {

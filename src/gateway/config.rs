@@ -84,6 +84,18 @@ pub struct ApiConfig {
     pub tcp_addr: Option<String>,
     pub runtime_dir: String,
     pub shm_ring_capacity: usize,
+    /// SHM ring implementation: `byte_stream` (default) or `slot`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shm_ring_kind: Option<String>,
+    /// Fixed slot size in bytes (slot ring only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shm_segment_size: Option<usize>,
+    /// Number of slots per direction (slot ring only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shm_num_segments: Option<usize>,
+    /// Gateway→client wakeup for the slot ring: `eventfd` (default) or `futex`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shm_g2c_notify: Option<String>,
 }
 
 impl ApiConfig {
@@ -96,8 +108,38 @@ impl ApiConfig {
             tcp_addr: None,
             runtime_dir: runtime_dir.to_string(),
             shm_ring_capacity,
+            shm_ring_kind: None,
+            shm_segment_size: None,
+            shm_num_segments: None,
+            shm_g2c_notify: None,
         }
     }
+
+    /// Apply slot-ring tuning knobs (no-op when all unset).
+    pub fn shm_tuning(mut self, tuning: &ShmTuning) -> Self {
+        if let Some(kind) = &tuning.ring_kind {
+            self.shm_ring_kind = Some(kind.clone());
+        }
+        if let Some(sz) = tuning.segment_size {
+            self.shm_segment_size = Some(sz);
+        }
+        if let Some(n) = tuning.num_segments {
+            self.shm_num_segments = Some(n);
+        }
+        if let Some(notify) = &tuning.g2c_notify {
+            self.shm_g2c_notify = Some(notify.clone());
+        }
+        self
+    }
+}
+
+/// Per-scenario slot-ring tuning forwarded into the gateway config.
+#[derive(Debug, Clone, Default)]
+pub struct ShmTuning {
+    pub ring_kind: Option<String>,
+    pub segment_size: Option<usize>,
+    pub num_segments: Option<usize>,
+    pub g2c_notify: Option<String>,
 }
 
 /// Policy-enforcement block. The gateway defaults to deny-all when this is
@@ -155,6 +197,10 @@ pub struct RuleConfig {
     /// SHM ring busy-poll microseconds (0 = disabled).
     #[serde(default, skip_serializing_if = "is_zero_u64")]
     pub spin_wait_us: u64,
+    /// Per-rule performance profile (`throughput | latency | balanced`).
+    /// Overrides the gateway-global profile for this rule when set.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub perf_profile: Option<String>,
 }
 
 impl RuleConfig {
@@ -176,6 +222,7 @@ impl RuleConfig {
             provider_params: BTreeMap::new(),
             zero_copy: false,
             spin_wait_us: 0,
+            perf_profile: None,
         }
     }
 
@@ -288,6 +335,20 @@ mod tests {
         assert_eq!(v["listen_proto"], "uds");
         assert_eq!(v["app_id"], "app-bench");
         assert_eq!(v["allowed_uids"], serde_json::json!([1000]));
+    }
+
+    #[test]
+    fn perf_profile_serializes_only_when_set() {
+        // Omitted by default (skip_serializing_if = None).
+        let r = RuleConfig::new("r", "encrypt", "127.0.0.1:1", "127.0.0.1:2");
+        let v: serde_json::Value = serde_json::to_value(&r).unwrap();
+        assert!(v.get("perf_profile").is_none());
+
+        // Emitted verbatim when present so the gateway can pick the knob set.
+        let mut r2 = RuleConfig::new("r", "encrypt", "127.0.0.1:1", "127.0.0.1:2");
+        r2.perf_profile = Some("throughput".to_string());
+        let v2: serde_json::Value = serde_json::to_value(&r2).unwrap();
+        assert_eq!(v2["perf_profile"], "throughput");
     }
 
     #[test]

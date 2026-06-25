@@ -23,7 +23,7 @@ use std::time::Duration;
 
 use scg_client::ScgClient;
 
-use super::{DataSink, DataSource, RecvOutcome, Transport, RECV_POLL_TIMEOUT};
+use super::{DataSink, DataSource, DuplexEnd, RecvOutcome, Transport, RECV_POLL_TIMEOUT};
 use crate::gateway::grpc_client::{Direction, MgmtClient, TrafficClass};
 use crate::gateway::{self, RunningPath, SecuritySpec, Topology};
 
@@ -104,8 +104,78 @@ impl DataSource for ShmSource {
     }
 }
 
-/// A benchmark transport that drives traffic through the gateway's shared-memory
-/// local interface, provisioned via the gRPC management API.
+/// Client-side full-duplex end for the closed-loop ping-pong RTT mode.
+///
+/// The SCG SHM data path is one-way per endpoint, so a round trip is formed by
+/// sending on the **encrypt** ring and reading the same framed message back off
+/// the **decrypt** ring after it has traversed the gateway. With exactly one
+/// message in flight this measures true closed-loop gateway latency, free of the
+/// queueing-depth artifact that inflates the open-loop "sustained" path.
+struct ShmDuplexClient {
+    tx: ScgClient,
+    rx: ScgClient,
+    traffic_id: u32,
+    timeout: Duration,
+}
+
+impl DuplexEnd for ShmDuplexClient {
+    fn send_msg(&mut self, buf: &[u8]) -> io::Result<()> {
+        // Block until the (typically shallow) ring accepts the single in-flight
+        // message; yield rather than spin so a busy gateway can drain.
+        loop {
+            match self
+                .tx
+                .try_send(self.traffic_id, buf)
+                .map_err(|e| io::Error::other(format!("SHM send: {e}")))?
+            {
+                true => return Ok(()),
+                false => std::thread::yield_now(),
+            }
+        }
+    }
+
+    fn recv_msg(&mut self, buf: &mut [u8]) -> io::Result<RecvOutcome> {
+        match self.rx.recv_timeout(Some(self.timeout)) {
+            Ok(Some((_traffic_id, data))) => {
+                let len = data.len().min(buf.len());
+                buf[..len].copy_from_slice(&data[..len]);
+                Ok(RecvOutcome::Message(len))
+            }
+            Ok(None) => Ok(RecvOutcome::Timeout),
+            Err(e) => {
+                let msg = format!("{e}");
+                if msg.contains("closed") || msg.contains("EOF") {
+                    Ok(RecvOutcome::Closed)
+                } else {
+                    Err(io::Error::other(format!("SHM recv: {e}")))
+                }
+            }
+        }
+    }
+
+    fn close(&mut self) {
+        // ScgClients deregister on drop.
+    }
+}
+
+/// Server-side stub for SHM ping-pong: the gateway itself relays each message
+/// from the encrypt endpoint to the decrypt endpoint, so no external echo is
+/// required. This end simply idles until the run completes.
+struct ShmNullServer;
+
+impl DuplexEnd for ShmNullServer {
+    fn send_msg(&mut self, _buf: &[u8]) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn recv_msg(&mut self, _buf: &mut [u8]) -> io::Result<RecvOutcome> {
+        // Idle without burning a core; the echo path lives inside the gateway.
+        std::thread::sleep(Duration::from_millis(5));
+        Ok(RecvOutcome::Timeout)
+    }
+
+    fn close(&mut self) {}
+}
 pub struct GatewayShmTransport {
     name: &'static str,
     pub(crate) mgmt_socket: PathBuf,
@@ -126,6 +196,7 @@ impl GatewayShmTransport {
         gateway_cores: &[usize],
         app_id: &str,
         ring_capacity: u64,
+        tuning: &crate::gateway::config::ShmTuning,
     ) -> io::Result<Self> {
         use crate::gateway::config::{ApiConfig, GatewayConfig, RuleConfig};
         use crate::gateway::NamedGateway;
@@ -165,7 +236,8 @@ impl GatewayShmTransport {
             &sock.to_string_lossy(),
             &runtime_dir.to_string_lossy(),
             shm_ring,
-        );
+        )
+        .shm_tuning(tuning);
 
         let gateways = match topology {
             Topology::SingleGateway => vec![NamedGateway {
@@ -183,7 +255,8 @@ impl GatewayShmTransport {
                     &sock2.to_string_lossy(),
                     &runtime_dir2.to_string_lossy(),
                     shm_ring,
-                );
+                )
+                .shm_tuning(tuning);
                 vec![
                     NamedGateway {
                         label: "scg-a".to_string(),
@@ -291,5 +364,45 @@ impl Transport for GatewayShmTransport {
         });
 
         Ok((sink, source))
+    }
+
+    fn pingpong_pair(
+        &self,
+        _message_bytes: u32,
+    ) -> io::Result<(Box<dyn DuplexEnd>, Box<dyn DuplexEnd>)> {
+        let mgmt = MgmtClient::new(&self.mgmt_socket);
+
+        // Same provisioning order as `loopback_pair`: the decrypt endpoint must
+        // exist before encrypt performs its initial TLS handshake.
+        let decrypt_ep = mgmt
+            .create_shm(
+                &self.app_id,
+                TrafficClass::Normal,
+                Direction::Decrypt,
+                self.ring_capacity,
+            )
+            .map_err(io::Error::other)?;
+
+        let encrypt_ep = mgmt
+            .create_shm(
+                &self.app_id,
+                TrafficClass::Normal,
+                Direction::Encrypt,
+                self.ring_capacity,
+            )
+            .map_err(io::Error::other)?;
+
+        // The client drives the loop: send on encrypt, read the echo off
+        // decrypt. The gateway relays between the two, so the server end is a
+        // no-op stub.
+        let client = Box::new(ShmDuplexClient {
+            tx: encrypt_ep.client,
+            rx: decrypt_ep.client,
+            traffic_id: 1,
+            timeout: RECV_POLL_TIMEOUT,
+        });
+        let server = Box::new(ShmNullServer);
+
+        Ok((client, server))
     }
 }

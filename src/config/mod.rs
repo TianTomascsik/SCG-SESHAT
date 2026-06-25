@@ -256,6 +256,15 @@ fn validate_scenario(s: &Scenario) -> ScenarioReport {
         }
     }
 
+    // Performance profile must be one of the gateway's known values.
+    if let Some(profile) = &s.optimization_flags.perf_profile {
+        if !matches!(profile.as_str(), "throughput" | "latency" | "balanced") {
+            r.errors.push(format!(
+                "optimization_flags.perf_profile '{profile}' is invalid (expected throughput, latency, or balanced)"
+            ));
+        }
+    }
+
     // Hot-reload needs the gateway.
     if let Some(reload) = &s.reload_event {
         if !s.gateway.enabled {
