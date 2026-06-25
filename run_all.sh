@@ -11,6 +11,7 @@
 #   ./run_all.sh --scenario-filter tcp  # Only run suite files with 'tcp' in name
 #   ./run_all.sh --skip-build           # Skip cargo build
 #   ./run_all.sh --perf                 # Enable perf stat collection
+#   ./run_all.sh --nightly              # Run the exhaustive generated matrix
 #
 # This script:
 #  1. Builds SESHAT (release) and the SCG gateway
@@ -31,6 +32,7 @@ QUICK=false
 SKIP_BUILD=false
 FILTER=""
 PERF=false
+TIER="canonical"
 TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
 
 while [[ $# -gt 0 ]]; do
@@ -41,6 +43,7 @@ while [[ $# -gt 0 ]]; do
     --skip-build)     SKIP_BUILD=true; shift ;;
     --scenario-filter) FILTER="$2"; shift 2 ;;
     --perf)           PERF=true; shift ;;
+    --nightly)        TIER="nightly"; shift ;;
     -h|--help)
       sed -n '2,/^$/p' "$0" | grep '^#' | cut -c3-
       exit 0 ;;
@@ -191,25 +194,47 @@ mkdir -p "${RUN_DIR}"
 # ─── Step 3: Run Benchmarks ──────────────────────────────────────────────────
 rule "BENCHMARK EXECUTION"
 
-# The full suite is the canonical feature/payload matrix. `gateway_smoke` and
-# `full_matrix` are useful focused suites, but are intentionally not included
-# here because their scenarios overlap this plan and would measure the same
-# configurations twice.
+# Generated suites are the source of canonical coverage.  The default tier is
+# intentionally compact; `--nightly` exercises every compatible generated
+# protocol/payload/connection combination.
 declare -A CONFIG_DESC
-CONFIGS=(
-  configs/full_suite.json
-  configs/latency.json
-  configs/saturation.json
-  configs/pingpong.json
-  configs/connrate.json
-)
-CONFIG_DESC=(
-  [configs/full_suite.json]="Canonical feature, interface, protocol, and payload matrix"
-  [configs/latency.json]="Paced sub-saturation one-way latency"
-  [configs/saturation.json]="Offered-load sweep (find loss-free ceiling)"
-  [configs/pingpong.json]="Closed-loop round-trip time"
-  [configs/connrate.json]="Connection establishment rate"
-)
+if [[ "$TIER" == "nightly" ]]; then
+  CONFIGS=(
+    configs/full_matrix.json
+    configs/interface_comparison.json
+    configs/hotreload_matrix.json
+    configs/latency.json
+    configs/saturation.json
+    configs/pingpong.json
+    configs/connrate.json
+  )
+  CONFIG_DESC=(
+    [configs/full_matrix.json]="Exhaustive generated protocol, payload, topology, and scalability matrix"
+    [configs/interface_comparison.json]="Matched loopback, SCG TCP, TPROXY, UDS, and SHM comparison"
+    [configs/hotreload_matrix.json]="Generated compatible hot-reload matrix"
+    [configs/latency.json]="Paced sub-saturation one-way latency"
+    [configs/saturation.json]="Offered-load sweep (find loss-free ceiling)"
+    [configs/pingpong.json]="Closed-loop round-trip time"
+    [configs/connrate.json]="Connection establishment rate"
+  )
+else
+  CONFIGS=(
+    configs/canonical_matrix.json
+    configs/interface_comparison.json
+    configs/latency.json
+    configs/saturation.json
+    configs/pingpong.json
+    configs/connrate.json
+  )
+  CONFIG_DESC=(
+    [configs/canonical_matrix.json]="Generated compact protocol and transport matrix"
+    [configs/interface_comparison.json]="Matched loopback, SCG TCP, TPROXY, UDS, and SHM comparison"
+    [configs/latency.json]="Paced sub-saturation one-way latency"
+    [configs/saturation.json]="Offered-load sweep (find loss-free ceiling)"
+    [configs/pingpong.json]="Closed-loop round-trip time"
+    [configs/connrate.json]="Connection establishment rate"
+  )
+fi
 
 # Fail before touching the machine if future config edits accidentally schedule
 # the same benchmark shape twice. Target addresses are deliberately ignored:

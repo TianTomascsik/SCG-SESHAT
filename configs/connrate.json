@@ -2,7 +2,7 @@
   "$schema": "seshat-config-v1",
   "suite": {
     "name": "SCG Connection-Rate Suite",
-    "description": "Measures how fast fresh connections can be established and torn down (connections/second) and the per-connection establishment latency (handshake p50/p99). Connector threads open a connection, complete the establishment handshake (TCP three-way for loopback; the gateway's upstream TLS handshake once that path is wired), then close, churning as fast as possible while a server thread drains them. The 'connections' field sets the connector parallelism, not a steady connection count. This is the connection-setup analogue of the throughput and ping-pong suites: it stresses accept()/handshake cost rather than steady-state data movement. Loopback TCP only — UDP is connectionless and the gateway connrate harness is not wired yet, so those scenarios are skipped with a notice.",
+    "description": "Measures fresh-connection rate and completed-path establishment latency. Connector threads open an ingress connection, send a one-frame probe, and wait for the backend close; gateway rows therefore include forwarding and the configured internal TLS handshake rather than only a TCP three-way handshake. The 'connections' field is connector parallelism, not steady-state connection count. UDP/DTLS remains out of scope because the gateway datagram path is connectionless.",
     "author": "SESHAT",
     "version": "1.0.0"
   },
@@ -41,6 +41,36 @@
       "sender": {
         "interface": "tcp",
         "target_addr": "127.0.0.1:14001",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "conn_scg_tls13_1thread",
+      "category": "connection",
+      "mode": "connrate",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "requirements": { "openssl": true },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:14002",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "conn_scg_tls13_4thread",
+      "category": "connection",
+      "mode": "connrate",
+      "message_size_bytes": 64,
+      "connections": 4,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "requirements": { "openssl": true },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:14003",
         "pattern": "sustained"
       }
     }

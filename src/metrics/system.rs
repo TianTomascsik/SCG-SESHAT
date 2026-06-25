@@ -1,8 +1,8 @@
 //! Per-PID system-metrics sampling (F-13b).
 //!
 //! While a gateway scenario runs, a background thread reads the SCG process(es)'
-//! `/proc/<pid>/{stat,status,io}` counters at a configured rate and records a
-//! timeseries (CPU%, RSS, thread count, context switches, block I/O). The PIDs
+//! `/proc/<pid>/{stat,status,io,smaps_rollup}` counters at a configured rate and records a
+//! timeseries (CPU%, RSS/PSS, thread count, context switches, block I/O). The PIDs
 //! come straight from the running gateway transport, so no auto-detection or
 //! `--scg-pid` guesswork is needed for the standard path.
 //!
@@ -30,6 +30,7 @@ const HEADERS: &[&str] = &[
     "elapsed_ms",
     "cpu_pct",
     "rss_kib",
+    "pss_kib",
     "threads",
     "utime_ticks",
     "stime_ticks",
@@ -48,6 +49,9 @@ pub struct SystemSample {
     pub pid: u32,
     /// Resident set size in kibibytes (`/proc/<pid>/status` VmRSS).
     pub rss_kib: u64,
+    /// Proportional set size in kibibytes (`/proc/<pid>/smaps_rollup` Pss).
+    /// Zero means the kernel denied or did not expose the optional file.
+    pub pss_kib: u64,
     /// Thread count (`/proc/<pid>/stat` field 20).
     pub threads: u64,
     /// Cumulative user-mode CPU ticks (`stat` utime).
@@ -330,10 +334,12 @@ fn sample_pid(pid: i32, elapsed_ms: u64) -> Option<SystemSample> {
     let (utime_ticks, stime_ticks, threads) = parse_stat(&stat)?;
     let (rss_kib, voluntary_ctxt, nonvoluntary_ctxt) = parse_status(pid);
     let (read_bytes, write_bytes) = parse_io(pid);
+    let pss_kib = parse_pss(pid);
     Some(SystemSample {
         elapsed_ms,
         pid: pid as u32,
         rss_kib,
+        pss_kib,
         threads,
         utime_ticks,
         stime_ticks,
@@ -342,6 +348,18 @@ fn sample_pid(pid: i32, elapsed_ms: u64) -> Option<SystemSample> {
         read_bytes,
         write_bytes,
     })
+}
+
+/// Parse `Pss:` from `/proc/<pid>/smaps_rollup`; a kernel may hide it from an
+/// unprivileged reader, in which case the scenario still records RSS.
+fn parse_pss(pid: i32) -> u64 {
+    fs::read_to_string(format!("/proc/{pid}/smaps_rollup"))
+        .ok()
+        .and_then(|s| {
+            s.lines()
+                .find_map(|line| line.strip_prefix("Pss:").map(first_u64))
+        })
+        .unwrap_or(0)
 }
 
 /// Parse `utime`, `stime`, and `num_threads` from a `/proc/<pid>/stat` line.
@@ -442,6 +460,8 @@ pub struct SysAgg {
     pub cpu_pct_mean: f64,
     /// Peak summed resident set size across PIDs (kiB).
     pub rss_peak_kib: u64,
+    /// Peak summed proportional set size across PIDs (kiB), when readable.
+    pub pss_peak_kib: u64,
     /// Total context switches per second across PIDs over the run.
     pub ctx_switches_per_s: f64,
 }
@@ -465,6 +485,7 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
     use std::collections::BTreeMap;
     let mut cpu_by_time: BTreeMap<u64, f64> = BTreeMap::new();
     let mut rss_by_time: BTreeMap<u64, u64> = BTreeMap::new();
+    let mut pss_by_time: BTreeMap<u64, u64> = BTreeMap::new();
     let mut ctx_total: u64 = 0;
     let mut span_s: f64 = 0.0;
     for &pid in &pids {
@@ -477,6 +498,7 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
             };
             *cpu_by_time.entry(s.elapsed_ms).or_insert(0.0) += cpu;
             *rss_by_time.entry(s.elapsed_ms).or_insert(0) += s.rss_kib;
+            *pss_by_time.entry(s.elapsed_ms).or_insert(0) += s.pss_kib;
             prev = Some(s);
         }
         if let (Some(first), Some(last)) = (series.first(), series.last()) {
@@ -508,6 +530,7 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
         sum / measured.len() as f64
     };
     let rss_peak_kib = rss_by_time.values().copied().max().unwrap_or(0);
+    let pss_peak_kib = pss_by_time.values().copied().max().unwrap_or(0);
     let ctx_switches_per_s = if span_s > 0.0 {
         ctx_total as f64 / span_s
     } else {
@@ -519,6 +542,7 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
         cpu_pct_peak: peak,
         cpu_pct_mean,
         rss_peak_kib,
+        pss_peak_kib,
         ctx_switches_per_s,
     })
 }
@@ -551,6 +575,7 @@ pub fn write_csv(dir: &Path, samples: &[SystemSample]) -> io::Result<()> {
                 s.elapsed_ms.to_string(),
                 num(cpu, 2),
                 s.rss_kib.to_string(),
+                s.pss_kib.to_string(),
                 s.threads.to_string(),
                 s.utime_ticks.to_string(),
                 s.stime_ticks.to_string(),
@@ -595,6 +620,7 @@ mod tests {
             elapsed_ms: 0,
             pid: 1,
             rss_kib: 0,
+            pss_kib: 0,
             threads: 1,
             utime_ticks: 0,
             stime_ticks: 0,

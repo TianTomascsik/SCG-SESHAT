@@ -181,7 +181,12 @@ fn receiver_loop(
                 for i in 0..count {
                     let msg = &buf[i * stride..i * stride + lens[i]];
                     if measuring {
-                        let _ = receiver::ingest(&mut metrics, msg, recv_ns);
+                        if msg.len() != stride {
+                            metrics.record_boundary_violation();
+                        }
+                        if receiver::ingest(&mut metrics, msg, recv_ns).is_err() {
+                            metrics.record_integrity_failure();
+                        }
                     } else {
                         // Keep the stream validated during warmup/cooldown.
                         let _ = decode_message(msg);
@@ -652,7 +657,10 @@ where
 ///
 /// Returns `(summary, first_handshake_us, resumed_handshake_us)` for session-
 /// resumption analysis (C3).
-fn run_once_connrate(transport: &dyn Transport, params: &RunParams) -> io::Result<(FlowSummary, f64, f64)> {
+fn run_once_connrate(
+    transport: &dyn Transport,
+    params: &RunParams,
+) -> io::Result<(FlowSummary, f64, f64)> {
     let (acceptor, factory) = transport.conn_harness(params.message_bytes)?;
     let phase = Arc::new(AtomicU8::new(PHASE_WARMUP));
     let stop = Arc::new(AtomicBool::new(false));

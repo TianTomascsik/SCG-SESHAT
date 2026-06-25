@@ -381,6 +381,15 @@ fn validate_transport_needs_gateway(
 }
 
 fn validate_protocol_transport(s: &Scenario, interface: Interface, r: &mut ScenarioReport) {
+    match s.protocol.kind {
+        ProtocolType::Tls if s.protocol.version == TlsVersion::V1_0 => r
+            .errors
+            .push("protocol.type=tls does not support version=1.0".to_string()),
+        ProtocolType::Dtls if s.protocol.version == TlsVersion::V1_3 => r
+            .errors
+            .push("protocol.type=dtls supports version=1.0 or version=1.2".to_string()),
+        _ => {}
+    }
     // DTLS is a datagram protocol — UDP only.
     if s.protocol.kind == ProtocolType::Dtls && interface != Interface::Udp {
         r.errors.push(format!(
@@ -397,6 +406,13 @@ fn validate_protocol_transport(s: &Scenario, interface: Interface, r: &mut Scena
         if s.protocol.kind != ProtocolType::Tls {
             r.errors
                 .push("protocol.app_protocol (ale/raw) requires protocol.type=tls".to_string());
+        }
+    }
+
+    if let Some(comparison) = &s.comparison {
+        if comparison.group.trim().is_empty() || comparison.reference.trim().is_empty() {
+            r.errors
+                .push("comparison.group and comparison.reference must be non-empty".to_string());
         }
     }
 }
@@ -524,6 +540,27 @@ mod tests {
         );
         let rep = validate(&cfg);
         assert!(!rep.ok());
+    }
+
+    #[test]
+    fn dtls10_is_accepted_but_tls10_is_rejected() {
+        let dtls = parse(
+            r#"{ "suite": { "name": "t", "version": "1" }, "scenarios": [
+                { "name": "dtls10", "gateway": { "enabled": true },
+                  "protocol": { "type": "dtls", "version": "1.0" },
+                  "sender": { "interface": "udp", "target_addr": "127.0.0.1:1" } }
+            ] }"#,
+        );
+        assert!(validate(&dtls).ok());
+
+        let tls = parse(
+            r#"{ "suite": { "name": "t", "version": "1" }, "scenarios": [
+                { "name": "tls10", "gateway": { "enabled": true },
+                  "protocol": { "type": "tls", "version": "1.0" },
+                  "sender": { "interface": "tcp", "target_addr": "127.0.0.1:1" } }
+            ] }"#,
+        );
+        assert!(!validate(&tls).ok());
     }
 
     #[test]

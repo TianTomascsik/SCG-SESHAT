@@ -116,6 +116,12 @@ pub struct FlowMetrics {
     latencies_us: Vec<f64>,
     seqs: Vec<u64>,
     bytes: u64,
+    /// Frames rejected by deterministic payload/header validation.
+    integrity_failures: u64,
+    /// Received frame sizes that do not match the scenario's declared message
+    /// size.  For UDP this is the datagram-boundary/size assertion; for stream
+    /// transports it detects unexpected framing.
+    boundary_violations: u64,
     /// Wall duration of the measured window in seconds (set by the engine).
     duration_s: f64,
 }
@@ -131,6 +137,8 @@ impl FlowMetrics {
             latencies_us: Vec::with_capacity(cap),
             seqs: Vec::with_capacity(cap),
             bytes: 0,
+            integrity_failures: 0,
+            boundary_violations: 0,
             duration_s: 0.0,
         }
     }
@@ -142,6 +150,20 @@ impl FlowMetrics {
         self.seqs.push(seq);
         self.latencies_us.push(latency_ns as f64 / 1000.0);
         self.bytes += wire_bytes;
+    }
+
+    /// Count a rejected payload/header without admitting it into latency or
+    /// sequence statistics.
+    #[inline]
+    pub fn record_integrity_failure(&mut self) {
+        self.integrity_failures += 1;
+    }
+
+    /// Count one frame whose received boundary differs from the configured
+    /// on-wire message size.
+    #[inline]
+    pub fn record_boundary_violation(&mut self) {
+        self.boundary_violations += 1;
     }
 
     /// Number of messages recorded so far.
@@ -200,6 +222,8 @@ impl FlowMetrics {
             latency_us,
             jitter_us,
             integrity: integ,
+            integrity_failures: self.integrity_failures,
+            boundary_violations: self.boundary_violations,
             loss_pct,
             outliers_removed,
         }
@@ -219,6 +243,10 @@ pub struct FlowSummary {
     /// Packet delay variation (mean |Δlatency|), microseconds.
     pub jitter_us: f64,
     pub integrity: Integrity,
+    /// Invalid payload/header frames rejected by the receiver.
+    pub integrity_failures: u64,
+    /// Message-size/datagram-boundary assertion failures.
+    pub boundary_violations: u64,
     pub loss_pct: f64,
     pub outliers_removed: usize,
 }
@@ -238,6 +266,8 @@ pub fn aggregate_run(
     let mut integ = Integrity::default();
     let mut jitter_weighted = 0.0f64;
     let mut jitter_weight = 0u64;
+    let mut integrity_failures = 0u64;
+    let mut boundary_violations = 0u64;
     for m in metrics {
         all_lat.extend_from_slice(m.latencies_us());
         bytes += m.byte_count();
@@ -250,6 +280,8 @@ pub fn aggregate_run(
         let j = jitter(m.latencies_us());
         jitter_weighted += j * mi.received as f64;
         jitter_weight += mi.received;
+        integrity_failures += m.integrity_failures;
+        boundary_violations += m.boundary_violations;
     }
     let (lat_samples, outliers_removed) = if remove_outliers {
         stats::remove_outliers_iqr(&all_lat)
@@ -276,6 +308,8 @@ pub fn aggregate_run(
         latency_us,
         jitter_us,
         integrity: integ,
+        integrity_failures,
+        boundary_violations,
         loss_pct,
         outliers_removed,
     }
@@ -357,5 +391,16 @@ mod tests {
         assert_eq!(s.integrity.lost, 0);
         assert!(approx(s.latency_us.mean, 10.0, 1e-9));
         assert!(approx(s.throughput_gbps, 102_400.0 * 8.0 / 1e9, 1e-12));
+    }
+
+    #[test]
+    fn validation_failures_are_separate_from_sequence_integrity() {
+        let mut metrics = FlowMetrics::new();
+        metrics.record_integrity_failure();
+        metrics.record_boundary_violation();
+        let summary = metrics.finish(false);
+        assert_eq!(summary.integrity_failures, 1);
+        assert_eq!(summary.boundary_violations, 1);
+        assert_eq!(summary.integrity.lost, 0);
     }
 }

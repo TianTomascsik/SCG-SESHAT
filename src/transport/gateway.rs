@@ -24,17 +24,24 @@
 //! connect-then-accept pairs the two halves deterministically.
 #![allow(dead_code)] // consumed by the run command wiring (WP2.5).
 
-use std::io;
-use std::net::{TcpListener, TcpStream, ToSocketAddrs, UdpSocket};
+use std::io::{self, Read, Write};
+use std::net::{SocketAddr, TcpListener, TcpStream, ToSocketAddrs, UdpSocket};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use super::{tcp, udp, DataSink, DataSource, DuplexEnd, Transport, RECV_POLL_TIMEOUT};
+use super::{
+    tcp, udp, ConnAcceptor, ConnFactory, DataSink, DataSource, DuplexEnd, Transport,
+    RECV_POLL_TIMEOUT,
+};
 use crate::gateway::{
     add_management_uds_template, build_path, reserve_local_port, start_path, RunningPath,
     SecuritySpec, Topology,
 };
+use crate::proto::wire::{encode_message, HEADER_LEN};
+use crate::time::monotonic_ns;
 
 /// How long to wait for each gateway process to become ready.
 const READY_TIMEOUT: Duration = Duration::from_secs(15);
@@ -283,6 +290,76 @@ impl Transport for GatewayTcpTransport {
             tcp::duplex_from_stream(client, message_bytes),
             tcp::duplex_from_stream(server, message_bytes),
         ))
+    }
+
+    fn conn_harness(
+        &self,
+        message_bytes: u32,
+    ) -> io::Result<(Box<dyn ConnAcceptor>, Arc<dyn ConnFactory>)> {
+        let ingress = self
+            .ingress_addr
+            .to_socket_addrs()?
+            .next()
+            .ok_or_else(|| io::Error::other("gateway ingress address did not resolve"))?;
+        let backend = self.backend.try_clone()?;
+        backend.set_nonblocking(true)?;
+        Ok((
+            Box::new(GatewayConnAcceptor { listener: backend }),
+            Arc::new(GatewayConnFactory {
+                ingress,
+                message_bytes: message_bytes.max(HEADER_LEN as u32),
+            }),
+        ))
+    }
+}
+
+/// Backend acceptor for gateway connection-rate tests.  Reading one complete
+/// probe byte before active-close ensures the connector timing covers ingress
+/// connection, gateway forwarding, and the configured security handshake.
+struct GatewayConnAcceptor {
+    listener: TcpListener,
+}
+
+impl ConnAcceptor for GatewayConnAcceptor {
+    fn serve(self: Box<Self>, stop: &AtomicBool) {
+        while !stop.load(Ordering::Relaxed) {
+            match self.listener.accept() {
+                Ok((mut stream, _)) => {
+                    let _ = stream.set_read_timeout(Some(RECV_POLL_TIMEOUT));
+                    let mut byte = [0u8; 1];
+                    let _ = stream.read(&mut byte);
+                    // Drop actively closes from the backend, avoiding client
+                    // TIME_WAIT accumulation just as the direct TCP harness.
+                }
+                Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => {
+                    thread::sleep(Duration::from_micros(200));
+                }
+                Err(_) => break,
+            }
+        }
+    }
+}
+
+/// Ingress connector for gateway connection-rate tests.  The probe write and
+/// subsequent EOF make the returned time a completed-path handshake rather
+/// than merely the kernel's TCP three-way handshake with the ingress socket.
+struct GatewayConnFactory {
+    ingress: SocketAddr,
+    message_bytes: u32,
+}
+
+impl ConnFactory for GatewayConnFactory {
+    fn connect_once(&self) -> io::Result<u64> {
+        let start = monotonic_ns();
+        let mut stream = TcpStream::connect_timeout(&self.ingress, CONNECT_TIMEOUT)?;
+        stream.set_nodelay(true).ok();
+        stream.set_read_timeout(Some(RECV_POLL_TIMEOUT)).ok();
+        let mut probe = vec![0u8; self.message_bytes as usize];
+        encode_message(0, self.message_bytes - HEADER_LEN as u32, &mut probe);
+        stream.write_all(&probe)?;
+        let mut eof = [0u8; 1];
+        let _ = stream.read(&mut eof);
+        Ok(monotonic_ns().saturating_sub(start))
     }
 }
 
@@ -567,6 +644,41 @@ mod tests {
     #[test]
     fn engine_runs_through_scg_to_scg() {
         drive_engine(Topology::ScgToScg);
+    }
+
+    #[test]
+    fn gateway_connection_rate_completes_path_establishment() {
+        let _guard = crate::gateway::gateway_test_guard();
+        let work_dir =
+            std::env::temp_dir().join(format!("seshat-gw-connrate-{}", std::process::id()));
+        let Some(binary) = locate_working_binary(&work_dir) else {
+            eprintln!("skip: no gateway binary supports the routing provider");
+            let _ = std::fs::remove_dir_all(&work_dir);
+            return;
+        };
+        let transport = GatewayTcpTransport::start(
+            "routing",
+            &SecuritySpec::routing_tcp(),
+            Topology::SingleGateway,
+            &binary,
+            &work_dir,
+            &[],
+        )
+        .unwrap();
+        let mut params = quick_params();
+        params.mode = crate::run::engine::RunMode::Connrate;
+        params.message_bytes = 64;
+        params.connections = 1;
+        params.warmup = Duration::from_millis(50);
+        params.measure = Duration::from_millis(150);
+        params.cooldown = Duration::ZERO;
+        let stats = run_scenario(&transport, &params, |_, _| {}).unwrap();
+        assert!(
+            stats.conn.as_ref().is_some_and(|conn| conn.total_conns > 0),
+            "gateway connection-rate run should establish completed paths"
+        );
+        transport.shutdown().unwrap();
+        let _ = std::fs::remove_dir_all(&work_dir);
     }
 
     /// Run the real engine through a DTLS gateway over UDP and assert datagrams

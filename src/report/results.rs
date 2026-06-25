@@ -20,9 +20,10 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::config::{Config, Scenario};
+use crate::config::{Config, Interface, ProtocolType, Scenario, TlsVersion};
 use crate::gateway::logscan::{effective_protocol_label, Effective};
 use crate::metrics::app::FlowSummary;
+use crate::metrics::overhead::{compute as compute_overhead, EncapProfile};
 use crate::metrics::system::{PerfResult, SysAgg, SystemSample};
 use crate::proto::wire::HEADER_LEN;
 use crate::run::calibrate::Calibration;
@@ -31,6 +32,7 @@ use crate::run::engine::RunStats;
 use crate::run::saturation::SweepResult;
 use crate::sysinfo::SysInfo;
 use crate::time::realtime_ns;
+use crate::workload::streams::MultiStreamResult;
 
 use super::csv::{num, Csv};
 
@@ -54,6 +56,10 @@ const SUMMARY_HEADERS: &[&str] = &[
     "handshake_us_mean",
     "loss_pct",
     "total_lost",
+    "integrity_failures",
+    "boundary_violations",
+    "encapsulation_overhead_bytes_analytical",
+    "encapsulation_overhead_capture_verified",
     "ceiling_gbps",
     "headroom",
     "harness_limited",
@@ -64,6 +70,8 @@ const SUMMARY_HEADERS: &[&str] = &[
     "effective_protocol",
     "cpu_pct_peak",
     "cpu_pct_mean",
+    "rss_peak_kib",
+    "pss_peak_kib",
     "gbps_per_core",
     "bottleneck",
     "rtt_us_mean",
@@ -106,6 +114,8 @@ const RUNS_HEADERS: &[&str] = &[
     "lost",
     "duplicate",
     "reordered",
+    "integrity_failures",
+    "boundary_violations",
     "outliers_removed",
 ];
 
@@ -116,6 +126,24 @@ pub struct ScenarioOutcome {
     pub throughput_gbps: f64,
     pub latency_p99_us: f64,
     pub loss_pct: f64,
+}
+
+/// One completed row belonging to a generated interface-comparison group.
+#[derive(Debug, Clone)]
+struct ComparisonOutcome {
+    group: String,
+    scenario: String,
+    transport: String,
+    reference: String,
+    gateway_reference: Option<String>,
+    throughput_gbps: f64,
+    latency_mean_us: f64,
+    latency_p99_us: f64,
+    jitter_us: f64,
+    loss_pct: f64,
+    cpu_pct_peak: Option<f64>,
+    rss_peak_kib: Option<u64>,
+    pss_peak_kib: Option<u64>,
 }
 
 /// Optional analysis artifacts attached to a recorded scenario: the calibration
@@ -133,10 +161,29 @@ pub struct ScenarioArtifacts<'a> {
     pub loss_threshold_pct: f64,
 }
 
+/// Observations from one hot-reload injection.  These are deliberately a
+/// separate artifact because reload windows do not map cleanly onto the normal
+/// cross-run throughput aggregate.
+#[derive(Debug, Clone)]
+pub struct ReloadArtifact {
+    pub action: String,
+    pub fired: bool,
+    pub action_succeeded: bool,
+    pub reload_duration_us: u64,
+    pub connections_before: usize,
+    pub connections_after: usize,
+    pub inflight_packets_lost: u64,
+    pub latency_p99_us: f64,
+    pub throughput_gbps: f64,
+    pub rollback_continuity_passed: Option<bool>,
+}
+
 /// A timestamped result directory being populated during a run.
 pub struct ResultDir {
     root: PathBuf,
     summary: Csv,
+    skipped: Csv,
+    comparisons: Vec<ComparisonOutcome>,
     started_unix: u64,
     outcomes: Vec<ScenarioOutcome>,
 }
@@ -157,6 +204,8 @@ impl ResultDir {
         Ok(ResultDir {
             root,
             summary: Csv::new(SUMMARY_HEADERS),
+            skipped: Csv::new(&["scenario", "reason"]),
+            comparisons: Vec::new(),
             started_unix,
             outcomes: Vec::new(),
         })
@@ -204,9 +253,17 @@ impl ResultDir {
             None => protocol.clone(),
         };
 
-        scenario_config_csv(scenario, params).write(&dir.join("config.csv"))?;
-        scenario_summary_csv(stats, art, overloaded, &effective_protocol)
-            .write(&dir.join("summary.csv"))?;
+        let analytical_overhead = analytical_overhead(scenario, params);
+        scenario_config_csv(scenario, params, analytical_overhead)
+            .write(&dir.join("config.csv"))?;
+        scenario_summary_csv(
+            stats,
+            art,
+            overloaded,
+            &effective_protocol,
+            analytical_overhead,
+        )
+        .write(&dir.join("summary.csv"))?;
         runs_csv(stats).write(&dir.join("runs.csv"))?;
         if let Some(sweep) = sweep {
             saturation_csv(sweep).write(&dir.join("saturation.csv"))?;
@@ -219,7 +276,8 @@ impl ResultDir {
             Some(s) => (num(s.saturation_gbps, 4), num(s.max_lossfree_gbps, 4)),
             None => (String::new(), String::new()),
         };
-        let (cpu_peak_s, cpu_mean_s, per_core_s) = cpu_cells(sys, stats.throughput_gbps.mean);
+        let (cpu_peak_s, cpu_mean_s, rss_peak_s, pss_peak_s, per_core_s) =
+            cpu_cells(sys, stats.throughput_gbps.mean);
         let bottleneck_s = cal.map(|c| c.bottleneck.to_string()).unwrap_or_default();
         let (rtt_mean_s, rtt_ci_s, rtt_p50_s, rtt_p99_s) = rtt_cells(stats);
         let (cps_s, cps_ci_s, hs_p50_s, hs_p99_s) = conn_cells(stats);
@@ -253,6 +311,22 @@ impl ResultDir {
             num(stats.handshake_us.mean, 3),
             num(stats.loss_pct, 4),
             stats.total_lost.to_string(),
+            stats
+                .runs
+                .iter()
+                .map(|run| run.integrity_failures)
+                .sum::<u64>()
+                .to_string(),
+            stats
+                .runs
+                .iter()
+                .map(|run| run.boundary_violations)
+                .sum::<u64>()
+                .to_string(),
+            analytical_overhead
+                .map(|bytes| bytes.to_string())
+                .unwrap_or_default(),
+            "false".to_string(),
             ceiling_s,
             headroom_s,
             limited_s,
@@ -263,6 +337,8 @@ impl ResultDir {
             effective_protocol,
             cpu_peak_s,
             cpu_mean_s,
+            rss_peak_s,
+            pss_peak_s,
             per_core_s,
             bottleneck_s,
             rtt_mean_s,
@@ -290,6 +366,23 @@ impl ResultDir {
             latency_p99_us: stats.latency_p99_us.mean,
             loss_pct: stats.loss_pct,
         });
+        if let Some(comparison) = &scenario.comparison {
+            self.comparisons.push(ComparisonOutcome {
+                group: comparison.group.clone(),
+                scenario: scenario.name.clone(),
+                transport: params.sender.interface.label().to_string(),
+                reference: comparison.reference.clone(),
+                gateway_reference: comparison.gateway_reference.clone(),
+                throughput_gbps: stats.throughput_gbps.mean,
+                latency_mean_us: stats.latency_mean_us.mean,
+                latency_p99_us: stats.latency_p99_us.mean,
+                jitter_us: mean_jitter(stats),
+                loss_pct: stats.loss_pct,
+                cpu_pct_peak: sys.map(|a| a.cpu_pct_peak),
+                rss_peak_kib: sys.map(|a| a.rss_peak_kib),
+                pss_peak_kib: sys.map(|a| a.pss_peak_kib),
+            });
+        }
         Ok(())
     }
 
@@ -306,6 +399,122 @@ impl ResultDir {
             .join(sanitize(&scenario.name))
             .join("system_metrics");
         crate::metrics::system::write_csv(&dir, samples)
+    }
+
+    /// Persist per-stream scheduling results rather than reducing a scheduling
+    /// run to a synthetic best-flow summary.  The normal `summary.csv` remains
+    /// compatible while this artifact carries the evidence for safety/bulk
+    /// isolation and DSCP checks.
+    pub fn record_stream_results(
+        &self,
+        scenario: &Scenario,
+        result: &MultiStreamResult,
+    ) -> io::Result<()> {
+        let dir = self.root.join("scenarios").join(sanitize(&scenario.name));
+        let mut streams = Csv::new(&[
+            "stream",
+            "traffic_class",
+            "priority",
+            "throughput_gbps",
+            "latency_mean_us",
+            "latency_p50_us",
+            "latency_p95_us",
+            "latency_p99_us",
+            "jitter_us",
+            "loss_pct",
+            "lost",
+            "duplicate",
+            "reordered",
+            "dscp_preserved",
+        ]);
+        for stream in &result.streams {
+            streams.row(vec![
+                stream.name.clone(),
+                stream.traffic_class.clone(),
+                stream.priority.to_string(),
+                num(stream.summary.throughput_gbps, 4),
+                num(stream.summary.latency_us.mean, 3),
+                num(stream.summary.latency_us.p50, 3),
+                num(stream.summary.latency_us.p95, 3),
+                num(stream.summary.latency_us.p99, 3),
+                num(stream.summary.jitter_us, 3),
+                num(stream.summary.loss_pct, 4),
+                stream.summary.integrity.lost.to_string(),
+                stream.summary.integrity.duplicate.to_string(),
+                stream.summary.integrity.reordered.to_string(),
+                stream
+                    .dscp_preserved
+                    .map(|value| value.to_string())
+                    .unwrap_or_default(),
+            ]);
+        }
+        streams.write(&dir.join("streams.csv"))?;
+        let mut summary = Csv::key_value();
+        summary
+            .kv("fairness_ratio", num(result.fairness_ratio, 4))
+            .kv("safety_loss_free", result.safety_loss_free.to_string())
+            .kv(
+                "safety_p99_us",
+                result
+                    .safety_p99_us
+                    .map(|value| num(value, 3))
+                    .unwrap_or_default(),
+            );
+        summary.write(&dir.join("stream_summary.csv"))
+    }
+
+    /// Persist hot-reload control-plane timing and traffic-continuity evidence.
+    pub fn record_reload_artifact(
+        &self,
+        scenario: &Scenario,
+        artifact: &ReloadArtifact,
+    ) -> io::Result<()> {
+        let dir = self.root.join("scenarios").join(sanitize(&scenario.name));
+        let mut csv = Csv::key_value();
+        csv.kv("action", artifact.action.clone())
+            .kv("reload_fired", artifact.fired.to_string())
+            .kv("action_succeeded", artifact.action_succeeded.to_string())
+            .kv(
+                "reload_duration_us",
+                artifact.reload_duration_us.to_string(),
+            )
+            .kv(
+                "connections_before",
+                artifact.connections_before.to_string(),
+            )
+            .kv("connections_after", artifact.connections_after.to_string())
+            .kv(
+                "inflight_packets_lost",
+                artifact.inflight_packets_lost.to_string(),
+            )
+            .kv("latency_p99_us", num(artifact.latency_p99_us, 3))
+            .kv(
+                "throughput_during_reload_gbps",
+                num(artifact.throughput_gbps, 4),
+            )
+            .kv(
+                "rollback_continuity_passed",
+                artifact
+                    .rollback_continuity_passed
+                    .map(|value| value.to_string())
+                    .unwrap_or_default(),
+            );
+        csv.write(&dir.join("hotreload.csv"))
+    }
+
+    /// Persist an explicit capability/setup skip.  A skipped scenario must be
+    /// visible to downstream analysis; silently omitting it would make a
+    /// generated matrix look more complete than the host permitted.
+    pub fn record_skipped(&mut self, scenario: &Scenario, reason: &str) -> io::Result<()> {
+        let dir = self.root.join("scenarios").join(sanitize(&scenario.name));
+        let mut detail = Csv::key_value();
+        detail
+            .kv("scenario", scenario.name.clone())
+            .kv("reason", reason.to_string());
+        detail.write(&dir.join("skip.csv"))?;
+        self.skipped
+            .row(vec![scenario.name.clone(), reason.to_string()]);
+        Ok(())
     }
 
     /// Write `meta.csv` and the top-level `summary.csv`, finishing the tree.
@@ -336,12 +545,84 @@ impl ResultDir {
             .kv("ktls_usable", host.ktls_usable.to_string());
         meta.write(&self.root.join("meta.csv"))?;
 
-        self.summary.write(&self.root.join("summary.csv"))
+        self.summary.write(&self.root.join("summary.csv"))?;
+        self.skipped.write(&self.root.join("skipped.csv"))?;
+        self.write_interface_comparison()
     }
 
     /// Outcomes for the console suite summary, in execution order.
     pub fn outcomes(&self) -> &[ScenarioOutcome] {
         &self.outcomes
+    }
+
+    /// Consolidate matched interface rows and calculate end-to-end and
+    /// gateway-normalized deltas.  References that were skipped remain blank,
+    /// which preserves the fact that an unavailable capability cannot support
+    /// a valid comparison on that host.
+    fn write_interface_comparison(&self) -> io::Result<()> {
+        if self.comparisons.is_empty() {
+            return Ok(());
+        }
+        use std::collections::HashMap;
+        let by_scenario = self
+            .comparisons
+            .iter()
+            .map(|row| (row.scenario.as_str(), row))
+            .collect::<HashMap<_, _>>();
+        let mut csv = Csv::new(&[
+            "group",
+            "scenario",
+            "transport",
+            "reference_scenario",
+            "gateway_reference_scenario",
+            "throughput_gbps",
+            "latency_mean_us",
+            "latency_p99_us",
+            "jitter_us",
+            "loss_pct",
+            "cpu_pct_peak",
+            "rss_peak_kib",
+            "pss_peak_kib",
+            "throughput_delta_vs_direct_gbps",
+            "latency_p99_delta_vs_direct_us",
+            "throughput_delta_vs_gateway_gbps",
+            "latency_p99_delta_vs_gateway_us",
+        ]);
+        for row in &self.comparisons {
+            let direct = by_scenario.get(row.reference.as_str()).copied();
+            let gateway = row
+                .gateway_reference
+                .as_deref()
+                .and_then(|name| by_scenario.get(name).copied());
+            csv.row(vec![
+                row.group.clone(),
+                row.scenario.clone(),
+                row.transport.clone(),
+                row.reference.clone(),
+                row.gateway_reference.clone().unwrap_or_default(),
+                num(row.throughput_gbps, 4),
+                num(row.latency_mean_us, 3),
+                num(row.latency_p99_us, 3),
+                num(row.jitter_us, 3),
+                num(row.loss_pct, 4),
+                row.cpu_pct_peak.map(|v| num(v, 1)).unwrap_or_default(),
+                row.rss_peak_kib.map(|v| v.to_string()).unwrap_or_default(),
+                row.pss_peak_kib.map(|v| v.to_string()).unwrap_or_default(),
+                direct
+                    .map(|r| num(row.throughput_gbps - r.throughput_gbps, 4))
+                    .unwrap_or_default(),
+                direct
+                    .map(|r| num(row.latency_p99_us - r.latency_p99_us, 3))
+                    .unwrap_or_default(),
+                gateway
+                    .map(|r| num(row.throughput_gbps - r.throughput_gbps, 4))
+                    .unwrap_or_default(),
+                gateway
+                    .map(|r| num(row.latency_p99_us - r.latency_p99_us, 3))
+                    .unwrap_or_default(),
+            ]);
+        }
+        csv.write(&self.root.join("interface_comparison.csv"))
     }
 }
 
@@ -354,8 +635,32 @@ fn mean_jitter(stats: &RunStats) -> f64 {
     sum / stats.runs.len() as f64
 }
 
+/// Estimate the per-message protocol overhead from the configured endpoint
+/// path.  This is intentionally marked analytical: TCP options, TLS record
+/// coalescing, and the actual on-wire packetisation require a packet capture
+/// before they can be claimed as observed bytes.
+fn analytical_overhead(scenario: &Scenario, params: &RunParams) -> Option<u32> {
+    let profile = match params.sender.interface {
+        Interface::Unix => EncapProfile::Uds,
+        Interface::Shm => EncapProfile::Shm,
+        Interface::Udp => match scenario.protocol.kind {
+            ProtocolType::Dtls => EncapProfile::Dtls12Gcm,
+            _ => EncapProfile::Udp,
+        },
+        Interface::Tcp | Interface::Tproxy => match scenario.protocol.kind {
+            ProtocolType::Tls => match scenario.protocol.version {
+                TlsVersion::V1_3 => EncapProfile::Tls13Aead,
+                TlsVersion::V1_0 | TlsVersion::V1_2 => EncapProfile::Tls12Gcm,
+            },
+            ProtocolType::Dtls => return None,
+            ProtocolType::None | ProtocolType::Wireguard | ProtocolType::Ipsec => EncapProfile::Tcp,
+        },
+    };
+    Some(compute_overhead(profile).total)
+}
+
 /// Resolved scenario configuration as a `key,value` table.
-fn scenario_config_csv(s: &Scenario, params: &RunParams) -> Csv {
+fn scenario_config_csv(s: &Scenario, params: &RunParams, analytical_overhead: Option<u32>) -> Csv {
     let payload = params.message_bytes.saturating_sub(HEADER_LEN as u32);
     let mut c = Csv::key_value();
     c.kv("name", s.name.clone())
@@ -368,6 +673,13 @@ fn scenario_config_csv(s: &Scenario, params: &RunParams) -> Csv {
         )
         .kv("message_bytes", params.message_bytes.to_string())
         .kv("payload_bytes", payload.to_string())
+        .kv(
+            "encapsulation_overhead_bytes_analytical",
+            analytical_overhead
+                .map(|bytes| bytes.to_string())
+                .unwrap_or_default(),
+        )
+        .kv("encapsulation_overhead_capture_verified", "false")
         .kv("connections", params.connections.to_string())
         .kv("gateway_enabled", s.gateway.enabled.to_string())
         .kv("runs", params.runs.to_string())
@@ -384,6 +696,7 @@ fn scenario_summary_csv(
     art: &ScenarioArtifacts,
     overloaded: bool,
     effective_protocol: &str,
+    analytical_overhead: Option<u32>,
 ) -> Csv {
     let thr = &stats.throughput_gbps;
     let lat = &stats.latency_mean_us;
@@ -403,8 +716,33 @@ fn scenario_summary_csv(
         .kv("handshake_us_mean", num(stats.handshake_us.mean, 3))
         .kv("loss_pct", num(stats.loss_pct, 4))
         .kv("total_lost", stats.total_lost.to_string())
+        .kv(
+            "integrity_failures",
+            stats
+                .runs
+                .iter()
+                .map(|run| run.integrity_failures)
+                .sum::<u64>()
+                .to_string(),
+        )
+        .kv(
+            "boundary_violations",
+            stats
+                .runs
+                .iter()
+                .map(|run| run.boundary_violations)
+                .sum::<u64>()
+                .to_string(),
+        )
         .kv("overloaded", overloaded.to_string())
-        .kv("effective_protocol", effective_protocol.to_string());
+        .kv("effective_protocol", effective_protocol.to_string())
+        .kv(
+            "encapsulation_overhead_bytes_analytical",
+            analytical_overhead
+                .map(|bytes| bytes.to_string())
+                .unwrap_or_default(),
+        )
+        .kv("encapsulation_overhead_capture_verified", "false");
     if let Some(cal) = art.cal {
         c.kv("ceiling_gbps", num(cal.ceiling_gbps, 4))
             .kv("headroom", num(cal.headroom, 2))
@@ -415,7 +753,8 @@ fn scenario_summary_csv(
     if let Some(a) = art.sys {
         c.kv("cpu_pct_peak", num(a.cpu_pct_peak, 1))
             .kv("cpu_pct_mean", num(a.cpu_pct_mean, 1))
-            .kv("rss_peak_kib", a.rss_peak_kib.to_string());
+            .kv("rss_peak_kib", a.rss_peak_kib.to_string())
+            .kv("pss_peak_kib", a.pss_peak_kib.to_string());
         if a.cpu_pct_peak > 0.0 {
             c.kv("gbps_per_core", num(thr.mean / (a.cpu_pct_peak / 100.0), 4));
         }
@@ -504,7 +843,10 @@ fn conn_cells(stats: &RunStats) -> (String, String, String, String) {
 /// Gateway CPU summary cells: peak %, mean %, and Gbit/s per fully-loaded core
 /// (throughput divided by the peak core-equivalents). Empty when no gateway CPU
 /// timeseries was captured (e.g. a plain loopback run).
-fn cpu_cells(sys: Option<&SysAgg>, throughput_gbps: f64) -> (String, String, String) {
+fn cpu_cells(
+    sys: Option<&SysAgg>,
+    throughput_gbps: f64,
+) -> (String, String, String, String, String) {
     match sys {
         Some(a) => {
             let per_core = if a.cpu_pct_peak > 0.0 {
@@ -512,9 +854,21 @@ fn cpu_cells(sys: Option<&SysAgg>, throughput_gbps: f64) -> (String, String, Str
             } else {
                 String::new()
             };
-            (num(a.cpu_pct_peak, 1), num(a.cpu_pct_mean, 1), per_core)
+            (
+                num(a.cpu_pct_peak, 1),
+                num(a.cpu_pct_mean, 1),
+                a.rss_peak_kib.to_string(),
+                a.pss_peak_kib.to_string(),
+                per_core,
+            )
         }
-        None => (String::new(), String::new(), String::new()),
+        None => (
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
+        ),
     }
 }
 
@@ -629,6 +983,8 @@ fn run_row(index: usize, r: &FlowSummary) -> Vec<String> {
         r.integrity.lost.to_string(),
         r.integrity.duplicate.to_string(),
         r.integrity.reordered.to_string(),
+        r.integrity_failures.to_string(),
+        r.boundary_violations.to_string(),
         r.outliers_removed.to_string(),
     ]
 }
@@ -783,6 +1139,7 @@ mod tests {
             },
             false,
             "ktls/1.3",
+            Some(74),
         )
         .render();
 
@@ -791,5 +1148,31 @@ mod tests {
         assert!(csv.contains("perf_ipc,3.500\r\n"));
         assert!(csv.contains("perf_syscalls,56\r\n"));
         assert!(csv.contains("perf_duration_s,1.234567\r\n"));
+        assert!(csv.contains("encapsulation_overhead_bytes_analytical,74\r\n"));
+        assert!(csv.contains("encapsulation_overhead_capture_verified,false\r\n"));
+    }
+
+    #[test]
+    fn analytical_overhead_is_not_packet_capture_measurement() {
+        let scenario: Scenario = serde_json::from_value(serde_json::json!({
+            "name": "tls13",
+            "sender": { "interface": "tcp", "target_addr": "127.0.0.1:1" },
+            "protocol": { "type": "tls", "version": "1.3" }
+        }))
+        .unwrap();
+        let params = RunParams {
+            message_bytes: 1024,
+            connections: 1,
+            runs: 1,
+            warmup: std::time::Duration::ZERO,
+            measure: std::time::Duration::from_secs(1),
+            cooldown: std::time::Duration::ZERO,
+            remove_outliers: false,
+            sender_cores: Vec::new(),
+            receiver_cores: Vec::new(),
+            sender: scenario.sender.clone().unwrap(),
+            mode: RunMode::Throughput,
+        };
+        assert_eq!(analytical_overhead(&scenario, &params), Some(74));
     }
 }

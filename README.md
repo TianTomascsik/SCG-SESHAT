@@ -122,32 +122,40 @@ Ready-made configs ship in [`configs/`](configs):
   TLS runs through the real SCG plus a loopback baseline (quick validation).
 - [`configs/example.json`](configs/example.json) — a broader representative
   suite (performance, scheduling, a disabled WireGuard example).
-- [`configs/full_matrix.json`](configs/full_matrix.json) — every
-  protocol/transport/topology path SESHAT can currently drive end-to-end.
+- [`configs/matrix_spec.json`](configs/matrix_spec.json) — declarative source
+  for all generated matrix suites; regenerate with `seshat matrix generate`.
+- [`configs/canonical_matrix.json`](configs/canonical_matrix.json) — compact
+  generated default protocol/transport matrix.
+- [`configs/full_matrix.json`](configs/full_matrix.json) — generated nightly
+  matrix across compatible protocols, sizes, chains, and connection sweeps.
+- [`configs/matrix_catalog.json`](configs/matrix_catalog.json) — generated
+  catalog including explicitly disabled technical limitations.
+- [`configs/interface_comparison.json`](configs/interface_comparison.json) —
+  matched direct TCP loopback, SCG TCP, TPROXY, UDS, and SHM measurements.
+- [`configs/hotreload_matrix.json`](configs/hotreload_matrix.json) — generated
+  compatible hot-reload combinations for the nightly tier.
 - [`configs/full_suite.json`](configs/full_suite.json) — all features: UDS, SHM,
   TPROXY, ALE/RAW, hot-reload, veth/netns topology, tc-netem impairment,
   optimization flags (zero_copy, spin_wait), multi-stream DSCP scheduling,
-  session-resumption connrate, and disabled WireGuard/IPSec stubs.
+  connection-rate, and disabled/pending capability examples.
 - [`configs/latency.json`](configs/latency.json) — **paced** sub-saturation
   one-way latency (periodic senders, so buffers stay empty).
 - [`configs/saturation.json`](configs/saturation.json) — offered-load sweeps
   that find each path's saturation knee and loss-free ceiling.
 - [`configs/pingpong.json`](configs/pingpong.json) — closed-loop round-trip
   time (`mode: pingpong`), loopback TCP/UDP.
-- [`configs/connrate.json`](configs/connrate.json) — connection-establishment
-  rate and handshake latency (`mode: connrate`), loopback TCP.
+- [`configs/connrate.json`](configs/connrate.json) — loopback and gateway
+  completed-path connection-establishment rate/latency (`mode: connrate`).
 
 ---
 
 ## Benchmark matrix and measurements
 
-[`run_all.sh`](run_all.sh) is the canonical non-overlapping execution plan. It
-runs `full_suite`, `latency`, `saturation`, `pingpong`, and `connrate`—not
-`gateway_smoke` or `full_matrix`, because those focused suites duplicate shapes
-already covered by the canonical plan. At present this schedules **57 enabled
-scenarios** (42 in the full feature suite, plus 5 latency, 4 saturation, 4
-loopback RTT, and 2 connection-rate scenarios). The runner rejects duplicate
-enabled benchmark shapes before it starts a run when `jq` is available.
+[`run_all.sh`](run_all.sh) executes the generated `canonical_matrix` plus the
+matched `interface_comparison`, latency, saturation, ping-pong, and connection
+rate suites. `./run_all.sh --nightly` selects the generated exhaustive matrix.
+The runner rejects duplicate enabled benchmark shapes before it starts a run
+when `jq` is available.
 
 ### What is measured
 
@@ -158,10 +166,11 @@ enabled benchmark shapes before it starts a run when `jq` is available.
 | Sub-saturation latency | Periodic, rate-limited traffic kept below the saturation knee | One-way latency without queueing/bufferbloat dominating the result |
 | Saturation | Increasing offered-load sweep for each path | Loss-free ceiling, saturation knee, and headroom |
 | Round-trip time | Closed-loop request/echo with one message in flight | RTT percentiles and samples |
-| Connection establishment | TCP connect/accept/close churn across configurable connector threads | Connections/second and handshake latency percentiles |
-| Multi-stream QoS | Concurrent safety and bulk streams with DSCP/traffic-class settings | Per-stream throughput/latency/loss, Jain fairness, and safety-starvation verdict |
+| Interface comparison | Matched routing-only TCP loopback, SCG TCP, TPROXY, UDS, and SHM paths | Absolute throughput/latency plus direct-TCP and gateway-TCP deltas |
+| Connection establishment | TCP connect/accept/close churn across configurable connector threads | Connections/second and completed-path establishment latency percentiles |
+| Multi-stream QoS | Concurrent safety, monitoring, and bulk streams with DSCP/traffic-class settings | Per-stream throughput/latency/loss, fairness, and safety-starvation verdict |
 | Reliability and reload | Traffic continues while an endpoint is added/removed or a configuration reload is triggered | Drop count and continuity verdict during the event |
-| System resource use | Samples attached gateway PIDs during every gateway-backed run | CPU, RSS, context switches, I/O; `--perf` additionally records cycles, instructions, IPC, cache references/misses, syscalls, task-clock, and elapsed time |
+| System resource use | Samples attached gateway PIDs during every gateway-backed run | CPU, RSS/PSS, context switches, I/O; `--perf` additionally records cycles, instructions, IPC, cache references/misses, syscalls, task-clock, and elapsed time |
 
 `perf` metrics are collected only when `--perf` is explicitly requested and the
 host can attach `perf stat`; the runner fails rather than publishing a report
@@ -183,15 +192,16 @@ The groups below make the scenario names and intent visible at a glance.
 | Payload and connection scaling | TLS 1.3 TCP at 64B, 256B, 1KB, 4KB, 16KB, and 64KB (`scg_tls13_tcp_*`); plus `scg_tls13_tcp_1024conn` and the routing 256-connection case above |
 | Gateway RTT | `scg_tls13_pingpong_rtt_1KB`, `scg_routing_pingpong_rtt_1KB` |
 | Scheduling and DSCP | `multistream_safety_bulk`, `multistream_dscp_preservation` |
-| Hot reload | `hotreload_add_remove_endpoint`, `hotreload_invalid_config_rollback`, `hotreload_tls_profile_update` |
+| Hot reload | `hotreload_add_connection`, `hotreload_remove_connection`, `hotreload_invalid_config` (generated nightly) |
 | Virtual topology and impairment | `scg_routing_veth_4KB`, `scg_tls13_netns_4KB`, `scg_routing_netem_50ms_4KB`, `scg_routing_netem_1pct_loss_4KB` (all require `CAP_NET_ADMIN`) |
 
-Four entries are deliberately disabled, so they cannot be mistaken for tested
-coverage: `scg_dtls12_udp_4conn` (the DTLS transport has one shared backend
-flow), `scg_tls13_connrate` (gateway connection-rate mode is not implemented),
-`wireguard_tcp_4KB`, and `ipsec_ikev2_tcp_4KB` (SCG provider stubs). A missing
-gateway binary, `openssl`, or required privileges produces a recorded skip
-rather than a fabricated result.
+The generated catalog explicitly marks technical limitations that would
+otherwise misrepresent a result: DTLS multi-connection reporting (one shared
+backend datagram flow), kTLS+mTLS (SCG falls back to userspace TLS), TLS session
+resumption (no ticket/cache telemetry), and TLS-profile reload (SCG has no
+changed-rule reload acknowledgement yet). WireGuard and IPSec are outside the
+benchmark scope. A missing gateway binary, OpenSSL, kTLS, perf permission, or
+required privileges produces a recorded skip rather than a fabricated result.
 
 ### Focused suites
 
@@ -313,7 +323,7 @@ metrics:
 ```jsonc
 "protocol": {
   "type": "tls",            // none | tls | dtls | wireguard | ipsec
-  "version": "1.3",         // 1.2 | 1.3
+  "version": "1.3",         // TLS: 1.2 | 1.3; DTLS: 1.0 | 1.2
   "kernel": false,          // true → kTLS (kernel TLS)
   "mutual_auth": false,     // true → mTLS / mutual DTLS
   "protection_mode": "full",// full | integrity-only | routing-only
@@ -326,7 +336,7 @@ metrics:
 | --- | --- | --- |
 | `none` | tcp | Plaintext / routing-only baseline through the SCG |
 | `tls` | tcp | Userspace TLS 1.2/1.3; `kernel:true` → kTLS; `mutual_auth` → mTLS; `protection_mode:integrity-only` → NULL-cipher authenticated TLS |
-| `dtls` | udp | DTLS 1.2, server-auth or `mutual_auth`; single logical flow |
+| `dtls` | udp | DTLS 1.0/1.2, server-auth or `mutual_auth`; single logical flow |
 | `wireguard` / `ipsec` | — | **Disabled** (SCG provides stubs only); kept for forward-compat |
 
 ---
@@ -361,12 +371,13 @@ Additional columns surface the later improvements:
 | --- | --- |
 | `saturation_gbps`, `max_lossfree_gbps` | Saturation-sweep knee and highest loss-free offered load (when a sweep ran) |
 | `effective_protocol` | What the gateway **actually** negotiated, e.g. `tls/1.3 (ktls→userspace)` when kTLS was requested but fell back |
-| `cpu_pct_peak`, `cpu_pct_mean`, `gbps_per_core` | Gateway CPU utilisation (from `/proc`) and throughput efficiency |
+| `cpu_pct_peak`, `cpu_pct_mean`, `rss_peak_kib`, `pss_peak_kib`, `gbps_per_core` | Gateway CPU/memory utilisation (from `/proc`) and throughput efficiency |
+| `integrity_failures`, `boundary_violations` | Rejected deterministic payload/header frames and unexpected message/datagram sizes |
+| `encapsulation_overhead_bytes_analytical`, `encapsulation_overhead_capture_verified` | Protocol-header estimate; always labelled unverified unless a future packet-capture backend supplies observed bytes |
 | `perf_cycles`, `perf_instructions`, `perf_ipc`, `perf_cache_*`, `perf_context_switches`, `perf_task_clock_ms`, `perf_duration_s` | Scenario-wide `perf stat` hardware/software counters when the `perf` backend is enabled |
 | `bottleneck` | Calibration verdict: `harness-io`, `scg`, … (who limited the result) |
 | `rtt_us_mean/ci95/p50/p99` | Closed-loop round-trip time (populated only for `pingpong` scenarios) |
 | `conns_per_sec`, `conns_per_sec_ci95`, `conn_handshake_p50_us`, `conn_handshake_p99_us` | Connection rate + handshake latency (populated only for `connrate` scenarios) |
-| `conn_first_handshake_us`, `conn_resumed_handshake_us` | Session-resumption analysis: first (cold) vs subsequent (potentially resumed) TLS handshake latency |
 | `perf_syscalls` | System calls during the scenario (from `raw_syscalls:sys_enter` tracepoint via `perf stat`) |
 
 Each `runs.csv` adds the full latency percentile spread

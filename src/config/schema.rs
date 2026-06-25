@@ -225,6 +225,53 @@ pub struct Scenario {
     /// Optional saturation sweep (Phase D): when set, also sweep offered load.
     #[serde(default)]
     pub saturation: Option<Saturation>,
+    /// Host capabilities required to execute this scenario.  Matrix generation
+    /// uses this to make environment-dependent rows explicit instead of
+    /// silently changing or dropping them at runtime.
+    #[serde(default)]
+    pub requirements: Requirements,
+    /// Optional membership in a generated comparison group.  This is metadata
+    /// for report consolidation; it does not alter the data-plane path.
+    #[serde(default)]
+    pub comparison: Option<Comparison>,
+}
+
+/// Runtime capabilities required by a scenario generated from the matrix.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Requirements {
+    /// The OpenSSL command-line utility is needed for ephemeral certificates.
+    pub openssl: bool,
+    /// A usable Linux kTLS implementation is required (no userspace fallback).
+    pub ktls: bool,
+    /// The local OpenSSL build must permit DTLS 1.0.
+    pub dtls10: bool,
+    /// The process must have CAP_NET_ADMIN (TPROXY, veth, netns, tc).
+    pub cap_net_admin: bool,
+    /// The process must be allowed to collect perf events.
+    pub perf: bool,
+    /// An eBPF-capable environment is required for optional attribution.
+    pub ebpf: bool,
+}
+
+/// Declarative metadata used to compare otherwise matched interface scenarios.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Comparison {
+    /// Stable group identifier shared by matched scenarios.
+    pub group: String,
+    /// Reference scenario for the primary delta columns.
+    pub reference: String,
+    /// Optional gateway-only reference used to isolate endpoint overhead.
+    #[serde(default)]
+    pub gateway_reference: Option<String>,
+    /// Throughput group used to derive a common paced latency offered load.
+    #[serde(default)]
+    pub calibration_group: Option<String>,
+    /// Fraction of the lowest loss-free measured throughput used for the
+    /// comparison's periodic latency runs.
+    #[serde(default)]
+    pub calibration_fraction: Option<f64>,
 }
 
 /// Single-stream traffic source (F-05 transport + F-07 pattern).
@@ -365,9 +412,13 @@ pub enum ProtocolType {
     Ipsec,
 }
 
-/// TLS/DTLS version (F-06).
+/// Security protocol version.  TLS supports 1.2/1.3; DTLS supports 1.0/1.2.
+/// The semantic validator rejects invalid protocol/version pairs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
 pub enum TlsVersion {
+    /// DTLS 1.0 (invalid for TLS scenarios).
+    #[serde(rename = "1.0")]
+    V1_0,
     /// TLS 1.2.
     #[serde(rename = "1.2")]
     V1_2,
@@ -677,9 +728,10 @@ impl Scenario {
 }
 
 impl TlsVersion {
-    /// Version label, `1.2` or `1.3`.
+    /// Version label used in scenario and report names.
     pub fn label(self) -> &'static str {
         match self {
+            TlsVersion::V1_0 => "1.0",
             TlsVersion::V1_2 => "1.2",
             TlsVersion::V1_3 => "1.3",
         }

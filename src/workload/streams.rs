@@ -24,6 +24,7 @@ use crate::metrics::app::{FlowMetrics, FlowSummary};
 use crate::proto::wire::{self, WireHeader, HEADER_LEN};
 use crate::transport::{DataSink, DataSource, RecvOutcome};
 use crate::workload::dscp;
+use crate::workload::receiver;
 
 /// Configuration for a single stream in a multi-stream scenario.
 #[derive(Debug, Clone)]
@@ -120,11 +121,13 @@ pub fn run_multi_stream(
     assert_eq!(configs.len(), pairs.len());
 
     let stop = Arc::new(AtomicBool::new(false));
+    let measuring = Arc::new(AtomicBool::new(false));
     let mut handles = Vec::new();
 
     for (i, (mut sink, mut source)) in pairs.into_iter().enumerate() {
         let cfg = configs[i].clone();
         let stop_flag = Arc::clone(&stop);
+        let measure_flag = Arc::clone(&measuring);
         let msg_bytes = cfg.message_bytes as usize;
 
         // Enable IP_RECVTOS on the receiver if DSCP checking is requested.
@@ -147,9 +150,13 @@ pub fn run_multi_stream(
                     match source.recv_msg(&mut buf) {
                         Ok(RecvOutcome::Message(n)) => {
                             let recv_ns = crate::time::monotonic_ns();
-                            if let Ok(hdr) = WireHeader::decode(&buf[..n]) {
-                                let latency_ns = recv_ns.saturating_sub(hdr.ts_ns);
-                                metrics.record(hdr.seq, latency_ns, n as u64);
+                            if measure_flag.load(Ordering::Relaxed) {
+                                if n != msg_bytes {
+                                    metrics.record_boundary_violation();
+                                }
+                                if receiver::ingest(&mut metrics, &buf[..n], recv_ns).is_err() {
+                                    metrics.record_integrity_failure();
+                                }
                             }
                             // Probe TOS on the first received message.
                             if observed_tos.is_none() {
@@ -209,13 +216,11 @@ pub fn run_multi_stream(
         handles.push((recv_handle, send_handle, cfg));
     }
 
-    // Warmup phase — discard early metrics.
+    // Warmup phase — send and validate, but do not admit samples into metrics.
     std::thread::sleep(warmup);
 
     // Measurement phase.
-    // Note: metrics collection currently doesn't distinguish warmup vs measure
-    // at the stream level — this is a simplification; the FlowMetrics collects
-    // from thread start. A production version would use epoch markers.
+    measuring.store(true, Ordering::Release);
     std::thread::sleep(measure_duration);
 
     // Stop all streams.

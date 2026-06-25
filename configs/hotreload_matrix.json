@@ -1,0 +1,5808 @@
+{
+  "$schema": "seshat-config-v1",
+  "defaults": {
+    "auto_affinity": true,
+    "collect_system_metrics": true,
+    "confidence_level": 0.95,
+    "cooldown_secs": 1,
+    "duration_secs": 5,
+    "loss_threshold_pct": 1.0,
+    "metrics_backend": "procfs",
+    "metrics_sample_rate_hz": 5,
+    "outlier_removal": "iqr",
+    "runs": 3,
+    "warmup_secs": 2
+  },
+  "scenarios": [
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_add_connection_sub_saturation_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18000"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_remove_connection_sub_saturation_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18001"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_invalid_config_sub_saturation_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18002"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_add_connection_saturation_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18003"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_remove_connection_saturation_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18004"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_invalid_config_saturation_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18005"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_add_connection_sub_saturation_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18006"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_remove_connection_sub_saturation_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18007"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_invalid_config_sub_saturation_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18008"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_add_connection_saturation_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18009"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_remove_connection_saturation_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18010"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_invalid_config_saturation_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18011"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_add_connection_sub_saturation_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18012"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_remove_connection_sub_saturation_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18013"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_invalid_config_sub_saturation_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18014"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_add_connection_saturation_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18015"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_remove_connection_saturation_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18016"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_invalid_config_saturation_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18017"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_add_connection_sub_saturation_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18018"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_remove_connection_sub_saturation_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18019"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_invalid_config_sub_saturation_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18020"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_add_connection_saturation_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18021"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_remove_connection_saturation_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18022"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_routing_tcp_invalid_config_saturation_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18023"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_add_connection_sub_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18024"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_remove_connection_sub_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18025"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_invalid_config_sub_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18026"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_add_connection_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18027"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_remove_connection_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18028"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_invalid_config_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18029"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_add_connection_sub_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18030"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_remove_connection_sub_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18031"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_invalid_config_sub_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18032"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_add_connection_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18033"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_remove_connection_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18034"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_invalid_config_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18035"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_add_connection_sub_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18036"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_remove_connection_sub_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18037"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_invalid_config_sub_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18038"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_add_connection_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18039"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_remove_connection_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18040"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_invalid_config_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18041"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_add_connection_sub_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18042"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_remove_connection_sub_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18043"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_invalid_config_sub_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18044"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_add_connection_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18045"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_remove_connection_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18046"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_invalid_config_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18047"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_add_connection_sub_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18048"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_remove_connection_sub_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18049"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_invalid_config_sub_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18050"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_add_connection_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18051"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_remove_connection_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18052"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_invalid_config_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18053"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_add_connection_sub_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18054"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_remove_connection_sub_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18055"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_invalid_config_sub_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18056"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_add_connection_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18057"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_remove_connection_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18058"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_invalid_config_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18059"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_add_connection_sub_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18060"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_remove_connection_sub_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18061"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_invalid_config_sub_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18062"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_add_connection_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18063"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_remove_connection_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18064"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_invalid_config_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18065"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_add_connection_sub_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18066"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_remove_connection_sub_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18067"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_invalid_config_sub_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18068"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_add_connection_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18069"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_remove_connection_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18070"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_invalid_config_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18071"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_add_connection_sub_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18072"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_remove_connection_sub_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18073"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_invalid_config_sub_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18074"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_add_connection_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18075"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_remove_connection_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18076"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_invalid_config_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18077"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_add_connection_sub_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18078"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_remove_connection_sub_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18079"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_invalid_config_sub_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18080"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_add_connection_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18081"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_remove_connection_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18082"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_invalid_config_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18083"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_add_connection_sub_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18084"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_remove_connection_sub_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18085"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_invalid_config_sub_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18086"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_add_connection_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18087"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_remove_connection_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18088"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_invalid_config_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18089"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_add_connection_sub_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18090"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_remove_connection_sub_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18091"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_invalid_config_sub_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18092"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_add_connection_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18093"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_remove_connection_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18094"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_invalid_config_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18095"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_add_connection_sub_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18096"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_remove_connection_sub_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18097"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_invalid_config_sub_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18098"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_add_connection_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18099"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_remove_connection_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18100"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_invalid_config_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18101"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_add_connection_sub_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18102"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_remove_connection_sub_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18103"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_invalid_config_sub_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18104"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_add_connection_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18105"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_remove_connection_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18106"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_invalid_config_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18107"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_add_connection_sub_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18108"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_remove_connection_sub_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18109"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_invalid_config_sub_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18110"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_add_connection_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18111"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_remove_connection_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18112"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_invalid_config_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18113"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_add_connection_sub_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18114"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_remove_connection_sub_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18115"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_invalid_config_sub_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18116"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_add_connection_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18117"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_remove_connection_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18118"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_invalid_config_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18119"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_add_connection_sub_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18120"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_remove_connection_sub_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18121"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_invalid_config_sub_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18122"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_add_connection_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18123"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_remove_connection_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18124"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_invalid_config_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18125"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_add_connection_sub_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18126"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_remove_connection_sub_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18127"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_invalid_config_sub_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18128"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_add_connection_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18129"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_remove_connection_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18130"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_invalid_config_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18131"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_add_connection_sub_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18132"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_remove_connection_sub_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18133"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_invalid_config_sub_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18134"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_add_connection_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18135"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_remove_connection_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18136"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_invalid_config_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18137"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_add_connection_sub_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18138"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_remove_connection_sub_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18139"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_invalid_config_sub_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18140"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_add_connection_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18141"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_remove_connection_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18142"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_invalid_config_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18143"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_add_connection_sub_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18144"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_remove_connection_sub_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18145"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_invalid_config_sub_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18146"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_add_connection_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18147"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_remove_connection_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18148"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_invalid_config_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18149"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_add_connection_sub_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18150"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_remove_connection_sub_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18151"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_invalid_config_sub_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18152"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_add_connection_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18153"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_remove_connection_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18154"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_invalid_config_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18155"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_add_connection_sub_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18156"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_remove_connection_sub_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18157"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_invalid_config_sub_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18158"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_add_connection_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18159"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_remove_connection_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18160"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_invalid_config_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18161"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_add_connection_sub_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18162"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_remove_connection_sub_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18163"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_invalid_config_sub_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18164"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_add_connection_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18165"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_remove_connection_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18166"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_invalid_config_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18167"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_add_connection_sub_saturation_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18168"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_remove_connection_sub_saturation_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18169"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_invalid_config_sub_saturation_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18170"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_add_connection_saturation_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18171"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_remove_connection_saturation_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18172"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_invalid_config_saturation_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18173"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_add_connection_sub_saturation_4c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18174"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_remove_connection_sub_saturation_4c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18175"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_invalid_config_sub_saturation_4c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18176"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_add_connection_saturation_4c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18177"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_remove_connection_saturation_4c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18178"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_invalid_config_saturation_4c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18179"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_add_connection_sub_saturation_16c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18180"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_remove_connection_sub_saturation_16c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18181"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_invalid_config_sub_saturation_16c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18182"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_add_connection_saturation_16c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18183"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_remove_connection_saturation_16c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18184"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_invalid_config_saturation_16c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18185"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_add_connection_sub_saturation_64c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18186"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_remove_connection_sub_saturation_64c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18187"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_invalid_config_sub_saturation_64c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18188"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_add_connection_saturation_64c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18189"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_remove_connection_saturation_64c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18190"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_invalid_config_saturation_64c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18191"
+      }
+    }
+  ],
+  "suite": {
+    "author": "SESHAT",
+    "description": "Generated compatible hot-reload scenarios (nightly tier)",
+    "name": "SCG Generated Benchmark Matrix",
+    "version": "2.0.0"
+  }
+}

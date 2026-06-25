@@ -1,0 +1,1797 @@
+{
+  "$schema": "seshat-config-v1",
+  "defaults": {
+    "auto_affinity": true,
+    "collect_system_metrics": true,
+    "confidence_level": 0.95,
+    "cooldown_secs": 1,
+    "duration_secs": 5,
+    "loss_threshold_pct": 1.0,
+    "metrics_backend": "procfs",
+    "metrics_sample_rate_hz": 5,
+    "outlier_removal": "iqr",
+    "runs": 3,
+    "warmup_secs": 2
+  },
+  "scenarios": [
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64B_1c",
+        "group": "iface-throughput-64B-1c",
+        "reference": "iface_tcp_loopback_throughput_64B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 64,
+      "name": "iface_tcp_loopback_throughput_64B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18000"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64B_1c",
+        "group": "iface-throughput-64B-1c",
+        "reference": "iface_tcp_loopback_throughput_64B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "iface_tcp_scg_throughput_64B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18001"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64B_1c",
+        "group": "iface-throughput-64B-1c",
+        "reference": "iface_tcp_loopback_throughput_64B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "iface_tproxy_throughput_64B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18002"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64B_1c",
+        "group": "iface-throughput-64B-1c",
+        "reference": "iface_tcp_loopback_throughput_64B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "iface_uds_throughput_64B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-3.sock"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64B_1c",
+        "group": "iface-throughput-64B-1c",
+        "reference": "iface_tcp_loopback_throughput_64B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "iface_shm_throughput_64B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-4"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64B_4c",
+        "group": "iface-throughput-64B-4c",
+        "reference": "iface_tcp_loopback_throughput_64B_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 64,
+      "name": "iface_tcp_loopback_throughput_64B_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18005"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64B_4c",
+        "group": "iface-throughput-64B-4c",
+        "reference": "iface_tcp_loopback_throughput_64B_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "iface_tcp_scg_throughput_64B_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18006"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64B_16c",
+        "group": "iface-throughput-64B-16c",
+        "reference": "iface_tcp_loopback_throughput_64B_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 64,
+      "name": "iface_tcp_loopback_throughput_64B_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18007"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64B_16c",
+        "group": "iface-throughput-64B-16c",
+        "reference": "iface_tcp_loopback_throughput_64B_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "iface_tcp_scg_throughput_64B_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18008"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_256B_1c",
+        "group": "iface-throughput-256B-1c",
+        "reference": "iface_tcp_loopback_throughput_256B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 256,
+      "name": "iface_tcp_loopback_throughput_256B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18009"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_256B_1c",
+        "group": "iface-throughput-256B-1c",
+        "reference": "iface_tcp_loopback_throughput_256B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "iface_tcp_scg_throughput_256B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18010"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_256B_1c",
+        "group": "iface-throughput-256B-1c",
+        "reference": "iface_tcp_loopback_throughput_256B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "iface_tproxy_throughput_256B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18011"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_256B_1c",
+        "group": "iface-throughput-256B-1c",
+        "reference": "iface_tcp_loopback_throughput_256B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "iface_uds_throughput_256B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-12.sock"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_256B_1c",
+        "group": "iface-throughput-256B-1c",
+        "reference": "iface_tcp_loopback_throughput_256B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "iface_shm_throughput_256B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-13"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_256B_4c",
+        "group": "iface-throughput-256B-4c",
+        "reference": "iface_tcp_loopback_throughput_256B_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 256,
+      "name": "iface_tcp_loopback_throughput_256B_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18014"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_256B_4c",
+        "group": "iface-throughput-256B-4c",
+        "reference": "iface_tcp_loopback_throughput_256B_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "iface_tcp_scg_throughput_256B_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18015"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_256B_16c",
+        "group": "iface-throughput-256B-16c",
+        "reference": "iface_tcp_loopback_throughput_256B_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 256,
+      "name": "iface_tcp_loopback_throughput_256B_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18016"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_256B_16c",
+        "group": "iface-throughput-256B-16c",
+        "reference": "iface_tcp_loopback_throughput_256B_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "iface_tcp_scg_throughput_256B_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18017"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_1KB_1c",
+        "group": "iface-throughput-1KB-1c",
+        "reference": "iface_tcp_loopback_throughput_1KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_tcp_loopback_throughput_1KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18018"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_1KB_1c",
+        "group": "iface-throughput-1KB-1c",
+        "reference": "iface_tcp_loopback_throughput_1KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_tcp_scg_throughput_1KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18019"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_1KB_1c",
+        "group": "iface-throughput-1KB-1c",
+        "reference": "iface_tcp_loopback_throughput_1KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_tproxy_throughput_1KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18020"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_1KB_1c",
+        "group": "iface-throughput-1KB-1c",
+        "reference": "iface_tcp_loopback_throughput_1KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_uds_throughput_1KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-21.sock"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_1KB_1c",
+        "group": "iface-throughput-1KB-1c",
+        "reference": "iface_tcp_loopback_throughput_1KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_shm_throughput_1KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-22"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_1KB_4c",
+        "group": "iface-throughput-1KB-4c",
+        "reference": "iface_tcp_loopback_throughput_1KB_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_tcp_loopback_throughput_1KB_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18023"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_1KB_4c",
+        "group": "iface-throughput-1KB-4c",
+        "reference": "iface_tcp_loopback_throughput_1KB_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_tcp_scg_throughput_1KB_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18024"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_1KB_16c",
+        "group": "iface-throughput-1KB-16c",
+        "reference": "iface_tcp_loopback_throughput_1KB_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_tcp_loopback_throughput_1KB_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18025"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_1KB_16c",
+        "group": "iface-throughput-1KB-16c",
+        "reference": "iface_tcp_loopback_throughput_1KB_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_tcp_scg_throughput_1KB_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18026"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_4096B_1c",
+        "group": "iface-throughput-4096B-1c",
+        "reference": "iface_tcp_loopback_throughput_4096B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_tcp_loopback_throughput_4096B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18027"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_4096B_1c",
+        "group": "iface-throughput-4096B-1c",
+        "reference": "iface_tcp_loopback_throughput_4096B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_tcp_scg_throughput_4096B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18028"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_4096B_1c",
+        "group": "iface-throughput-4096B-1c",
+        "reference": "iface_tcp_loopback_throughput_4096B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_tproxy_throughput_4096B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18029"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_4096B_1c",
+        "group": "iface-throughput-4096B-1c",
+        "reference": "iface_tcp_loopback_throughput_4096B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_uds_throughput_4096B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-30.sock"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_4096B_1c",
+        "group": "iface-throughput-4096B-1c",
+        "reference": "iface_tcp_loopback_throughput_4096B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_shm_throughput_4096B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-31"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_4096B_4c",
+        "group": "iface-throughput-4096B-4c",
+        "reference": "iface_tcp_loopback_throughput_4096B_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_tcp_loopback_throughput_4096B_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18032"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_4096B_4c",
+        "group": "iface-throughput-4096B-4c",
+        "reference": "iface_tcp_loopback_throughput_4096B_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_tcp_scg_throughput_4096B_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18033"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_4096B_16c",
+        "group": "iface-throughput-4096B-16c",
+        "reference": "iface_tcp_loopback_throughput_4096B_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_tcp_loopback_throughput_4096B_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18034"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_4096B_16c",
+        "group": "iface-throughput-4096B-16c",
+        "reference": "iface_tcp_loopback_throughput_4096B_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_tcp_scg_throughput_4096B_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18035"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_16KB_1c",
+        "group": "iface-throughput-16KB-1c",
+        "reference": "iface_tcp_loopback_throughput_16KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 16384,
+      "name": "iface_tcp_loopback_throughput_16KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18036"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_16KB_1c",
+        "group": "iface-throughput-16KB-1c",
+        "reference": "iface_tcp_loopback_throughput_16KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "iface_tcp_scg_throughput_16KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18037"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_16KB_1c",
+        "group": "iface-throughput-16KB-1c",
+        "reference": "iface_tcp_loopback_throughput_16KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "iface_tproxy_throughput_16KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18038"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_16KB_1c",
+        "group": "iface-throughput-16KB-1c",
+        "reference": "iface_tcp_loopback_throughput_16KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "iface_uds_throughput_16KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-39.sock"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_16KB_1c",
+        "group": "iface-throughput-16KB-1c",
+        "reference": "iface_tcp_loopback_throughput_16KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "iface_shm_throughput_16KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-40"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_16KB_4c",
+        "group": "iface-throughput-16KB-4c",
+        "reference": "iface_tcp_loopback_throughput_16KB_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 16384,
+      "name": "iface_tcp_loopback_throughput_16KB_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18041"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_16KB_4c",
+        "group": "iface-throughput-16KB-4c",
+        "reference": "iface_tcp_loopback_throughput_16KB_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "iface_tcp_scg_throughput_16KB_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18042"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_16KB_16c",
+        "group": "iface-throughput-16KB-16c",
+        "reference": "iface_tcp_loopback_throughput_16KB_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 16384,
+      "name": "iface_tcp_loopback_throughput_16KB_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18043"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_16KB_16c",
+        "group": "iface-throughput-16KB-16c",
+        "reference": "iface_tcp_loopback_throughput_16KB_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "iface_tcp_scg_throughput_16KB_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18044"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64KB_1c",
+        "group": "iface-throughput-64KB-1c",
+        "reference": "iface_tcp_loopback_throughput_64KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 65536,
+      "name": "iface_tcp_loopback_throughput_64KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18045"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64KB_1c",
+        "group": "iface-throughput-64KB-1c",
+        "reference": "iface_tcp_loopback_throughput_64KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "iface_tcp_scg_throughput_64KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18046"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64KB_1c",
+        "group": "iface-throughput-64KB-1c",
+        "reference": "iface_tcp_loopback_throughput_64KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "iface_tproxy_throughput_64KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18047"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64KB_1c",
+        "group": "iface-throughput-64KB-1c",
+        "reference": "iface_tcp_loopback_throughput_64KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "iface_uds_throughput_64KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-48.sock"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64KB_1c",
+        "group": "iface-throughput-64KB-1c",
+        "reference": "iface_tcp_loopback_throughput_64KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "iface_shm_throughput_64KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-49"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64KB_4c",
+        "group": "iface-throughput-64KB-4c",
+        "reference": "iface_tcp_loopback_throughput_64KB_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 65536,
+      "name": "iface_tcp_loopback_throughput_64KB_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18050"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64KB_4c",
+        "group": "iface-throughput-64KB-4c",
+        "reference": "iface_tcp_loopback_throughput_64KB_4c"
+      },
+      "connections": 4,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "iface_tcp_scg_throughput_64KB_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18051"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64KB_16c",
+        "group": "iface-throughput-64KB-16c",
+        "reference": "iface_tcp_loopback_throughput_64KB_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 65536,
+      "name": "iface_tcp_loopback_throughput_64KB_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18052"
+      }
+    },
+    {
+      "category": "interface-comparison-throughput",
+      "comparison": {
+        "gateway_reference": "iface_tcp_scg_throughput_64KB_16c",
+        "group": "iface-throughput-64KB-16c",
+        "reference": "iface_tcp_loopback_throughput_64KB_16c"
+      },
+      "connections": 16,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "iface_tcp_scg_throughput_64KB_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18053"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-64B-1c",
+        "gateway_reference": "iface_tcp_scg_latency_64B_1c",
+        "group": "iface-latency-64B-1c",
+        "reference": "iface_tcp_loopback_latency_64B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 64,
+      "name": "iface_tcp_loopback_latency_64B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18054"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-64B-1c",
+        "gateway_reference": "iface_tcp_scg_latency_64B_1c",
+        "group": "iface-latency-64B-1c",
+        "reference": "iface_tcp_loopback_latency_64B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "iface_tcp_scg_latency_64B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18055"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-64B-1c",
+        "gateway_reference": "iface_tcp_scg_latency_64B_1c",
+        "group": "iface-latency-64B-1c",
+        "reference": "iface_tcp_loopback_latency_64B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "iface_tproxy_latency_64B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18056"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-64B-1c",
+        "gateway_reference": "iface_tcp_scg_latency_64B_1c",
+        "group": "iface-latency-64B-1c",
+        "reference": "iface_tcp_loopback_latency_64B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "iface_uds_latency_64B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-57.sock"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-64B-1c",
+        "gateway_reference": "iface_tcp_scg_latency_64B_1c",
+        "group": "iface-latency-64B-1c",
+        "reference": "iface_tcp_loopback_latency_64B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "iface_shm_latency_64B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-58"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-1KB-1c",
+        "gateway_reference": "iface_tcp_scg_latency_1KB_1c",
+        "group": "iface-latency-1KB-1c",
+        "reference": "iface_tcp_loopback_latency_1KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_tcp_loopback_latency_1KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18059"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-1KB-1c",
+        "gateway_reference": "iface_tcp_scg_latency_1KB_1c",
+        "group": "iface-latency-1KB-1c",
+        "reference": "iface_tcp_loopback_latency_1KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_tcp_scg_latency_1KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18060"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-1KB-1c",
+        "gateway_reference": "iface_tcp_scg_latency_1KB_1c",
+        "group": "iface-latency-1KB-1c",
+        "reference": "iface_tcp_loopback_latency_1KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_tproxy_latency_1KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18061"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-1KB-1c",
+        "gateway_reference": "iface_tcp_scg_latency_1KB_1c",
+        "group": "iface-latency-1KB-1c",
+        "reference": "iface_tcp_loopback_latency_1KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_uds_latency_1KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-62.sock"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-1KB-1c",
+        "gateway_reference": "iface_tcp_scg_latency_1KB_1c",
+        "group": "iface-latency-1KB-1c",
+        "reference": "iface_tcp_loopback_latency_1KB_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "iface_shm_latency_1KB_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-63"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-4096B-1c",
+        "gateway_reference": "iface_tcp_scg_latency_4096B_1c",
+        "group": "iface-latency-4096B-1c",
+        "reference": "iface_tcp_loopback_latency_4096B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_tcp_loopback_latency_4096B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18064"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-4096B-1c",
+        "gateway_reference": "iface_tcp_scg_latency_4096B_1c",
+        "group": "iface-latency-4096B-1c",
+        "reference": "iface_tcp_loopback_latency_4096B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_tcp_scg_latency_4096B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18065"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-4096B-1c",
+        "gateway_reference": "iface_tcp_scg_latency_4096B_1c",
+        "group": "iface-latency-4096B-1c",
+        "reference": "iface_tcp_loopback_latency_4096B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_tproxy_latency_4096B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18066"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-4096B-1c",
+        "gateway_reference": "iface_tcp_scg_latency_4096B_1c",
+        "group": "iface-latency-4096B-1c",
+        "reference": "iface_tcp_loopback_latency_4096B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_uds_latency_4096B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-67.sock"
+      }
+    },
+    {
+      "category": "interface-comparison-latency",
+      "comparison": {
+        "calibration_fraction": 0.5,
+        "calibration_group": "iface-throughput-4096B-1c",
+        "gateway_reference": "iface_tcp_scg_latency_4096B_1c",
+        "group": "iface-latency-4096B-1c",
+        "reference": "iface_tcp_loopback_latency_4096B_1c"
+      },
+      "connections": 1,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "iface_shm_latency_4096B_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-68"
+      }
+    }
+  ],
+  "suite": {
+    "author": "SESHAT",
+    "description": "Matched loopback, SCG TCP, TPROXY, UDS, and SHM comparison suite",
+    "name": "SCG Generated Benchmark Matrix",
+    "version": "2.0.0"
+  }
+}

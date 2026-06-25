@@ -120,6 +120,33 @@ pub enum Command {
     Teardown(TeardownArgs),
     /// Apply `tc netem` impairment to an interface.
     Impair(ImpairArgs),
+    /// Generate the declarative benchmark matrix suites.
+    Matrix(MatrixArgs),
+}
+
+/// Matrix-generation command group.
+#[derive(Debug, clap::Args)]
+pub struct MatrixArgs {
+    #[command(subcommand)]
+    pub command: MatrixCommand,
+}
+
+/// Matrix operations.
+#[derive(Debug, Subcommand)]
+pub enum MatrixCommand {
+    /// Expand a matrix specification into committed JSON benchmark suites.
+    Generate(MatrixGenerateArgs),
+}
+
+/// Arguments for `seshat matrix generate`.
+#[derive(Debug, clap::Args)]
+pub struct MatrixGenerateArgs {
+    /// Declarative matrix source.
+    #[arg(long, default_value = "configs/matrix_spec.json")]
+    pub spec: PathBuf,
+    /// Directory in which generated JSON suites are written.
+    #[arg(long, default_value = "configs")]
+    pub out_dir: PathBuf,
 }
 
 /// Arguments shared by `run` (the bulk of the F-02 reproducibility controls).

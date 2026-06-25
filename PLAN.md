@@ -1,5 +1,28 @@
 # SESHAT Implementation Plan
 
+## Generated Matrix and Interface Comparison (implemented)
+
+The benchmark matrix is now generated from `configs/matrix_spec.json` with
+`seshat matrix generate`. The committed outputs are `canonical_matrix.json`,
+`full_matrix.json`, `matrix_catalog.json`, and `interface_comparison.json`.
+`run_all.sh` executes the canonical and interface suites by default; `--nightly`
+selects the exhaustive generated matrix.
+
+The interface suite compares direct TCP loopback, SCG TCP routing, TPROXY, UDS,
+and SHM with matched routing-only traffic. It records absolute values and
+direct-TCP/SCG-TCP deltas in `interface_comparison.csv`; latency rows pace at
+50% of the lowest successfully measured throughput within their comparison
+group. Capability-dependent paths are recorded in `skipped.csv` rather than
+silently omitted.
+
+Implemented supporting changes: DTLS 1.0 configuration validation, OpenSSL/
+kTLS/DTLS/privilege/perf preflight, TLS-version-specific cipher setup, PSS
+sampling, payload/boundary validation counters, gateway completed-path
+connection-rate support, hot-reload artifacts, and per-stream scheduling CSVs.
+True kTLS+mTLS, total physical copy counts, session-resumption classification,
+and acknowledged same-rule TLS-profile reload remain SCG architectural work and
+are explicitly catalogued/documented rather than misreported.
+
 > **S**CG **E**valuation, **S**tress & **H**arness **A**nalysis **T**oolkit
 >
 > Build out `SCG-SESHAT` (currently a scaffold) into the full benchmark harness

@@ -5,8 +5,9 @@
 //! Handlers return a boxed-error result; `main` maps `Err` to a non-zero exit.
 
 use crate::cli::{
-    CalibrateArgs, Command, ImpairArgs, ListArgs, ReceiverArgs, ReportArgs, RunArgs, SenderArgs,
-    SetupArgs, SysinfoArgs, SysinfoFormat, TeardownArgs, TopologyKind, ValidateArgs,
+    CalibrateArgs, Command, ImpairArgs, ListArgs, MatrixArgs, MatrixCommand, ReceiverArgs,
+    ReportArgs, RunArgs, SenderArgs, SetupArgs, SysinfoArgs, SysinfoFormat, TeardownArgs,
+    TopologyKind, ValidateArgs,
 };
 use crate::config::{
     self, AppProtocol, Config, Defaults, GatewayChain, Interface, MetricsBackend, Mode,
@@ -20,7 +21,9 @@ use crate::metrics::app::FlowSummary;
 use crate::metrics::system::{self, SystemSampler};
 use crate::proto::wire::HEADER_LEN;
 use crate::report::csv::{num, Csv};
-use crate::report::results::{sanitize, ResultDir, ScenarioArtifacts, ScenarioOutcome};
+use crate::report::results::{
+    sanitize, ReloadArtifact, ResultDir, ScenarioArtifacts, ScenarioOutcome,
+};
 use crate::run::affinity;
 use crate::run::calibrate::{self, Calibration};
 use crate::run::engine::{self, RunMode, RunParams, RunStats};
@@ -50,6 +53,21 @@ pub fn dispatch(command: Command) -> CmdResult {
         Command::Setup(args) => setup(args),
         Command::Teardown(args) => teardown(args),
         Command::Impair(args) => impair(args),
+        Command::Matrix(args) => matrix(args),
+    }
+}
+
+/// Expand the versioned matrix source into the committed benchmark suites.
+fn matrix(args: MatrixArgs) -> CmdResult {
+    match args.command {
+        MatrixCommand::Generate(args) => {
+            let generated = crate::matrix::generate(&args.spec, &args.out_dir)?;
+            console::line(&format!(
+                "generated {} scenario rows across {} suite file(s)",
+                generated.scenarios, generated.files
+            ));
+            Ok(())
+        }
     }
 }
 
@@ -116,6 +134,11 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
     // Cache harness ceilings by (transport, on-wire size, connections) so the
     // NFR-PERF headroom probe runs at most once per distinct scenario shape.
     let mut ceilings: HashMap<(String, u32, usize), f64> = HashMap::new();
+    // Interface-latency rows use a shared fraction of the lowest successful
+    // throughput in their preceding comparison group.  This prevents one
+    // interface from being measured in queueing saturation while another is
+    // mostly idle.
+    let mut comparison_ceilings: HashMap<String, f64> = HashMap::new();
     let mut skipped = 0usize;
 
     // Per-SCG-PID `/proc` sampling rate (F-13b), or None when disabled.
@@ -143,8 +166,15 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
     };
 
     for scenario in cfg.scenarios.iter().filter(|s| s.enabled) {
+        if let Some(reason) = unmet_requirements(scenario, &host) {
+            log::warn!("scenario '{}': {reason}; skipping", scenario.name);
+            rdir.record_skipped(scenario, &reason)?;
+            skipped += 1;
+            continue;
+        }
         if let Some(transport) = loopback_transport(scenario) {
-            let params = build_run_params(scenario, &cfg.defaults, &cores);
+            let mut params = build_run_params(scenario, &cfg.defaults, &cores);
+            apply_comparison_rate(scenario, &mut params, &comparison_ceilings);
             render_scenario_header(scenario, &params, &scenario_interface(scenario));
             if params.mode == RunMode::PingPong {
                 // Closed-loop RTT: no calibration/saturation (those measure
@@ -162,6 +192,12 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                         ..Default::default()
                     },
                 )?;
+                capture_comparison_ceiling(
+                    scenario,
+                    rdir.outcomes(),
+                    cfg.defaults.loss_threshold_pct,
+                    &mut comparison_ceilings,
+                );
                 continue;
             }
             if params.mode == RunMode::Connrate {
@@ -180,6 +216,12 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                         ..Default::default()
                     },
                 )?;
+                capture_comparison_ceiling(
+                    scenario,
+                    rdir.outcomes(),
+                    cfg.defaults.loss_threshold_pct,
+                    &mut comparison_ceilings,
+                );
                 continue;
             }
             let stats = engine::run_scenario(transport.as_ref(), &params, |i, s| {
@@ -215,6 +257,12 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                     ..Default::default()
                 },
             )?;
+            capture_comparison_ceiling(
+                scenario,
+                rdir.outcomes(),
+                cfg.defaults.loss_threshold_pct,
+                &mut comparison_ceilings,
+            );
         } else if let Some(plan) = gateway_plan(scenario) {
             match gateway_binary.as_deref() {
                 Some(binary) => {
@@ -248,10 +296,22 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                             &mut ceilings,
                             sys_rate,
                             &cores,
+                            comparison_rate(scenario, &comparison_ceilings),
                         )?
                     };
                     if !ran {
+                        rdir.record_skipped(
+                            scenario,
+                            "gateway path could not be provisioned or completed on this host",
+                        )?;
                         skipped += 1;
+                    } else {
+                        capture_comparison_ceiling(
+                            scenario,
+                            rdir.outcomes(),
+                            cfg.defaults.loss_threshold_pct,
+                            &mut comparison_ceilings,
+                        );
                     }
                 }
                 None => {
@@ -261,6 +321,7 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                         plan.transport_name,
                         scenario.protocol_label()
                     );
+                    rdir.record_skipped(scenario, "no compatible SCG gateway binary found")?;
                     skipped += 1;
                 }
             }
@@ -271,6 +332,7 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                 scenario_interface(scenario),
                 scenario.protocol_label()
             );
+            rdir.record_skipped(scenario, "scenario path is not implemented by this harness")?;
             skipped += 1;
         }
     }
@@ -283,6 +345,152 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
         log::warn!("no scenarios were executable");
     }
     Ok(())
+}
+
+/// Return a common offered rate (Mbit/s) for a generated comparison latency
+/// row.  The corresponding throughput group is executed first by the matrix
+/// generator, so every available path contributes to the lowest ceiling.
+fn comparison_rate(scenario: &Scenario, ceilings: &HashMap<String, f64>) -> Option<f64> {
+    let comparison = scenario.comparison.as_ref()?;
+    let group = comparison.calibration_group.as_ref()?;
+    let fraction = comparison.calibration_fraction?;
+    ceilings
+        .get(group)
+        .copied()
+        .map(|gbps| gbps * 1_000.0 * fraction)
+        .filter(|mbps| *mbps > 0.0)
+}
+
+fn apply_comparison_rate(
+    scenario: &Scenario,
+    params: &mut RunParams,
+    ceilings: &HashMap<String, f64>,
+) {
+    if let Some(rate_mbps) = comparison_rate(scenario, ceilings) {
+        params.sender.pattern = config::Pattern::Sustained;
+        params.sender.rate_limit_mbps = Some(rate_mbps);
+        params.sender.interval_us = None;
+        log::info!(
+            "scenario '{}': interface comparison latency rate {:.3} Mbit/s",
+            scenario.name,
+            rate_mbps
+        );
+    }
+}
+
+fn capture_comparison_ceiling(
+    scenario: &Scenario,
+    outcomes: &[ScenarioOutcome],
+    loss_threshold_pct: f64,
+    ceilings: &mut HashMap<String, f64>,
+) {
+    let Some(comparison) = &scenario.comparison else {
+        return;
+    };
+    if scenario.category.as_deref() != Some("interface-comparison-throughput") {
+        return;
+    }
+    let Some(outcome) = outcomes
+        .last()
+        .filter(|outcome| outcome.name == scenario.name)
+    else {
+        return;
+    };
+    if outcome.loss_pct > loss_threshold_pct || outcome.throughput_gbps <= 0.0 {
+        return;
+    }
+    ceilings
+        .entry(comparison.group.clone())
+        .and_modify(|ceiling| *ceiling = ceiling.min(outcome.throughput_gbps))
+        .or_insert(outcome.throughput_gbps);
+}
+
+/// Return a human-readable preflight failure for a generated scenario.  The
+/// checks intentionally err on the side of a recorded skip: an optional host
+/// capability must never turn into an unlabelled userspace fallback.
+fn unmet_requirements(scenario: &Scenario, host: &crate::sysinfo::SysInfo) -> Option<String> {
+    let requirements = &scenario.requirements;
+    let mut missing = Vec::new();
+    if requirements.openssl && !crate::pki::openssl_available() {
+        missing.push("openssl CLI unavailable");
+    }
+    if requirements.ktls && !host.ktls_usable {
+        missing.push("usable kTLS unavailable");
+    }
+    if requirements.dtls10 && !dtls10_available() {
+        missing.push("DTLS 1.0 unavailable in the local OpenSSL policy");
+    }
+    if let Some(cipher) = scenario.protocol.cipher_suite.as_deref() {
+        if !cipher_suite_available(scenario.protocol.version, cipher) {
+            missing.push("configured OpenSSL cipher suite unavailable");
+        }
+    }
+    if requirements.cap_net_admin && !has_cap_net_admin() {
+        missing.push("CAP_NET_ADMIN unavailable");
+    }
+    if requirements.perf && !perf_available_for_current_process() {
+        missing.push("perf events unavailable or not permitted");
+    }
+    if requirements.ebpf && !std::path::Path::new("/sys/fs/bpf").is_dir() {
+        missing.push("eBPF filesystem unavailable");
+    }
+    (!missing.is_empty()).then(|| missing.join("; "))
+}
+
+fn has_cap_net_admin() -> bool {
+    const CAP_NET_ADMIN: u32 = 12;
+    std::fs::read_to_string("/proc/self/status")
+        .ok()
+        .and_then(|status| {
+            status.lines().find_map(|line| {
+                line.strip_prefix("CapEff:")
+                    .and_then(|hex| u64::from_str_radix(hex.trim(), 16).ok())
+            })
+        })
+        .map(|effective| effective & (1_u64 << CAP_NET_ADMIN) != 0)
+        .unwrap_or(false)
+}
+
+fn perf_available_for_current_process() -> bool {
+    system::PerfSampler::available()
+        && std::process::Command::new("perf")
+            .args(["stat", "-x,", "-e", "task-clock", "--", "true"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|status| status.success())
+            .unwrap_or(false)
+}
+
+fn dtls10_available() -> bool {
+    // OpenSSL 3 can compile DTLS 1.0 out through its security policy.  Its
+    // cipher listing is a cheap preflight; the actual gateway setup remains
+    // authoritative and is also recorded as a skip if it fails.
+    crate::pki::openssl_available()
+        && std::process::Command::new("openssl")
+            .args(["ciphers", "-v", "ALL:@SECLEVEL=0"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|status| status.success())
+            .unwrap_or(false)
+}
+
+fn cipher_suite_available(version: TlsVersion, cipher: &str) -> bool {
+    if !crate::pki::openssl_available() || cipher.trim().is_empty() {
+        return false;
+    }
+    let args: Vec<&str> = match version {
+        TlsVersion::V1_3 => vec!["ciphers", "-s", "-tls1_3", "-ciphersuites", cipher],
+        TlsVersion::V1_2 | TlsVersion::V1_0 => vec!["ciphers", "-s", cipher],
+    };
+    std::process::Command::new("openssl")
+        .args(args)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false)
 }
 
 /// Return a loopback transport if the scenario is executable without the
@@ -316,6 +524,40 @@ enum GwSecurity {
     Dtls { version: &'static str, mutual: bool },
 }
 
+/// Convert the validated SESHAT version into SCG's TLS spelling.  Validation
+/// rejects TLS 1.0 before this dispatch path is reachable.
+fn tls_version(version: TlsVersion) -> &'static str {
+    match version {
+        TlsVersion::V1_0 => "tls1.0",
+        TlsVersion::V1_2 => "tls1.2",
+        TlsVersion::V1_3 => "tls1.3",
+    }
+}
+
+/// Convert the validated SESHAT version into SCG's DTLS spelling.  Validation
+/// rejects DTLS 1.3 before a gateway plan can be executed.
+fn dtls_version(version: TlsVersion) -> &'static str {
+    match version {
+        TlsVersion::V1_0 => "dtls1.0",
+        TlsVersion::V1_2 => "dtls1.2",
+        TlsVersion::V1_3 => "dtls1.3",
+    }
+}
+
+/// Cipher configuration is version-specific in OpenSSL: TLS 1.2 uses the
+/// legacy cipher-list API whereas TLS 1.3 uses the ciphersuites API.  Supplying
+/// a TLS 1.3 suite to both used to make otherwise valid generated rows fail
+/// before the benchmark started.
+fn apply_cipher_override(spec: SecuritySpec, scenario: &Scenario) -> SecuritySpec {
+    let Some(cipher) = scenario.protocol.cipher_suite.as_deref() else {
+        return spec;
+    };
+    match scenario.protocol.version {
+        TlsVersion::V1_2 | TlsVersion::V1_0 => spec.with_cipher_list(cipher),
+        TlsVersion::V1_3 => spec.with_ciphersuites(cipher),
+    }
+}
+
 /// A resolved plan to run a scenario through the SCG over TCP.
 #[derive(Debug, Clone, Copy)]
 struct GatewayPlan {
@@ -335,10 +577,7 @@ fn resolve_security(s: &Scenario) -> GwSecurity {
     }
     match s.protocol.kind {
         ProtocolType::Tls => {
-            let version = match s.protocol.version {
-                TlsVersion::V1_2 => "tls1.2",
-                TlsVersion::V1_3 => "tls1.3",
-            };
+            let version = tls_version(s.protocol.version);
             let ktls = s.protocol.kernel;
             if s.protocol.protection_mode == ProtectionMode::IntegrityOnly {
                 GwSecurity::IntegrityOnly { version }
@@ -351,7 +590,7 @@ fn resolve_security(s: &Scenario) -> GwSecurity {
         ProtocolType::Dtls => {
             let mutual = s.protocol.mutual_auth;
             GwSecurity::Dtls {
-                version: "dtls1.2",
+                version: dtls_version(s.protocol.version),
                 mutual,
             }
         }
@@ -413,11 +652,7 @@ fn build_multistream_spec(
     };
 
     // Apply cipher/PSK from scenario-level protocol config.
-    let spec = if let Some(ref cipher) = scenario.protocol.cipher_suite {
-        spec.with_cipher_list(cipher).with_ciphersuites(cipher)
-    } else {
-        spec
-    };
+    let spec = apply_cipher_override(spec, scenario);
     let spec = match (&scenario.protocol.psk_identity, &scenario.protocol.psk_hex) {
         (Some(identity), Some(hex_key)) => spec.with_psk(identity, hex_key),
         _ => spec,
@@ -474,8 +709,7 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
         if sender.interface != Interface::Udp {
             return None;
         }
-        // The gateway's DTLS provider tops out at DTLS 1.2; map 1.3 down.
-        let version = "dtls1.2";
+        let version = dtls_version(s.protocol.version);
         let mutual = s.protocol.mutual_auth;
         return Some(GatewayPlan {
             security: GwSecurity::Dtls { version, mutual },
@@ -519,10 +753,7 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
             // Plain UDP through TLS needs an explicit framing protocol.
             return None;
         }
-        let version = match s.protocol.version {
-            TlsVersion::V1_2 => "tls1.2",
-            TlsVersion::V1_3 => "tls1.3",
-        };
+        let version = tls_version(s.protocol.version);
         let ktls = s.protocol.kernel;
         let mutual = s.protocol.mutual_auth;
         let security = if mutual {
@@ -559,10 +790,7 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
 
     match s.protocol.kind {
         ProtocolType::Tls => {
-            let version = match s.protocol.version {
-                TlsVersion::V1_2 => "tls1.2",
-                TlsVersion::V1_3 => "tls1.3",
-            };
+            let version = tls_version(s.protocol.version);
             let ktls = s.protocol.kernel;
             // Integrity-only is a userspace, server-auth NULL-cipher path.
             if s.protocol.protection_mode == ProtectionMode::IntegrityOnly {
@@ -620,6 +848,7 @@ fn run_gateway_scenario(
     ceilings: &mut HashMap<(String, u32, usize), f64>,
     sys_rate: Option<u32>,
     cores: &CorePlan,
+    comparison_rate_mbps: Option<f64>,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     // Ping-pong RTT needs a duplex echo path. The DTLS/UDP gateway converges
     // every flow onto one backend over a single one-way rule pair, so it cannot
@@ -627,16 +856,6 @@ fn run_gateway_scenario(
     if scenario.mode == Mode::Pingpong && matches!(plan.security, GwSecurity::Dtls { .. }) {
         log::warn!(
             "scenario '{}': ping-pong RTT over the DTLS/UDP gateway path is not supported; skipping",
-            scenario.name
-        );
-        return Ok(false);
-    }
-    // Connection-rate churn through the gateway is not wired yet (it needs a
-    // dedicated ingress connect/teardown harness); skip with a notice so the
-    // loopback connrate scenarios still run.
-    if scenario.mode == Mode::Connrate {
-        log::warn!(
-            "scenario '{}': connection-rate benchmarking through the gateway is not supported yet; skipping",
             scenario.name
         );
         return Ok(false);
@@ -806,11 +1025,7 @@ fn run_gateway_scenario(
     };
 
     // Apply cipher/PSK overrides from the scenario protocol config.
-    let spec = if let Some(ref cipher) = scenario.protocol.cipher_suite {
-        spec.with_cipher_list(cipher).with_ciphersuites(cipher)
-    } else {
-        spec
-    };
+    let spec = apply_cipher_override(spec, scenario);
 
     // Apply PSK if configured (subset146-psk).
     let spec = match (&scenario.protocol.psk_identity, &scenario.protocol.psk_hex) {
@@ -835,7 +1050,17 @@ fn run_gateway_scenario(
     // Apply optimization flags (F1 zero_copy, F2 spin_wait_us).
     let spec = spec.with_optimizations(&scenario.optimization_flags);
 
-    let params = build_run_params(scenario, defaults, cores);
+    let mut params = build_run_params(scenario, defaults, cores);
+    if let Some(rate_mbps) = comparison_rate_mbps {
+        params.sender.pattern = config::Pattern::Sustained;
+        params.sender.rate_limit_mbps = Some(rate_mbps);
+        params.sender.interval_us = None;
+        log::info!(
+            "scenario '{}': interface comparison latency rate {:.3} Mbit/s",
+            scenario.name,
+            rate_mbps
+        );
+    }
     render_scenario_header(scenario, &params, plan.transport_name);
 
     // DTLS runs over UDP datagrams; UDS/SHM use gRPC-provisioned local
@@ -846,10 +1071,7 @@ fn run_gateway_scenario(
     let is_uds = plan.transport_name == "scg-uds";
     let is_shm = plan.transport_name == "scg-shm";
     let is_tproxy = plan.transport_name == "scg-tproxy";
-    let is_ale_raw = matches!(
-        plan.transport_name,
-        "scg-udp-ale" | "scg-udp-raw"
-    );
+    let is_ale_raw = matches!(plan.transport_name, "scg-udp-ale" | "scg-udp-raw");
 
     let dut = if is_uds {
         let app_id = format!("seshat-{}", sanitize(&scenario.name));
@@ -957,7 +1179,11 @@ fn run_gateway_scenario(
     let perf_sampler = start_perf_sampler(defaults, scenario, &dut, &work_dir);
 
     let run_result = engine::run_scenario(dut.as_transport(), &params, |i, s| {
-        render_run_line(i, params.runs, s);
+        if params.mode == RunMode::Connrate {
+            render_connrate_run_line(i, params.runs, s);
+        } else {
+            render_run_line(i, params.runs, s);
+        }
     });
 
     // Stop sampling immediately once the runs finish (before any teardown or
@@ -988,6 +1214,34 @@ fn run_gateway_scenario(
         );
         let _ = dut.shutdown();
         return Ok(false);
+    }
+
+    if scenario.mode == Mode::Connrate {
+        render_connrate_result(&stats);
+        if let Some(samples) = system_samples {
+            rdir.record_system_metrics(scenario, &samples)?;
+        }
+        let kernel_requested = matches!(
+            plan.security,
+            GwSecurity::Tls { ktls: true, .. } | GwSecurity::Mtls { ktls: true, .. }
+        );
+        let log_paths = dut.log_paths();
+        dut.shutdown()?;
+        let effective = logscan::scan_effective(&log_paths, kernel_requested);
+        warn_if_protocol_fallback(scenario, &effective);
+        rdir.record_scenario(
+            scenario,
+            &params,
+            &stats,
+            &ScenarioArtifacts {
+                sys: sys_agg.as_ref(),
+                perf: perf_result.as_ref(),
+                effective: Some(&effective),
+                loss_threshold_pct: defaults.loss_threshold_pct,
+                ..Default::default()
+            },
+        )?;
+        return Ok(true);
     }
 
     // Closed-loop RTT path: report round-trip time and record the effective
@@ -1201,6 +1455,7 @@ fn run_multistream_scenario(
     if let Some(samples) = &system_samples {
         let _ = rdir.record_system_metrics(scenario, samples);
     }
+    rdir.record_stream_results(scenario, &result)?;
 
     // Render results.
     console::line("");
@@ -1479,15 +1734,18 @@ fn run_hotreload_scenario(
     let reload_fired_clone = reload_fired.clone();
     let reload_succeeded = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let reload_succeeded_clone = reload_succeeded.clone();
+    let reload_duration_us = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let reload_duration_us_clone = reload_duration_us.clone();
 
     // Timer thread: sleep until trigger point, then execute the reload action.
     let config_path = config_paths.first().cloned();
     let pid_for_reload = gw_pid;
     let action = reload_event.action;
     let mgmt_socket = dut.mgmt_socket_path();
-    let _reload_thread = std::thread::spawn(move || {
+    let reload_thread = std::thread::spawn(move || {
         use crate::config::ReloadAction;
         std::thread::sleep(reload_trigger_dur);
+        let action_started = std::time::Instant::now();
 
         let succeeded = match action {
             ReloadAction::AddConnection | ReloadAction::RemoveConnection => {
@@ -1512,7 +1770,9 @@ fn run_hotreload_scenario(
                                     match mgmt.close_endpoint(ep.endpoint_id) {
                                         Ok(()) => true,
                                         Err(e) => {
-                                            log::warn!("hot-reload: gRPC remove after add failed: {e}");
+                                            log::warn!(
+                                                "hot-reload: gRPC remove after add failed: {e}"
+                                            );
                                             false
                                         }
                                     }
@@ -1530,21 +1790,21 @@ fn run_hotreload_scenario(
                                 TrafficClass::Normal,
                                 Direction::Encrypt,
                             ) {
-                                Ok(ep) => {
-                                    match mgmt.close_endpoint(ep.endpoint_id) {
-                                        Ok(()) => {
-                                            log::info!(
-                                                "hot-reload: removed endpoint via gRPC at {}s",
-                                                trigger_secs
-                                            );
-                                            true
-                                        }
-                                        Err(e) => {
-                                            log::warn!("hot-reload: gRPC remove_connection failed: {e}");
-                                            false
-                                        }
+                                Ok(ep) => match mgmt.close_endpoint(ep.endpoint_id) {
+                                    Ok(()) => {
+                                        log::info!(
+                                            "hot-reload: removed endpoint via gRPC at {}s",
+                                            trigger_secs
+                                        );
+                                        true
                                     }
-                                }
+                                    Err(e) => {
+                                        log::warn!(
+                                            "hot-reload: gRPC remove_connection failed: {e}"
+                                        );
+                                        false
+                                    }
+                                },
                                 Err(e) => {
                                     log::warn!("hot-reload: gRPC remove_connection failed: {e}");
                                     false
@@ -1595,6 +1855,10 @@ fn run_hotreload_scenario(
         };
 
         reload_succeeded_clone.store(succeeded, std::sync::atomic::Ordering::Relaxed);
+        reload_duration_us_clone.store(
+            action_started.elapsed().as_micros() as u64,
+            std::sync::atomic::Ordering::Relaxed,
+        );
         reload_fired_clone.store(true, std::sync::atomic::Ordering::Relaxed);
     });
 
@@ -1614,6 +1878,9 @@ fn run_hotreload_scenario(
             return Ok(false);
         }
     };
+    // The expanded measurement duration always extends beyond the trigger;
+    // join before reading action status so hotreload.csv cannot race a timer.
+    let _ = reload_thread.join();
     if !has_measurements(&stats) {
         log::warn!(
             "scenario '{}': no messages reached the receiver; skipping invalid zero-metric result",
@@ -1626,6 +1893,7 @@ fn run_hotreload_scenario(
     // Report hot-reload specific metrics.
     let reload_actually_fired = reload_fired.load(std::sync::atomic::Ordering::Relaxed);
     let reload_action_succeeded = reload_succeeded.load(std::sync::atomic::Ordering::Relaxed);
+    let reload_elapsed_us = reload_duration_us.load(std::sync::atomic::Ordering::Relaxed);
     if needs_management_endpoint && !reload_action_succeeded {
         log::warn!(
             "scenario '{}': management hot-reload action did not complete; skipping",
@@ -1642,7 +1910,11 @@ fn run_hotreload_scenario(
     );
     console::kv(
         "  Reload action",
-        if reload_action_succeeded { "succeeded" } else { "failed" },
+        if reload_action_succeeded {
+            "succeeded"
+        } else {
+            "failed"
+        },
         16,
     );
     if let Some(run) = stats.runs.first() {
@@ -1678,6 +1950,25 @@ fn run_hotreload_scenario(
             effective: Some(&effective),
             loss_threshold_pct: defaults.loss_threshold_pct,
             ..Default::default()
+        },
+    )?;
+    rdir.record_reload_artifact(
+        scenario,
+        &ReloadArtifact {
+            action: format!("{:?}", reload_event.action),
+            fired: reload_actually_fired,
+            action_succeeded: reload_action_succeeded,
+            reload_duration_us: reload_elapsed_us,
+            connections_before: params.connections,
+            connections_after: params.connections,
+            inflight_packets_lost: stats.total_lost,
+            latency_p99_us: stats.latency_p99_us.mean,
+            throughput_gbps: stats.throughput_gbps.mean,
+            rollback_continuity_passed: matches!(
+                reload_event.action,
+                config::ReloadAction::InvalidConfig
+            )
+            .then_some(reload_action_succeeded && stats.total_lost == 0),
         },
     )?;
     Ok(true)

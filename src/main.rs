@@ -10,6 +10,7 @@ mod config;
 mod console;
 mod gateway;
 mod logging;
+mod matrix;
 mod metrics;
 mod pki;
 mod proto;

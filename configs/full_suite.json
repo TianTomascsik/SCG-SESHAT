@@ -285,12 +285,14 @@
 
     {
       "name": "scg_tls13_connrate",
-      "enabled": false,
-      "disabled_reason": "Gateway connection-rate benchmarking is not implemented; configs/connrate.json covers the supported loopback TCP mode",
+      "enabled": true,
       "category": "scalability",
       "mode": "connrate",
       "message_size_bytes": 64,
       "connections": 4,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "requirements": { "openssl": true },
       "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12090", "pattern": "sustained" }
     },
 
@@ -310,6 +312,16 @@
           "pattern": "periodic",
           "interval_us": 200,
           "priority": { "dscp_tag": "EF", "traffic_class": "safety" },
+          "protocol": { "type": "tls", "version": "1.3" }
+        },
+        {
+          "role": "monitoring",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:12100",
+          "message_size_bytes": 512,
+          "pattern": "periodic",
+          "interval_us": 1000,
+          "priority": { "dscp_tag": "AF21", "traffic_class": "normal" },
           "protocol": { "type": "tls", "version": "1.3" }
         },
         {
@@ -387,6 +399,8 @@
     },
     {
       "name": "hotreload_tls_profile_update",
+      "enabled": false,
+      "disabled_reason": "SCG does not yet apply same-name TLS rule changes to the listener lifecycle or acknowledge the update; see matrix_catalog.json",
       "category": "reliability",
       "message_size_bytes": 4096,
       "connections": 1,
