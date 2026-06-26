@@ -52,20 +52,12 @@ impl DataSink for ShmSink {
     }
 
     fn send_batch(&mut self, msgs: &[&[u8]]) -> io::Result<usize> {
-        let mut sent = 0;
-        for msg in msgs {
-            match self
-                .client
-                .try_send(self.traffic_id, msg)
-                .map_err(|e| io::Error::other(format!("SHM send: {e}")))?
-            {
-                true => sent += 1,
-                // Let the run engine yield and re-check its phase instead of
-                // waiting indefinitely when the receiver/gateway has stopped.
-                false => return Ok(sent),
-            }
-        }
-        Ok(sent)
+        // Push the whole batch with a single gateway wakeup (one eventfd signal
+        // for up to BATCH_MAX frames) instead of signalling per message. A short
+        // count means SHM backpressure; the engine yields and retries the rest.
+        self.client
+            .try_send_batch(self.traffic_id, msgs)
+            .map_err(|e| io::Error::other(format!("SHM send: {e}")))
     }
 
     fn close(&mut self) {
@@ -81,12 +73,9 @@ struct ShmSource {
 
 impl DataSource for ShmSource {
     fn recv_msg(&mut self, buf: &mut [u8]) -> io::Result<RecvOutcome> {
-        match self.client.recv_timeout(Some(self.timeout)) {
-            Ok(Some((_traffic_id, data))) => {
-                let len = data.len().min(buf.len());
-                buf[..len].copy_from_slice(&data[..len]);
-                Ok(RecvOutcome::Message(len))
-            }
+        // Single-copy, allocation-free: pop the payload straight into `buf`.
+        match self.client.recv_into(buf, Some(self.timeout)) {
+            Ok(Some((_traffic_id, len))) => Ok(RecvOutcome::Message(len)),
             Ok(None) => Ok(RecvOutcome::Timeout),
             Err(e) => {
                 let msg = format!("{e}");
@@ -97,6 +86,55 @@ impl DataSource for ShmSource {
                 }
             }
         }
+    }
+
+    fn recv_batch(
+        &mut self,
+        buf: &mut [u8],
+        stride: usize,
+        max: usize,
+        lens: &mut [usize],
+    ) -> io::Result<crate::transport::BatchOutcome> {
+        use crate::transport::BatchOutcome;
+        if max == 0 || stride == 0 || buf.len() < stride || lens.is_empty() {
+            return Ok(BatchOutcome::Timeout);
+        }
+        let cap = max.min(buf.len() / stride).min(lens.len());
+
+        // Block once for the first message; if it times out the ring is idle.
+        let mut count = match self.client.recv_into(&mut buf[..stride], Some(self.timeout)) {
+            Ok(Some((_tid, len))) => {
+                lens[0] = len;
+                1
+            }
+            Ok(None) => return Ok(BatchOutcome::Timeout),
+            Err(e) => {
+                let msg = format!("{e}");
+                return if msg.contains("closed") || msg.contains("EOF") {
+                    Ok(BatchOutcome::Closed)
+                } else {
+                    Err(io::Error::other(format!("SHM recv: {e}")))
+                };
+            }
+        };
+
+        // Drain whatever else is already queued without blocking, so one wake
+        // services a whole burst (mirrors the datagram recvmmsg fast path).
+        while count < cap {
+            let base = count * stride;
+            match self
+                .client
+                .try_recv_into(&mut buf[base..base + stride])
+                .map_err(|e| io::Error::other(format!("SHM recv: {e}")))?
+            {
+                Some((_tid, len)) => {
+                    lens[count] = len;
+                    count += 1;
+                }
+                None => break,
+            }
+        }
+        Ok(BatchOutcome::Messages(count))
     }
 
     fn close(&mut self) {
@@ -135,12 +173,8 @@ impl DuplexEnd for ShmDuplexClient {
     }
 
     fn recv_msg(&mut self, buf: &mut [u8]) -> io::Result<RecvOutcome> {
-        match self.rx.recv_timeout(Some(self.timeout)) {
-            Ok(Some((_traffic_id, data))) => {
-                let len = data.len().min(buf.len());
-                buf[..len].copy_from_slice(&data[..len]);
-                Ok(RecvOutcome::Message(len))
-            }
+        match self.rx.recv_into(buf, Some(self.timeout)) {
+            Ok(Some((_traffic_id, len))) => Ok(RecvOutcome::Message(len)),
             Ok(None) => Ok(RecvOutcome::Timeout),
             Err(e) => {
                 let msg = format!("{e}");

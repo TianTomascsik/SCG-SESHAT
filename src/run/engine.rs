@@ -229,8 +229,13 @@ fn sender_loop(
                 break;
             }
             let built = batch.build(seq, BATCH_MAX);
-            let slices: Vec<&[u8]> = built.iter().map(|v| v.as_slice()).collect();
-            match sink.send_batch(&slices) {
+            // Borrow each staged message into a stack array (no per-iteration
+            // heap allocation for the slice vector).
+            let mut slices: [&[u8]; BATCH_MAX] = [&[][..]; BATCH_MAX];
+            for (i, v) in built.iter().enumerate() {
+                slices[i] = v.as_slice();
+            }
+            match sink.send_batch(&slices[..built.len()]) {
                 // Socket buffer momentarily full: back off without losing seq.
                 Ok(0) => std::thread::yield_now(),
                 Ok(n) => seq = seq.wrapping_add(n as u64),
