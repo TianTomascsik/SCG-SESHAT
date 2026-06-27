@@ -17,7 +17,7 @@
 #![allow(dead_code)]
 
 use crate::config::{Pattern, Sender};
-use crate::proto::wire::{encode_message, HEADER_LEN};
+use crate::proto::wire::{encode_message, encode_message_at, HEADER_LEN};
 
 /// Minimum on-wire message size (header only, empty payload).
 pub const MIN_MESSAGE_SIZE: u32 = HEADER_LEN as u32;
@@ -195,6 +195,15 @@ impl MessageBuilder {
         &self.buf[..total]
     }
 
+    /// Encode the message for `seq` stamping the explicit send time `ts_ns`
+    /// instead of "now". The paced run engine passes the message's *scheduled*
+    /// send time here so receiver-side latency is coordinated-omission-corrected.
+    #[inline]
+    pub fn build_at(&mut self, seq: u64, ts_ns: u64) -> &[u8] {
+        let total = encode_message_at(seq, self.payload_len, ts_ns, &mut self.buf);
+        &self.buf[..total]
+    }
+
     /// Total on-wire size of each message.
     pub fn message_len(&self) -> usize {
         self.message_bytes as usize
@@ -343,6 +352,16 @@ mod tests {
         let hdr = decode_message(msg).unwrap();
         assert_eq!(hdr.seq, 42);
         assert_eq!(hdr.payload_len, 104);
+    }
+
+    #[test]
+    fn message_builder_build_at_stamps_scheduled_time() {
+        use crate::proto::wire::decode_message;
+        let mut b = MessageBuilder::new(128);
+        let msg = b.build_at(7, 9_999);
+        let hdr = decode_message(msg).unwrap();
+        assert_eq!(hdr.seq, 7);
+        assert_eq!(hdr.ts_ns, 9_999, "build_at records the scheduled send time");
     }
 
     #[test]

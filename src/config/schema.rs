@@ -81,7 +81,9 @@ pub struct Defaults {
     pub confidence_level: f64,
     /// System-metrics backend.
     pub metrics_backend: MetricsBackend,
-    /// System-metrics sample rate in Hz.
+    /// System-metrics sample rate in Hz. Drives the per-PID `/proc` timeseries
+    /// (peak CPU and spike visibility); headline CPU/context-switch totals are
+    /// derived from exact cumulative-counter deltas and are independent of it.
     pub metrics_sample_rate_hz: u32,
 }
 
@@ -102,7 +104,11 @@ impl Default for Defaults {
             outlier_removal: OutlierRemoval::Iqr,
             confidence_level: 0.95,
             metrics_backend: MetricsBackend::Procfs,
-            metrics_sample_rate_hz: 1,
+            // 50 Hz (20 ms) gives the timeseries enough resolution to catch
+            // sub-second CPU/scheduling spikes; the headline totals are exact
+            // regardless. Three tiny `/proc` reads per PID per tick stays well
+            // off the measurement hot path (NFR-PERF).
+            metrics_sample_rate_hz: 50,
         }
     }
 }

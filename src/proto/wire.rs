@@ -79,9 +79,21 @@ impl WireHeader {
     /// Build a header, stamping the current monotonic time.
     #[inline]
     pub fn stamp(seq: u64, payload_len: u32) -> Self {
+        Self::stamp_at(seq, payload_len, monotonic_ns())
+    }
+
+    /// Build a header with an explicit (caller-supplied) send timestamp.
+    ///
+    /// Used by the open-loop sender to record the message's **scheduled** send
+    /// time rather than its actual one, which corrects for coordinated omission:
+    /// when the pacer falls behind, latency is measured against when the message
+    /// *should* have left, so the delay the load generator absorbed is no longer
+    /// hidden from the receiver-side latency. See the run engine's paced branch.
+    #[inline]
+    pub fn stamp_at(seq: u64, payload_len: u32, ts_ns: u64) -> Self {
         WireHeader {
             seq,
-            ts_ns: monotonic_ns(),
+            ts_ns,
             payload_len,
         }
     }
@@ -159,9 +171,21 @@ pub fn verify_payload(seq: u64, payload: &[u8]) -> Result<(), WireError> {
 /// message length. Stamps the send time at call.
 #[inline]
 pub fn encode_message(seq: u64, payload_len: u32, buf: &mut [u8]) -> usize {
+    encode_message_at(seq, payload_len, monotonic_ns(), buf)
+}
+
+/// Encode a complete message stamping an explicit send time `ts_ns`.
+///
+/// Identical to [`encode_message`] but records `ts_ns` as the send timestamp
+/// instead of "now". The open-loop sender uses this to stamp the *scheduled*
+/// send time of a paced message, so receiver-side latency is coordinated-
+/// omission-corrected (it includes the time the message waited for a lagging
+/// pacer to catch up).
+#[inline]
+pub fn encode_message_at(seq: u64, payload_len: u32, ts_ns: u64, buf: &mut [u8]) -> usize {
     let total = HEADER_LEN + payload_len as usize;
     debug_assert!(buf.len() >= total);
-    let hdr = WireHeader::stamp(seq, payload_len);
+    let hdr = WireHeader::stamp_at(seq, payload_len, ts_ns);
     hdr.encode(buf);
     fill_payload(seq, &mut buf[HEADER_LEN..total]);
     total
@@ -270,6 +294,20 @@ mod tests {
         assert_eq!(hdr.seq, 7);
         assert_eq!(hdr.payload_len, 1400);
         assert!(hdr.ts_ns > 0);
+    }
+
+    #[test]
+    fn encode_message_at_stamps_explicit_time() {
+        // The scheduled-time path must record exactly the supplied ts_ns, so a
+        // message whose scheduled send is in the past yields a larger measured
+        // latency than the same message stamped "now" — the essence of the
+        // coordinated-omission correction.
+        let mut buf = vec![0u8; HEADER_LEN + 64];
+        encode_message_at(9, 64, 1_234_567, &mut buf);
+        let hdr = decode_message(&buf).unwrap();
+        assert_eq!(hdr.seq, 9);
+        assert_eq!(hdr.ts_ns, 1_234_567);
+        assert_eq!(hdr.payload_len, 64);
     }
 
     #[test]

@@ -187,7 +187,7 @@ pub fn measure_ceiling(
         sender: ceiling_sender(),
         mode: engine::RunMode::Throughput,
     };
-    let (fs, _handshake_us) = engine::run_once(transport, &params)?;
+    let (fs, _handshake_us, _lag) = engine::run_once(transport, &params)?;
     Ok(Ceiling {
         transport: transport.name(),
         message_bytes,

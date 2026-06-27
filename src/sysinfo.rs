@@ -40,8 +40,15 @@ pub struct SysInfo {
     pub cpu_physical: Option<usize>,
     pub cpu_mhz: Option<f64>,
     pub governor: Option<String>,
+    /// Whether turbo/boost is enabled (`intel_pstate/no_turbo` or `cpufreq/boost`).
+    /// `Some(true)` means clock-boosting is on — a reproducibility hazard for
+    /// benchmarking, since per-run frequency then depends on thermal headroom.
+    pub turbo: Option<bool>,
     pub smt: Option<bool>,
     pub isolated_cpus: Option<String>,
+    /// Number of online NUMA nodes (`/sys/devices/system/node`). >1 means
+    /// cross-socket memory latency can perturb results without explicit pinning.
+    pub numa_nodes: Option<usize>,
     pub mem_total_kb: Option<u64>,
     pub thp: Option<String>,
     pub ktls: bool,
@@ -53,6 +60,14 @@ pub struct SysInfo {
     pub wsl: bool,
     pub io_uring: Option<bool>,
     pub nics: Vec<Nic>,
+    /// Version of the SESHAT harness binary (`CARGO_PKG_VERSION`).
+    pub seshat_version: String,
+    /// Short git commit of the SESHAT source tree, best-effort (`None` if the
+    /// tree is not a git checkout). Pins exactly which harness produced a result.
+    pub seshat_git: Option<String>,
+    /// Short git commit of the sibling SCG gateway source tree, best-effort, so a
+    /// result records which gateway build it measured.
+    pub scg_git: Option<String>,
 }
 
 impl SysInfo {
@@ -71,13 +86,20 @@ impl SysInfo {
             cpu_physical: cpu_physical(),
             cpu_mhz: cpu_mhz(),
             governor: read_trim("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"),
+            turbo: turbo_enabled(),
             smt: read_trim("/sys/devices/system/cpu/smt/active").map(|v| v == "1"),
             isolated_cpus: read_trim("/sys/devices/system/cpu/isolated").filter(|s| !s.is_empty()),
+            numa_nodes: numa_nodes(),
             mem_total_kb: mem_total_kb(),
             thp: thp_policy(),
             ktls: Path::new("/sys/module/tls").exists(),
             ktls_usable: ktls_usable(),
             nics: collect_nics(),
+            seshat_version: env!("CARGO_PKG_VERSION").to_string(),
+            // CARGO_MANIFEST_DIR is the SESHAT crate root baked in at build time;
+            // the gateway is its sibling under the Janus tree. Both are best-effort.
+            seshat_git: git_short_hash(env!("CARGO_MANIFEST_DIR")),
+            scg_git: git_short_hash(concat!(env!("CARGO_MANIFEST_DIR"), "/../SCG")),
         }
     }
 
@@ -106,10 +128,19 @@ impl SysInfo {
             self.governor.as_deref().unwrap_or("unknown"),
             12,
         );
+        console::kv("Turbo", fmt_bool(self.turbo), 12);
         console::kv("SMT/HT", fmt_bool(self.smt), 12);
         console::kv(
             "Isolated",
             self.isolated_cpus.as_deref().unwrap_or("(none)"),
+            12,
+        );
+        console::kv(
+            "NUMA nodes",
+            &self
+                .numa_nodes
+                .map(|n| n.to_string())
+                .unwrap_or_else(|| "1".into()),
             12,
         );
         console::end_rule();
@@ -156,6 +187,16 @@ impl SysInfo {
                 console::kv(&nic.name, detail.trim_end(), 12);
             }
         }
+        console::end_rule();
+
+        console::rule("Provenance");
+        console::kv("SESHAT", &format!("v{}", self.seshat_version), 12);
+        console::kv(
+            "SESHAT git",
+            self.seshat_git.as_deref().unwrap_or("unknown"),
+            12,
+        );
+        console::kv("SCG git", self.scg_git.as_deref().unwrap_or("unknown"), 12);
         console::end_rule();
     }
 
@@ -287,6 +328,101 @@ fn mem_total_kb() -> Option<u64> {
     None
 }
 
+/// Whether CPU turbo/boost is enabled. Prefers the `intel_pstate` driver's
+/// `no_turbo` flag (`0` = turbo on), falling back to the generic `cpufreq/boost`
+/// (`1` = on). `None` when neither knob is exposed (e.g. in a VM/container).
+fn turbo_enabled() -> Option<bool> {
+    if let Some(v) = read_trim("/sys/devices/system/cpu/intel_pstate/no_turbo") {
+        return Some(v.trim() == "0");
+    }
+    if let Some(v) = read_trim("/sys/devices/system/cpu/cpufreq/boost") {
+        return Some(v.trim() == "1");
+    }
+    None
+}
+
+/// Count online NUMA nodes from `/sys/devices/system/node/online` (a range list
+/// such as `0-1`). `None` when the file is absent (single-node / no NUMA sysfs).
+fn numa_nodes() -> Option<usize> {
+    parse_cpu_range_count(&read_trim("/sys/devices/system/node/online")?)
+}
+
+/// Count the entries in a sysfs range list like `0-1,4,8-11` (used for NUMA
+/// nodes and CPU masks). `None` when nothing parses.
+fn parse_cpu_range_count(raw: &str) -> Option<usize> {
+    let mut count = 0usize;
+    for part in raw.split(',') {
+        match part.split_once('-') {
+            Some((a, b)) => {
+                let (a, b) = (
+                    a.trim().parse::<usize>().ok()?,
+                    b.trim().parse::<usize>().ok()?,
+                );
+                count += b.saturating_sub(a) + 1;
+            }
+            None if !part.trim().is_empty() => count += 1,
+            None => {}
+        }
+    }
+    (count > 0).then_some(count)
+}
+
+/// Best-effort short git commit of the tree at `dir` (`git -C dir rev-parse
+/// --short HEAD`). Returns `None` if `git` is missing, `dir` is not a checkout,
+/// or the command fails — never blocks reproducibility capture.
+fn git_short_hash(dir: &str) -> Option<String> {
+    let out = std::process::Command::new("git")
+        .args(["-C", dir, "rev-parse", "--short", "HEAD"])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let hash = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    (!hash.is_empty()).then_some(hash)
+}
+
+/// Reproducibility/measurement-quality warnings for the current host. Empty when
+/// the environment is well-controlled. Surfaced as `WARN` logs before a run so a
+/// thesis result is never silently taken on a turbo-enabled, on-demand-governed
+/// box where per-run clocks (and thus latency/throughput) drift.
+pub fn preflight_warnings(info: &SysInfo) -> Vec<String> {
+    let mut warns = Vec::new();
+    if let Some(gov) = &info.governor {
+        if gov != "performance" {
+            warns.push(format!(
+                "CPU governor is '{gov}', not 'performance' — clock scaling will \
+                 add run-to-run variance. Pin it: \
+                 `sudo cpupower frequency-set -g performance`."
+            ));
+        }
+    }
+    if info.turbo == Some(true) {
+        warns.push(
+            "CPU turbo/boost is enabled — per-run frequency depends on thermal \
+             headroom. Disable for stable numbers (intel_pstate: \
+             `echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo`)."
+                .to_string(),
+        );
+    }
+    if info.smt == Some(true) {
+        warns.push(
+            "SMT/Hyper-Threading is active — sibling-thread contention can perturb \
+             pinned-core results; consider isolating physical cores."
+                .to_string(),
+        );
+    }
+    if info.numa_nodes.unwrap_or(1) > 1 && info.isolated_cpus.is_none() {
+        warns.push(
+            "Multi-node NUMA host with no isolated CPUs — cross-socket memory \
+             latency may leak into results; pin with `isolcpus=`/`taskset` and \
+             keep sender, gateway, and receiver on one node."
+                .to_string(),
+        );
+    }
+    warns
+}
+
 fn thp_policy() -> Option<String> {
     // The file looks like "always [madvise] never"; extract the active token.
     let raw = read_trim("/sys/kernel/mm/transparent_hugepage/enabled")?;
@@ -398,4 +534,39 @@ pub fn summary_line(info: &SysInfo) -> String {
         fmt_mem(info.mem_total_kb)
     );
     s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_cpu_range_count_handles_lists_and_ranges() {
+        assert_eq!(parse_cpu_range_count("0"), Some(1));
+        assert_eq!(parse_cpu_range_count("0-1"), Some(2));
+        assert_eq!(parse_cpu_range_count("0-3,8,10-11"), Some(7));
+        assert_eq!(parse_cpu_range_count(""), None);
+    }
+
+    #[test]
+    fn preflight_flags_uncontrolled_environment() {
+        let mut info = SysInfo::collect();
+        info.governor = Some("powersave".into());
+        info.turbo = Some(true);
+        info.smt = Some(false);
+        info.numa_nodes = Some(1);
+        let warns = preflight_warnings(&info);
+        assert!(warns.iter().any(|w| w.contains("governor")));
+        assert!(warns.iter().any(|w| w.contains("turbo")));
+    }
+
+    #[test]
+    fn preflight_clean_on_controlled_host() {
+        let mut info = SysInfo::collect();
+        info.governor = Some("performance".into());
+        info.turbo = Some(false);
+        info.smt = Some(false);
+        info.numa_nodes = Some(1);
+        assert!(preflight_warnings(&info).is_empty());
+    }
 }

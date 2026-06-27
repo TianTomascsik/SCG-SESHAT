@@ -217,7 +217,10 @@ impl std::fmt::Debug for SecuritySpec {
             .field("app_protocol", &self.app_protocol)
             .field("profile", &self.profile)
             .field("traffic_class", &self.traffic_class)
-            .field("psk_identity", &self.psk_identity.as_ref().map(|_| "[REDACTED]"))
+            .field(
+                "psk_identity",
+                &self.psk_identity.as_ref().map(|_| "[REDACTED]"),
+            )
             .field("psk_hex", &self.psk_hex.as_ref().map(|_| "[REDACTED]"))
             .field("cipher_list", &self.cipher_list)
             .field("ciphersuites", &self.ciphersuites)
@@ -524,10 +527,21 @@ impl SecuritySpec {
         self
     }
 
+    /// Default busy-poll budget applied when a scenario asks for `spin_wait`
+    /// but does not pin an explicit `spin_wait_us`.
+    const DEFAULT_SPIN_WAIT_US: u64 = 50;
+
     /// Apply optimization flags from the scenario config (F1/F2).
     pub fn with_optimizations(mut self, flags: &crate::config::schema::OptimizationFlags) -> Self {
         self.zero_copy = flags.zero_copy;
-        self.spin_wait_us = flags.spin_wait_us.unwrap_or(0);
+        // Honor the `spin_wait` toggle even without an explicit budget: a bare
+        // `spin_wait: true` enables a small default busy-poll, so an A/B run that
+        // flips only that flag actually changes the gateway behaviour.
+        self.spin_wait_us = match (flags.spin_wait_us, flags.spin_wait) {
+            (Some(us), _) => us,
+            (None, true) => Self::DEFAULT_SPIN_WAIT_US,
+            (None, false) => 0,
+        };
         self.perf_profile = flags.perf_profile.clone();
         self.sock_buf_size = flags.sock_buf_size;
         self.pipe_size = flags.pipe_size;
@@ -938,8 +952,14 @@ mod secret_redaction_tests {
         s.psk_identity = Some("super-secret-identity".to_string());
         s.psk_hex = Some("00112233445566778899aabbccddeeff".to_string());
         let out = format!("{s:?}");
-        assert!(!out.contains("super-secret-identity"), "psk_identity leaked: {out}");
-        assert!(!out.contains("00112233445566778899aabbccddeeff"), "psk_hex leaked: {out}");
+        assert!(
+            !out.contains("super-secret-identity"),
+            "psk_identity leaked: {out}"
+        );
+        assert!(
+            !out.contains("00112233445566778899aabbccddeeff"),
+            "psk_hex leaked: {out}"
+        );
         assert!(out.contains("REDACTED"), "expected redaction marker: {out}");
     }
 }
@@ -951,6 +971,47 @@ mod tests {
     use std::net::{TcpStream, ToSocketAddrs};
     use std::thread;
     use std::time::Instant;
+
+    #[test]
+    fn optimization_flags_reach_emitted_rule() {
+        use crate::config::schema::OptimizationFlags;
+        let flags = OptimizationFlags {
+            zero_copy: true,
+            spin_wait: true, // no explicit budget → default applies
+            spin_wait_us: None,
+            sock_buf_size: Some(1 << 20),
+            pipe_size: Some(65_536),
+            relay_buf_size: Some(32_768),
+            notsent_lowat: Some(16_384),
+            busy_poll_us: Some(25),
+            bdp_adaptive: true,
+            bdp_queue_budget_us: Some(200),
+            perf_profile: Some("throughput".to_string()),
+            ..Default::default()
+        };
+        let spec = SecuritySpec::routing_tcp().with_optimizations(&flags);
+        let rule = spec.apply_encrypt(RuleConfig::new(
+            "r",
+            "encrypt",
+            "127.0.0.1:1",
+            "127.0.0.1:2",
+        ));
+        assert!(rule.zero_copy);
+        assert_eq!(rule.spin_wait_us, SecuritySpec::DEFAULT_SPIN_WAIT_US);
+        assert_eq!(rule.sock_buf_size, Some(1 << 20));
+        assert_eq!(rule.pipe_size, Some(65_536));
+        assert_eq!(rule.relay_buf_size, Some(32_768));
+        assert_eq!(rule.notsent_lowat, Some(16_384));
+        assert_eq!(rule.busy_poll_us, 25);
+        assert!(rule.bdp_adaptive);
+        assert_eq!(rule.bdp_queue_budget_us, Some(200));
+        assert_eq!(rule.perf_profile.as_deref(), Some("throughput"));
+        // The knobs must survive serialization — that JSON is what the SCG reads.
+        let json = serde_json::to_value(&rule).unwrap();
+        assert_eq!(json["zero_copy"], true);
+        assert_eq!(json["pipe_size"], 65_536);
+        assert_eq!(json["perf_profile"], "throughput");
+    }
 
     #[test]
     fn build_path_single_gateway_has_two_rules() {

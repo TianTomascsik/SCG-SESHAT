@@ -307,6 +307,160 @@ fn parse_perf_f64(value: &str) -> Option<f64> {
     value.trim().replace(',', "").parse::<f64>().ok()
 }
 
+// ─── F-13b: eBPF memory-copy backend (`bpftrace`) ───────────────────────────
+
+/// The embedded `mem_copies.bt` program (kept in `scripts/` for standalone use
+/// and documentation, embedded here so the binary is self-contained).
+const MEM_COPIES_BT: &str = include_str!("../../scripts/mem_copies.bt");
+
+/// Result of a `bpftrace` memory-copy run against the gateway PID(s).
+#[derive(Debug, Clone, Default)]
+pub struct MemCopyResult {
+    /// `_copy_to_user` invocations (kernel→user payload copies).
+    pub copy_to_user: Option<u64>,
+    /// `_copy_from_user` invocations (user→kernel payload copies).
+    pub copy_from_user: Option<u64>,
+    /// `sendmsg` syscalls entered.
+    pub sendmsg: Option<u64>,
+    /// `recvmsg` syscalls entered.
+    pub recvmsg: Option<u64>,
+    /// `splice` syscalls entered (the zero-copy relay path).
+    pub splice: Option<u64>,
+}
+
+impl MemCopyResult {
+    /// Total user<->kernel payload copies (`copy_to_user + copy_from_user`),
+    /// `None` unless at least one counter was collected.
+    pub fn total_copies(&self) -> Option<u64> {
+        match (self.copy_to_user, self.copy_from_user) {
+            (None, None) => None,
+            (a, b) => Some(a.unwrap_or(0) + b.unwrap_or(0)),
+        }
+    }
+
+    /// Memory copies per delivered message, given the total messages measured.
+    pub fn copies_per_msg(&self, messages: u64) -> Option<f64> {
+        if messages == 0 {
+            return None;
+        }
+        self.total_copies().map(|c| c as f64 / messages as f64)
+    }
+}
+
+/// A `bpftrace` process counting payload copies for the gateway PID(s) over the
+/// run. Like [`PerfSampler`] it attaches for the full sampler lifetime.
+pub struct MemCopySampler {
+    child: Option<std::process::Child>,
+    stdout_path: std::path::PathBuf,
+}
+
+impl MemCopySampler {
+    /// Start `bpftrace` with the embedded program, filtered to `pids`. Returns
+    /// `None` if `bpftrace` is unavailable, the caller is unprivileged, or the
+    /// spawn fails — so an unprivileged run degrades to "no memory-copy data".
+    pub fn start(pids: &[i32], work_dir: &std::path::Path) -> Option<Self> {
+        use std::process::{Command, Stdio};
+
+        if pids.is_empty() || !Self::available() {
+            return None;
+        }
+
+        let filter = pids
+            .iter()
+            .map(|p| format!("pid == {p}"))
+            .collect::<Vec<_>>()
+            .join(" || ");
+        let program = MEM_COPIES_BT.replace("__PID_FILTER__", &filter);
+        let script_path = work_dir.join("mem_copies.bt");
+        fs::write(&script_path, &program).ok()?;
+
+        let stdout_path = work_dir.join("mem_copies_out.txt");
+        let stdout_file = fs::File::create(&stdout_path).ok()?;
+
+        let child = Command::new("bpftrace")
+            .arg(&script_path)
+            .stdin(Stdio::null())
+            .stdout(stdout_file)
+            .stderr(Stdio::null())
+            .spawn()
+            .ok()?;
+
+        Some(MemCopySampler {
+            child: Some(child),
+            stdout_path,
+        })
+    }
+
+    /// Stop bpftrace (SIGINT, which makes it print its maps) and parse the result.
+    pub fn stop(mut self) -> MemCopyResult {
+        if let Some(mut child) = self.child.take() {
+            // SAFETY: `libc::kill` is a plain syscall with no memory-safety
+            // preconditions; `child.id()` is the PID of the bpftrace child this
+            // sampler owns and has not yet reaped (taken above, `wait`ed below),
+            // and `SIGINT` is a valid signal number.
+            unsafe { libc::kill(child.id() as i32, libc::SIGINT) };
+            let _ = child.wait();
+        }
+        parse_mem_copies(&self.stdout_path)
+    }
+
+    /// Whether memory-copy sampling can run here: `bpftrace` present and the
+    /// process is privileged enough to load BPF (root, or holding CAP_BPF —
+    /// approximated by an effective-uid-0 check, which is the common case).
+    pub fn available() -> bool {
+        // SAFETY: `geteuid` takes no arguments and cannot fail.
+        let euid = unsafe { libc::geteuid() };
+        if euid != 0 {
+            return false;
+        }
+        std::process::Command::new("bpftrace")
+            .arg("--version")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    }
+}
+
+impl Drop for MemCopySampler {
+    fn drop(&mut self) {
+        if let Some(mut child) = self.child.take() {
+            // SAFETY: see `stop`; the owned, unreaped bpftrace child PID is killed
+            // and immediately waited for.
+            unsafe { libc::kill(child.id() as i32, libc::SIGKILL) };
+            let _ = child.wait();
+        }
+    }
+}
+
+/// Parse `bpftrace` map output lines such as `@copy_to_user: 12345`.
+fn parse_mem_copies(path: &std::path::Path) -> MemCopyResult {
+    let mut result = MemCopyResult::default();
+    let content = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return result,
+    };
+    for line in content.lines() {
+        let line = line.trim();
+        let Some((key, value)) = line.split_once(':') else {
+            continue;
+        };
+        let Some(n) = value.trim().parse::<u64>().ok() else {
+            continue;
+        };
+        match key.trim() {
+            "@copy_to_user" => result.copy_to_user = Some(n),
+            "@copy_from_user" => result.copy_from_user = Some(n),
+            "@sendmsg" => result.sendmsg = Some(n),
+            "@recvmsg" => result.recvmsg = Some(n),
+            "@splice" => result.splice = Some(n),
+            _ => {}
+        }
+    }
+    result
+}
+
 /// Sampling loop: emit one sample per PID per tick until the stop flag is set.
 fn sample_loop(pids: &[i32], rate_hz: u32, stop: &AtomicBool) -> Vec<SystemSample> {
     let interval = Duration::from_secs_f64(1.0 / rate_hz as f64);
@@ -343,7 +497,12 @@ fn sample_loop(pids: &[i32], rate_hz: u32, stop: &AtomicBool) -> Vec<SystemSampl
 fn sample_pid(pid: i32, elapsed_ms: u64) -> Option<SystemSample> {
     let stat = fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
     let (utime_ticks, stime_ticks, threads) = parse_stat(&stat)?;
-    let (rss_kib, voluntary_ctxt, nonvoluntary_ctxt) = parse_status(pid);
+    let rss_kib = parse_rss(pid);
+    // CPU ticks (above) are process-wide, but `/proc/<pid>/status` context-switch
+    // counters are the thread-group *leader's* only — ~0 for a gateway whose
+    // workers run in spawned threads. Sum the per-thread counters so the totals
+    // reflect the whole process.
+    let (voluntary_ctxt, nonvoluntary_ctxt) = sum_thread_ctxt_switches(pid);
     let (read_bytes, write_bytes) = parse_io(pid);
     let pss_kib = parse_pss(pid);
     Some(SystemSample {
@@ -388,23 +547,58 @@ fn parse_stat(line: &str) -> Option<(u64, u64, u64)> {
     Some((utime, stime, threads))
 }
 
-/// Parse VmRSS (kiB) and the two context-switch counters from `status`.
-fn parse_status(pid: i32) -> (u64, u64, u64) {
-    let mut rss = 0;
-    let mut vol = 0;
-    let mut nonvol = 0;
-    if let Ok(s) = fs::read_to_string(format!("/proc/{pid}/status")) {
-        for line in s.lines() {
-            if let Some(v) = line.strip_prefix("VmRSS:") {
-                rss = first_u64(v);
-            } else if let Some(v) = line.strip_prefix("voluntary_ctxt_switches:") {
-                vol = first_u64(v);
-            } else if let Some(v) = line.strip_prefix("nonvoluntary_ctxt_switches:") {
-                nonvol = first_u64(v);
+/// Parse VmRSS (kiB) from `/proc/<pid>/status` (process-wide; 0 if unreadable).
+fn parse_rss(pid: i32) -> u64 {
+    fs::read_to_string(format!("/proc/{pid}/status"))
+        .ok()
+        .and_then(|s| {
+            s.lines()
+                .find_map(|line| line.strip_prefix("VmRSS:").map(first_u64))
+        })
+        .unwrap_or(0)
+}
+
+/// Sum voluntary + involuntary context switches across every thread of the
+/// process by walking `/proc/<pid>/task/<tid>/status`. `/proc/<pid>/status`
+/// alone reports only the group leader's counters, which understates a
+/// multi-threaded gateway; per-thread aggregation gives the process total.
+/// Returns the leader-only count as a fallback if the `task` dir is unreadable.
+fn sum_thread_ctxt_switches(pid: i32) -> (u64, u64) {
+    let mut vol = 0u64;
+    let mut nonvol = 0u64;
+    let mut any = false;
+    if let Ok(entries) = fs::read_dir(format!("/proc/{pid}/task")) {
+        for entry in entries.flatten() {
+            let tid = entry.file_name();
+            let path = format!("/proc/{pid}/task/{}/status", tid.to_string_lossy());
+            if let Ok(s) = fs::read_to_string(&path) {
+                any = true;
+                for line in s.lines() {
+                    if let Some(v) = line.strip_prefix("voluntary_ctxt_switches:") {
+                        vol += first_u64(v);
+                    } else if let Some(v) = line.strip_prefix("nonvoluntary_ctxt_switches:") {
+                        nonvol += first_u64(v);
+                    }
+                }
             }
         }
     }
-    (rss, vol, nonvol)
+    if any {
+        return (vol, nonvol);
+    }
+    // Fallback: the group leader's own counters.
+    let mut lvol = 0u64;
+    let mut lnonvol = 0u64;
+    if let Ok(s) = fs::read_to_string(format!("/proc/{pid}/status")) {
+        for line in s.lines() {
+            if let Some(v) = line.strip_prefix("voluntary_ctxt_switches:") {
+                lvol = first_u64(v);
+            } else if let Some(v) = line.strip_prefix("nonvoluntary_ctxt_switches:") {
+                lnonvol = first_u64(v);
+            }
+        }
+    }
+    (lvol, lnonvol)
 }
 
 /// Parse `read_bytes`/`write_bytes` from `/proc/<pid>/io` (0 if unavailable).
@@ -465,16 +659,28 @@ fn cpu_percent(prev: &SystemSample, cur: &SystemSample, tck: f64) -> f64 {
 pub struct SysAgg {
     /// Number of distinct PIDs sampled (1 for single gateway, 2 for scg↔scg).
     pub n_pids: usize,
-    /// Peak summed CPU% across PIDs over the run (100% == one core).
+    /// Peak summed CPU% across PIDs over the run (100% == one core). Derived
+    /// from the per-tick timeseries, so it sees sub-second spikes.
     pub cpu_pct_peak: f64,
-    /// Mean summed CPU% across PIDs over the measured ticks.
+    /// Mean summed CPU% across PIDs over the sampled span (100% == one core).
+    /// Derived from the **exact** cumulative CPU-tick delta over the span, so it
+    /// is independent of the sample rate (no per-tick averaging error).
     pub cpu_pct_mean: f64,
     /// Peak summed resident set size across PIDs (kiB).
     pub rss_peak_kib: u64,
     /// Peak summed proportional set size across PIDs (kiB), when readable.
     pub pss_peak_kib: u64,
-    /// Total context switches per second across PIDs over the run.
+    /// Context switches per second across PIDs, from the exact cumulative delta
+    /// over the sampled span.
     pub ctx_switches_per_s: f64,
+    /// Exact total CPU seconds consumed across all sampled PIDs over the span
+    /// (cumulative `utime+stime` delta ÷ `_SC_CLK_TCK`). Rate-independent.
+    pub cpu_seconds_total: f64,
+    /// Exact total voluntary+involuntary context switches across PIDs over the
+    /// span. Rate-independent (a spec headline metric).
+    pub ctx_switches_total: u64,
+    /// Wall-clock span the exact totals cover (first→last sample), in seconds.
+    pub window_s: f64,
 }
 
 /// Roll a flat per-PID sample series up into a [`SysAgg`], or `None` if empty.
@@ -497,7 +703,11 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
     let mut cpu_by_time: BTreeMap<u64, f64> = BTreeMap::new();
     let mut rss_by_time: BTreeMap<u64, u64> = BTreeMap::new();
     let mut pss_by_time: BTreeMap<u64, u64> = BTreeMap::new();
+    // Exact, rate-independent totals: the `/proc` counters are cumulative, so a
+    // first→last delta is the true count over the sampled span no matter how
+    // many ticks fell in between. The per-tick series is used only for the peak.
     let mut ctx_total: u64 = 0;
+    let mut cpu_ticks_total: u64 = 0;
     let mut span_s: f64 = 0.0;
     for &pid in &pids {
         let series: Vec<&SystemSample> = samples.iter().filter(|s| s.pid == pid).collect();
@@ -516,12 +726,16 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
             let dctx = (last.voluntary_ctxt + last.nonvoluntary_ctxt)
                 .saturating_sub(first.voluntary_ctxt + first.nonvoluntary_ctxt);
             ctx_total += dctx;
+            let dticks = (last.utime_ticks + last.stime_ticks)
+                .saturating_sub(first.utime_ticks + first.stime_ticks);
+            cpu_ticks_total += dticks;
             let s = last.elapsed_ms.saturating_sub(first.elapsed_ms) as f64 / 1000.0;
             span_s = span_s.max(s);
         }
     }
 
-    // Skip the first tick (its per-PID CPU% is 0 for want of a prior delta).
+    // Peak: the highest summed per-tick CPU% seen (spike-sensitive). Skip the
+    // first tick, whose per-PID CPU% is 0 for want of a prior delta.
     let times: Vec<u64> = cpu_by_time.keys().copied().collect();
     let measured = if times.len() > 1 {
         &times[1..]
@@ -529,23 +743,22 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
         &times[..]
     };
     let mut peak = 0.0_f64;
-    let mut sum = 0.0_f64;
     for t in measured {
-        let v = cpu_by_time[t];
-        peak = peak.max(v);
-        sum += v;
+        peak = peak.max(cpu_by_time[t]);
     }
-    let cpu_pct_mean = if measured.is_empty() {
-        0.0
-    } else {
-        sum / measured.len() as f64
-    };
+
+    let cpu_seconds_total = cpu_ticks_total as f64 / tck;
     let rss_peak_kib = rss_by_time.values().copied().max().unwrap_or(0);
     let pss_peak_kib = pss_by_time.values().copied().max().unwrap_or(0);
-    let ctx_switches_per_s = if span_s > 0.0 {
-        ctx_total as f64 / span_s
+    // Mean CPU% and context-switch rate from the exact totals over the exact
+    // span — no sampling error, unlike averaging per-tick percentages.
+    let (cpu_pct_mean, ctx_switches_per_s) = if span_s > 0.0 {
+        (
+            cpu_seconds_total / span_s * 100.0,
+            ctx_total as f64 / span_s,
+        )
     } else {
-        0.0
+        (0.0, 0.0)
     };
 
     Some(SysAgg {
@@ -555,6 +768,9 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
         rss_peak_kib,
         pss_peak_kib,
         ctx_switches_per_s,
+        cpu_seconds_total,
+        ctx_switches_total: ctx_total,
+        window_s: span_s,
     })
 }
 
@@ -647,6 +863,35 @@ mod tests {
     }
 
     #[test]
+    fn aggregate_exact_totals_are_rate_independent() {
+        let tck = clk_tck();
+        let mk = |elapsed_ms, ut, st, vol, nonvol| SystemSample {
+            elapsed_ms,
+            pid: 1,
+            rss_kib: 1000,
+            pss_kib: 0,
+            threads: 1,
+            utime_ticks: ut,
+            stime_ticks: st,
+            voluntary_ctxt: vol,
+            nonvoluntary_ctxt: nonvol,
+            read_bytes: 0,
+            write_bytes: 0,
+        };
+        // Over a 1 s span, CPU ticks grow by exactly `_SC_CLK_TCK` (= 1 CPU-second
+        // = one fully-busy core), and 8 context switches occur. The exact totals
+        // must reflect the cumulative deltas regardless of how many samples landed
+        // in between — here just the two endpoints.
+        let ticks = tck as u64;
+        let agg = aggregate(&[mk(0, 0, 0, 0, 0), mk(1000, ticks, 0, 5, 3)]).unwrap();
+        assert!((agg.window_s - 1.0).abs() < 1e-9);
+        assert!((agg.cpu_seconds_total - 1.0).abs() < 1e-6);
+        assert!((agg.cpu_pct_mean - 100.0).abs() < 1e-6);
+        assert_eq!(agg.ctx_switches_total, 8);
+        assert!((agg.ctx_switches_per_s - 8.0).abs() < 1e-6);
+    }
+
+    #[test]
     fn samples_self_process() {
         let pid = std::process::id() as i32;
         let s = sample_pid(pid, 0).expect("self /proc/<pid>/stat readable");
@@ -709,6 +954,34 @@ mod tests {
         assert_eq!(perf.task_clock_ms, Some(45.678));
         assert_eq!(perf.duration_s, Some(0.123456));
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn parse_mem_copies_reads_bpftrace_maps() {
+        let dir = std::env::temp_dir().join(format!("seshat-memcopy-{}", monotonic_tag()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("out.txt");
+        fs::write(
+            &path,
+            "Attaching 5 probes...\n\n@copy_from_user: 2048\n@copy_to_user: 1024\n@recvmsg: 500\n@sendmsg: 500\n@splice: 0\n",
+        )
+        .unwrap();
+        let r = parse_mem_copies(&path);
+        assert_eq!(r.copy_to_user, Some(1024));
+        assert_eq!(r.copy_from_user, Some(2048));
+        assert_eq!(r.total_copies(), Some(3072));
+        assert_eq!(r.sendmsg, Some(500));
+        assert_eq!(r.splice, Some(0));
+        // 3072 copies over 1024 messages = 3 copies/message.
+        assert_eq!(r.copies_per_msg(1024), Some(3.0));
+        assert_eq!(r.copies_per_msg(0), None);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn mem_copies_total_is_none_without_counters() {
+        assert_eq!(MemCopyResult::default().total_copies(), None);
+        assert_eq!(MemCopyResult::default().copies_per_msg(100), None);
     }
 
     #[test]

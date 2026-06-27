@@ -110,6 +110,63 @@ pub struct RunStats {
     pub rtt: Option<RttSummary>,
     /// Connection-rate summary, populated only in [`RunMode::Connrate`].
     pub conn: Option<ConnSummary>,
+    /// Whether the reported latency is free of coordinated-omission bias.
+    ///
+    /// `true` for paced open-loop runs (latency is measured against each
+    /// message's *scheduled* send time), and for the inherently closed-loop
+    /// ping-pong / connection-rate modes. `false` only for an unthrottled blast,
+    /// where there is no schedule to correct against (and latency is queueing-
+    /// dominated anyway). Surfaced in results so every row self-documents its
+    /// latency trustworthiness.
+    pub co_corrected: bool,
+    /// Mean time, in microseconds, by which the paced sender woke *behind* each
+    /// message's scheduled send instant during the measure window — the
+    /// magnitude of coordinated omission that naïve actual-send stamping would
+    /// have hidden. Zero for blast and closed-loop modes.
+    pub send_lag_mean_us: f64,
+    /// Worst single send-lag observed during the measure window (µs).
+    pub send_lag_max_us: f64,
+}
+
+/// Accumulates how far behind schedule a paced sender woke for each message —
+/// the coordinated-omission magnitude. Off the hot path: one branch + three adds
+/// per message, recorded only during the measure window.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SendLag {
+    count: u64,
+    sum_ns: u128,
+    max_ns: u64,
+}
+
+impl SendLag {
+    #[inline]
+    fn record(&mut self, ns: u64) {
+        self.count += 1;
+        self.sum_ns += ns as u128;
+        if ns > self.max_ns {
+            self.max_ns = ns;
+        }
+    }
+
+    fn merge(&mut self, other: &SendLag) {
+        self.count += other.count;
+        self.sum_ns += other.sum_ns;
+        if other.max_ns > self.max_ns {
+            self.max_ns = other.max_ns;
+        }
+    }
+
+    fn mean_us(&self) -> f64 {
+        if self.count == 0 {
+            0.0
+        } else {
+            (self.sum_ns as f64 / self.count as f64) / 1000.0
+        }
+    }
+
+    fn max_us(&self) -> f64 {
+        self.max_ns as f64 / 1000.0
+    }
 }
 
 /// Closed-loop round-trip statistics (Phase F), aggregated across runs. Each
@@ -206,22 +263,25 @@ fn receiver_loop(
     metrics
 }
 
-/// Sender worker: paced sends until DONE.
+/// Sender worker: paced sends until DONE. Returns the coordinated-omission
+/// magnitude (paced runs only) — how far behind schedule it fell.
 fn sender_loop(
     mut sink: Box<dyn crate::transport::DataSink>,
     phase: Arc<AtomicU8>,
     cores: Vec<usize>,
     sender_spec: Sender,
     message_bytes: u32,
-) {
+) -> SendLag {
     if !cores.is_empty() {
         affinity::pin_current_thread(&cores);
     }
     let mut pacer = Pacer::from_sender(&sender_spec, message_bytes);
+    let mut lag = SendLag::default();
     if pacer.is_blast() {
         // Unthrottled blast: stage BATCH_MAX messages and push them with one
         // batched send (sendmmsg on UDP) per iteration, so the harness ceiling
-        // is bounded by the socket/NIC rather than per-message syscalls.
+        // is bounded by the socket/NIC rather than per-message syscalls. There
+        // is no schedule here, so coordinated omission does not apply.
         let mut batch = BatchBuilder::new(message_bytes, BATCH_MAX);
         let mut seq = 0u64;
         loop {
@@ -252,12 +312,22 @@ fn sender_loop(
             }
             let deadline = start + pacer.next_deadline_ns();
             sleep_until_ns(deadline);
+            let woke = monotonic_ns();
             if phase.load(Ordering::Relaxed) == PHASE_DONE {
                 break;
             }
-            let msg = builder.build(seq);
+            let measuring = phase.load(Ordering::Relaxed) == PHASE_MEASURE;
+            // Stamp the *scheduled* send time, not "now": if the pacer woke late
+            // the queueing it absorbed stays visible in receiver-side latency
+            // (coordinated-omission correction, wrk2/HdrHistogram style).
+            let msg = builder.build_at(seq, deadline);
             match sink.send_msg(msg) {
-                Ok(()) => seq = seq.wrapping_add(1),
+                Ok(()) => {
+                    if measuring {
+                        lag.record(woke.saturating_sub(deadline));
+                    }
+                    seq = seq.wrapping_add(1);
+                }
                 // A non-blocking local-interface ring is momentarily full.
                 // Yield, then loop so the phase flag remains observable.
                 Err(e) if e.kind() == io::ErrorKind::WouldBlock => std::thread::yield_now(),
@@ -266,11 +336,16 @@ fn sender_loop(
         }
     }
     sink.close();
+    lag
 }
 
-/// Execute a single run and return its combined [`FlowSummary`] together with
-/// the connection-establishment time in microseconds.
-pub fn run_once(transport: &dyn Transport, params: &RunParams) -> io::Result<(FlowSummary, f64)> {
+/// Execute a single run and return its combined [`FlowSummary`], the
+/// connection-establishment time in microseconds, and the coordinated-omission
+/// magnitude (paced senders only).
+pub fn run_once(
+    transport: &dyn Transport,
+    params: &RunParams,
+) -> io::Result<(FlowSummary, f64, SendLag)> {
     let phase = Arc::new(AtomicU8::new(PHASE_WARMUP));
 
     // Establish all connections up front (counts as the connect step). Time the
@@ -319,8 +394,11 @@ pub fn run_once(transport: &dyn Transport, params: &RunParams) -> io::Result<(Fl
     thread::sleep(params.cooldown);
     phase.store(PHASE_DONE, Ordering::Relaxed);
 
+    let mut lag = SendLag::default();
     for h in tx_handles {
-        let _ = h.join();
+        if let Ok(l) = h.join() {
+            lag.merge(&l);
+        }
     }
     let mut metrics = Vec::with_capacity(rx_handles.len());
     for h in rx_handles {
@@ -332,6 +410,7 @@ pub fn run_once(transport: &dyn Transport, params: &RunParams) -> io::Result<(Fl
     Ok((
         app::aggregate_run(&metrics, measure_secs, params.remove_outliers),
         handshake_us,
+        lag,
     ))
 }
 
@@ -365,11 +444,13 @@ where
 {
     let mut runs = Vec::with_capacity(params.runs);
     let mut handshakes = Vec::with_capacity(params.runs);
+    let mut lag = SendLag::default();
     for i in 0..params.runs.max(1) {
-        let (summary, handshake_us) = run_once(transport, params)?;
+        let (summary, handshake_us, run_lag) = run_once(transport, params)?;
         on_run(i, &summary);
         runs.push(summary);
         handshakes.push(handshake_us);
+        lag.merge(&run_lag);
     }
 
     let thr: Vec<f64> = runs.iter().map(|r| r.throughput_gbps).collect();
@@ -383,6 +464,10 @@ where
         0.0
     };
 
+    // A paced run records each message's scheduled send time, so its latency is
+    // coordinated-omission-corrected; an unthrottled blast has no schedule.
+    let co_corrected = !Pacer::from_sender(&params.sender, params.message_bytes).is_blast();
+
     Ok(RunStats {
         runs,
         throughput_gbps: stats::summarize(&thr),
@@ -394,6 +479,9 @@ where
         mode: RunMode::Throughput,
         rtt: None,
         conn: None,
+        co_corrected,
+        send_lag_mean_us: lag.mean_us(),
+        send_lag_max_us: lag.max_us(),
     })
 }
 
@@ -444,6 +532,11 @@ where
         mode: RunMode::PingPong,
         rtt: Some(rtt),
         conn: None,
+        // Closed-loop RTT is measured locally per round trip: coordinated
+        // omission does not apply.
+        co_corrected: true,
+        send_lag_mean_us: 0.0,
+        send_lag_max_us: 0.0,
     })
 }
 
@@ -652,6 +745,11 @@ where
         mode: RunMode::Connrate,
         rtt: None,
         conn: Some(conn),
+        // Each handshake is timed closed-loop by its connector thread: no
+        // coordinated omission.
+        co_corrected: true,
+        send_lag_mean_us: 0.0,
+        send_lag_max_us: 0.0,
     })
 }
 
@@ -799,6 +897,23 @@ mod tests {
         }
     }
 
+    /// A sustained sender with no rate limit — an unthrottled blast, the one
+    /// open-loop mode with no schedule to coordinated-omission-correct against.
+    fn blast_sender() -> Sender {
+        Sender {
+            interface: Interface::Tcp,
+            target_addr: "127.0.0.1:0".into(),
+            pattern: Pattern::Sustained,
+            rate_limit_mbps: None,
+            interval_us: None,
+            burst_count: None,
+            burst_pause_us: None,
+            ramp_start_mbps: None,
+            ramp_step_mbps: None,
+            ramp_step_interval_secs: None,
+        }
+    }
+
     fn quick_params(sender: Sender) -> RunParams {
         RunParams {
             message_bytes: 256,
@@ -831,6 +946,20 @@ mod tests {
         assert!(stats.latency_mean_us.mean >= 0.0);
         // Connection-establishment time is measured per run.
         assert!(stats.handshake_us.mean >= 0.0);
+        // A paced (periodic) run stamps the scheduled send time → CO-corrected.
+        assert!(stats.co_corrected);
+        assert!(stats.send_lag_mean_us >= 0.0);
+        assert!(stats.send_lag_max_us >= stats.send_lag_mean_us);
+    }
+
+    #[test]
+    fn blast_run_is_not_co_corrected() {
+        let stats = run_scenario(&TcpTransport, &quick_params(blast_sender()), |_, _| {}).unwrap();
+        // An unthrottled blast has no schedule to correct against, so latency is
+        // reported as coordinated-omission-uncorrected and no send-lag is tracked.
+        assert!(!stats.co_corrected);
+        assert_eq!(stats.send_lag_mean_us, 0.0);
+        assert_eq!(stats.send_lag_max_us, 0.0);
     }
 
     #[test]

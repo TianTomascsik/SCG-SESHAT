@@ -112,6 +112,11 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
         .unwrap_or_else(|| PathBuf::from("results"));
     let mut rdir = ResultDir::create(&base)?;
     let host = crate::sysinfo::SysInfo::collect();
+    // Reproducibility preflight: warn (don't block) when the host is not in a
+    // controlled state, so results are interpreted with that caveat in mind.
+    for w in crate::sysinfo::preflight_warnings(&host) {
+        log::warn!("preflight: {w}");
+    }
     if host.wsl && !host.ktls_usable {
         log::warn!(
             "host is WSL with kTLS unavailable; any kTLS scenario runs as userspace TLS \
@@ -124,6 +129,15 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
     {
         log::warn!(
             "perf backend requested but `perf` is unavailable; perf_* result fields will be empty"
+        );
+    }
+    if cfg.defaults.collect_system_metrics
+        && cfg.defaults.metrics_backend == MetricsBackend::Ebpf
+        && !system::MemCopySampler::available()
+    {
+        log::warn!(
+            "ebpf backend requested but bpftrace is unavailable or unprivileged (needs root); \
+             mem_* result fields will be empty"
         );
     }
     rdir.write_sysinfo(&host)?;
@@ -1179,6 +1193,7 @@ fn run_gateway_scenario(
         .map(|hz| SystemSampler::start(dut.pids(), hz));
 
     let perf_sampler = start_perf_sampler(defaults, scenario, &dut, &work_dir);
+    let mem_copy_sampler = start_mem_copy_sampler(defaults, scenario, &dut, &work_dir);
 
     let run_result = engine::run_scenario(dut.as_transport(), &params, |i, s| {
         if params.mode == RunMode::Connrate {
@@ -1192,6 +1207,7 @@ fn run_gateway_scenario(
     // calibration probe), regardless of whether the runs succeeded.
     let system_samples = sampler.map(SystemSampler::stop);
     let perf_result = perf_sampler.map(system::PerfSampler::stop);
+    let mem_copy_result = mem_copy_sampler.map(system::MemCopySampler::stop);
     if let Some(ref perf) = perf_result {
         if let Some(ipc) = perf.ipc {
             log::debug!("perf: IPC={ipc:.2}, cache-misses={:?}", perf.cache_misses);
@@ -1238,6 +1254,7 @@ fn run_gateway_scenario(
             &ScenarioArtifacts {
                 sys: sys_agg.as_ref(),
                 perf: perf_result.as_ref(),
+                mem_copies: mem_copy_result.as_ref(),
                 effective: Some(&effective),
                 loss_threshold_pct: defaults.loss_threshold_pct,
                 ..Default::default()
@@ -1269,6 +1286,7 @@ fn run_gateway_scenario(
             &ScenarioArtifacts {
                 sys: sys_agg.as_ref(),
                 perf: perf_result.as_ref(),
+                mem_copies: mem_copy_result.as_ref(),
                 effective: Some(&effective),
                 loss_threshold_pct: defaults.loss_threshold_pct,
                 ..Default::default()
@@ -1343,6 +1361,7 @@ fn run_gateway_scenario(
             sweep: sweep.as_ref(),
             sys: sys_agg.as_ref(),
             perf: perf_result.as_ref(),
+            mem_copies: mem_copy_result.as_ref(),
             effective: Some(&effective),
             loss_threshold_pct: defaults.loss_threshold_pct,
         },
@@ -1522,6 +1541,12 @@ fn run_multistream_scenario(
             mode: RunMode::Throughput,
             rtt: None,
             conn: None,
+            // The multi-stream senders stamp actual send time (not the scheduled
+            // one), so their per-stream latency is not coordinated-omission-
+            // corrected. Report that honestly rather than overclaiming.
+            co_corrected: false,
+            send_lag_mean_us: 0.0,
+            send_lag_max_us: 0.0,
         }
     } else {
         log::warn!("scenario '{}': no stream results; skipping", scenario.name);
@@ -1580,6 +1605,20 @@ fn run_multistream_scenario(
 }
 
 // ─── F-11: Hot-Reload Execution ─────────────────────────────────────────────
+
+/// Whether a reload action is a no-op on the current SCG: its config diff
+/// matches rules **by name only** (`GatewayConfig::diff`), so a same-name rule
+/// whose parameters changed — a new TLS profile or a rotated cert — is
+/// classified `unchanged` and never re-applied. The change is silently dropped,
+/// so a "zero drops" result for these actions proves nothing (nothing happened),
+/// it is *not* evidence of seamless in-place re-keying. Add/remove connection
+/// (gRPC) and invalid-config rollback do take effect and must stay zero-drop.
+fn reload_is_noop_on_scg(action: config::ReloadAction) -> bool {
+    matches!(
+        action,
+        config::ReloadAction::UpdateTlsProfile | config::ReloadAction::RotateCert
+    )
+}
 
 /// Run a hot-reload scenario: measure before, inject reload, measure after.
 ///
@@ -1884,14 +1923,25 @@ fn run_hotreload_scenario(
         },
         16,
     );
+    // The SCG config diff is name-keyed, so a same-name TLS-profile / cert change
+    // is classified `unchanged` and never applied — a no-op. Report that honestly:
+    // a zero-drop result for such an action is not proof of seamless reload, it
+    // means the change was silently dropped. `change_applied = Some(false)` flags it.
+    let noop_on_scg = reload_is_noop_on_scg(reload_event.action);
+    let change_applied = if noop_on_scg { Some(false) } else { None };
     if let Some(run) = stats.runs.first() {
         let drops = run.integrity.lost;
         console::kv("  Drops", &drops.to_string(), 16);
-        if reload_event.expect_zero_drops && drops > 0 {
-            console::kv("  VERDICT", "FAIL (drops > 0)", 16);
+        let verdict = if noop_on_scg {
+            "N/A (SCG diff is name-keyed; same-name rule change not applied)".to_string()
+        } else if drops == 0 {
+            "PASS".to_string()
+        } else if reload_event.expect_zero_drops {
+            "FAIL (drops > 0)".to_string()
         } else {
-            console::kv("  VERDICT", "PASS", 16);
-        }
+            "PASS (drops tolerated)".to_string()
+        };
+        console::kv("  VERDICT", &verdict, 16);
     }
     render_scenario_result(&stats);
 
@@ -1936,6 +1986,7 @@ fn run_hotreload_scenario(
                 config::ReloadAction::InvalidConfig
             )
             .then_some(reload_action_succeeded && stats.total_lost == 0),
+            change_applied,
         },
     )?;
     Ok(true)
@@ -2048,6 +2099,33 @@ fn start_perf_sampler(
         None => {
             log::warn!(
                 "scenario '{}': perf backend requested but perf stat could not attach; perf_* result fields will be empty",
+                scenario.name
+            );
+            None
+        }
+    }
+}
+
+/// Start a `bpftrace` memory-copy sampler for the gateway PID(s) when the
+/// `ebpf` metrics backend is selected. Returns `None` (with a warning) when
+/// unavailable — unprivileged or no `bpftrace` — so the run still proceeds, just
+/// without the memory-copy columns.
+fn start_mem_copy_sampler(
+    defaults: &Defaults,
+    scenario: &Scenario,
+    dut: &GatewayDut,
+    work_dir: &Path,
+) -> Option<system::MemCopySampler> {
+    if !defaults.collect_system_metrics || defaults.metrics_backend != MetricsBackend::Ebpf {
+        return None;
+    }
+    let pids = dut.pids();
+    match system::MemCopySampler::start(&pids, work_dir) {
+        Some(sampler) => Some(sampler),
+        None => {
+            log::warn!(
+                "scenario '{}': ebpf backend requested but bpftrace could not attach \
+                 (needs root + bpftrace); mem_* result fields will be empty",
                 scenario.name
             );
             None
@@ -3113,6 +3191,18 @@ mod tests {
     use super::*;
     use crate::cli::MetricsBackendArg;
     use crate::config::Suite;
+
+    #[test]
+    fn reload_noop_classification_matches_scg_name_keyed_diff() {
+        use crate::config::ReloadAction;
+        // Same-name parameter changes the SCG diff ignores (no-op).
+        assert!(reload_is_noop_on_scg(ReloadAction::UpdateTlsProfile));
+        assert!(reload_is_noop_on_scg(ReloadAction::RotateCert));
+        // Actions that genuinely take effect must stay zero-drop, not no-op.
+        assert!(!reload_is_noop_on_scg(ReloadAction::AddConnection));
+        assert!(!reload_is_noop_on_scg(ReloadAction::RemoveConnection));
+        assert!(!reload_is_noop_on_scg(ReloadAction::InvalidConfig));
+    }
 
     fn base_config() -> Config {
         Config {

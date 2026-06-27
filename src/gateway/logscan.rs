@@ -23,6 +23,11 @@ pub struct Effective {
     pub kernel_active: bool,
     /// A protocol-version downgrade note, when the logs reveal one.
     pub version_downgrade: Option<String>,
+    /// Handshakes the gateway logged as resuming a cached session
+    /// (`resumed=true`) — ground truth from `SSL_session_reused`.
+    pub resumed_handshakes: u64,
+    /// Handshakes the gateway logged as full key exchanges (`resumed=false`).
+    pub full_handshakes: u64,
     /// Verbatim warning/error lines worth surfacing in the report.
     pub notes: Vec<String>,
 }
@@ -32,6 +37,15 @@ impl Effective {
     /// in userspace, or a version downgrade was observed.
     pub fn is_fallback(&self) -> bool {
         (self.kernel_requested && !self.kernel_active) || self.version_downgrade.is_some()
+    }
+
+    /// Fraction of observed handshakes that resumed a session (0..=1), or `None`
+    /// when the gateway logged no resumption markers (e.g. a non-TLS run, or a
+    /// build without the `resumed=` log). The ground-truth counterpart to the
+    /// timing-based first-vs-resumed handshake latency.
+    pub fn resumed_fraction(&self) -> Option<f64> {
+        let total = self.resumed_handshakes + self.full_handshakes;
+        (total > 0).then(|| self.resumed_handshakes as f64 / total as f64)
     }
 }
 
@@ -48,12 +62,20 @@ const KTLS_INACTIVE_MARKERS: &[&str] =
 pub fn scan_effective<P: AsRef<Path>>(log_paths: &[P], kernel_requested: bool) -> Effective {
     let mut inactive = false;
     let mut notes = Vec::new();
+    let mut resumed_handshakes = 0u64;
+    let mut full_handshakes = 0u64;
     for path in log_paths {
         let Ok(text) = std::fs::read_to_string(path) else {
             continue;
         };
         for line in text.lines() {
             let low = line.to_ascii_lowercase();
+            // Ground-truth resumption from the gateway's `resumed=` accept marker.
+            if low.contains("resumed=true") {
+                resumed_handshakes += 1;
+            } else if low.contains("resumed=false") {
+                full_handshakes += 1;
+            }
             if KTLS_INACTIVE_MARKERS.iter().any(|m| low.contains(m)) {
                 inactive = true;
                 notes.push(line.trim().to_string());
@@ -68,6 +90,8 @@ pub fn scan_effective<P: AsRef<Path>>(log_paths: &[P], kernel_requested: bool) -
         kernel_requested,
         kernel_active: kernel_requested && !inactive,
         version_downgrade: None,
+        resumed_handshakes,
+        full_handshakes,
         notes,
     }
 }
@@ -132,6 +156,28 @@ mod tests {
             "tls/1.3 (ktls->userspace)"
         );
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn counts_resumed_and_full_handshakes() {
+        let (dir, log) = write_log(
+            "resume",
+            "[dec] TLS accept from 127.0.0.1:5 (0.80 ms, resumed=false)\n\
+             [dec] TLS accept from 127.0.0.1:6 (0.20 ms, resumed=true)\n\
+             [dec] TLS accept from 127.0.0.1:7 (0.18 ms, resumed=true)\n",
+        );
+        let eff = scan_effective(&[log], false);
+        assert_eq!(eff.full_handshakes, 1);
+        assert_eq!(eff.resumed_handshakes, 2);
+        // 2 of 3 handshakes resumed.
+        assert!((eff.resumed_fraction().unwrap() - 2.0 / 3.0).abs() < 1e-9);
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn resumed_fraction_is_none_without_markers() {
+        let empty: [&Path; 0] = [];
+        assert_eq!(scan_effective(&empty, false).resumed_fraction(), None);
     }
 
     #[test]

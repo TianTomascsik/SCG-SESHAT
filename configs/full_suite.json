@@ -185,7 +185,7 @@
     {
       "name": "scg_dtls12_udp_4conn",
       "enabled": false,
-      "disabled_reason": "The current DTLS gateway transport has one shared backend datagram flow; it cannot report four independent connections correctly",
+      "disabled_reason": "Verified: the SCG DTLS engine DOES demux clients by peer addr (HashMap<SocketAddr, session>, dtls_engine.rs), so N distinct client source ports become N sessions. The blocker is harness-side attribution: the decrypt rule forwards every session to one shared backend UDP socket, so SESHAT's N receiver threads steal datagrams from a single socket and each sees gap-riddled sequences -> bogus per-connection loss. Correct per-connection metrics need either N independent ingress->backend rule pairs or an aggregate-only N-flow receiver mode (single receiver, no per-connection split). Scoped separately; kept disabled rather than emit wrong numbers.",
       "category": "scalability",
       "message_size_bytes": 1400,
       "connections": 4,
@@ -260,6 +260,24 @@
       "gateway": { "enabled": true, "chain": "scg-direct" },
       "protocol": { "type": "tls", "version": "1.3", "app_protocol": "raw" },
       "sender": { "interface": "udp", "target_addr": "127.0.0.1:12071", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_ale_mtls_udp_over_tls13_1400B",
+      "category": "protocol",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "app_protocol": "ale", "mutual_auth": true },
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:12072", "pattern": "sustained" }
+    },
+    {
+      "name": "scg_raw_mtls_udp_over_tls13_1400B",
+      "category": "protocol",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "app_protocol": "raw", "mutual_auth": true },
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:12073", "pattern": "sustained" }
     },
 
     {
@@ -400,7 +418,7 @@
     {
       "name": "hotreload_tls_profile_update",
       "enabled": false,
-      "disabled_reason": "SCG does not yet apply same-name TLS rule changes to the listener lifecycle or acknowledge the update; see matrix_catalog.json",
+      "disabled_reason": "No-op on the current SCG: its config diff (GatewayConfig::diff) matches rules by name only, so a same-name rule whose TLS profile changed is classified 'unchanged' and never re-applied. A zero-drop result would prove nothing; the harness flags this as change_applied=false. Needs an SCG enhancement (content-aware diff or a gRPC rule-update API) before it can be measured.",
       "category": "reliability",
       "message_size_bytes": 4096,
       "connections": 1,

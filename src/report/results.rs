@@ -24,7 +24,7 @@ use crate::config::{Config, Interface, ProtocolType, Scenario, TlsVersion};
 use crate::gateway::logscan::{effective_protocol_label, Effective};
 use crate::metrics::app::FlowSummary;
 use crate::metrics::overhead::{compute as compute_overhead, EncapProfile};
-use crate::metrics::system::{PerfResult, SysAgg, SystemSample};
+use crate::metrics::system::{MemCopyResult, PerfResult, SysAgg, SystemSample};
 use crate::proto::wire::HEADER_LEN;
 use crate::run::calibrate::Calibration;
 use crate::run::engine::RunParams;
@@ -91,6 +91,17 @@ const SUMMARY_HEADERS: &[&str] = &[
     "perf_syscalls",
     "perf_task_clock_ms",
     "perf_duration_s",
+    "co_corrected",
+    "send_lag_mean_us",
+    "send_lag_max_us",
+    "ctx_switches_total",
+    "ctx_switches_per_s",
+    "cpu_seconds_total",
+    "mem_copies_per_msg",
+    "mem_copy_to_user",
+    "mem_copy_from_user",
+    "mem_splice_syscalls",
+    "resumed_fraction",
 ];
 
 /// Per-run header for each scenario's `runs.csv`.
@@ -157,6 +168,7 @@ pub struct ScenarioArtifacts<'a> {
     pub sweep: Option<&'a SweepResult>,
     pub sys: Option<&'a SysAgg>,
     pub perf: Option<&'a PerfResult>,
+    pub mem_copies: Option<&'a MemCopyResult>,
     pub effective: Option<&'a Effective>,
     pub loss_threshold_pct: f64,
 }
@@ -176,6 +188,12 @@ pub struct ReloadArtifact {
     pub latency_p99_us: f64,
     pub throughput_gbps: f64,
     pub rollback_continuity_passed: Option<bool>,
+    /// Whether the requested change actually took effect. `Some(false)` for a
+    /// same-name TLS-profile / cert reload, which the SCG's name-keyed config
+    /// diff classifies as `unchanged` and never applies — so a zero-drop result
+    /// is a no-op, not proof of seamless in-place reload. `None` when not
+    /// classified (add/remove connection, invalid-config rollback).
+    pub change_applied: Option<bool>,
 }
 
 /// A timestamped result directory being populated during a run.
@@ -240,6 +258,7 @@ impl ResultDir {
             sweep,
             sys,
             perf,
+            mem_copies,
             effective,
             loss_threshold_pct,
         } = *art;
@@ -358,6 +377,34 @@ impl ResultDir {
             perf_syscalls_s,
             perf_task_clock_s,
             perf_duration_s,
+            stats.co_corrected.to_string(),
+            num(stats.send_lag_mean_us, 3),
+            num(stats.send_lag_max_us, 3),
+            sys.map(|a| a.ctx_switches_total.to_string())
+                .unwrap_or_default(),
+            sys.map(|a| num(a.ctx_switches_per_s, 1))
+                .unwrap_or_default(),
+            sys.map(|a| num(a.cpu_seconds_total, 4)).unwrap_or_default(),
+            mem_copies
+                .and_then(|m| m.copies_per_msg(total_messages(stats)))
+                .map(|v| num(v, 3))
+                .unwrap_or_default(),
+            mem_copies
+                .and_then(|m| m.copy_to_user)
+                .map(|v| v.to_string())
+                .unwrap_or_default(),
+            mem_copies
+                .and_then(|m| m.copy_from_user)
+                .map(|v| v.to_string())
+                .unwrap_or_default(),
+            mem_copies
+                .and_then(|m| m.splice)
+                .map(|v| v.to_string())
+                .unwrap_or_default(),
+            effective
+                .and_then(|e| e.resumed_fraction())
+                .map(|v| num(v, 3))
+                .unwrap_or_default(),
         ]);
 
         self.outcomes.push(ScenarioOutcome {
@@ -496,6 +543,13 @@ impl ResultDir {
                 "rollback_continuity_passed",
                 artifact
                     .rollback_continuity_passed
+                    .map(|value| value.to_string())
+                    .unwrap_or_default(),
+            )
+            .kv(
+                "change_applied",
+                artifact
+                    .change_applied
                     .map(|value| value.to_string())
                     .unwrap_or_default(),
             );
@@ -753,6 +807,9 @@ fn scenario_summary_csv(
     if let Some(a) = art.sys {
         c.kv("cpu_pct_peak", num(a.cpu_pct_peak, 1))
             .kv("cpu_pct_mean", num(a.cpu_pct_mean, 1))
+            .kv("cpu_seconds_total", num(a.cpu_seconds_total, 4))
+            .kv("ctx_switches_total", a.ctx_switches_total.to_string())
+            .kv("ctx_switches_per_s", num(a.ctx_switches_per_s, 1))
             .kv("rss_peak_kib", a.rss_peak_kib.to_string())
             .kv("pss_peak_kib", a.pss_peak_kib.to_string());
         if a.cpu_pct_peak > 0.0 {
@@ -788,6 +845,20 @@ fn scenario_summary_csv(
             c.kv("perf_duration_s", num(v, 6));
         }
     }
+    if let Some(m) = art.mem_copies {
+        if let Some(cpm) = m.copies_per_msg(total_messages(stats)) {
+            c.kv("mem_copies_per_msg", num(cpm, 3));
+        }
+        if let Some(v) = m.copy_to_user {
+            c.kv("mem_copy_to_user", v.to_string());
+        }
+        if let Some(v) = m.copy_from_user {
+            c.kv("mem_copy_from_user", v.to_string());
+        }
+        if let Some(v) = m.splice {
+            c.kv("mem_splice_syscalls", v.to_string());
+        }
+    }
     if let Some(s) = art.sweep {
         c.kv("saturation_gbps", num(s.saturation_gbps, 4))
             .kv("max_lossfree_gbps", num(s.max_lossfree_gbps, 4))
@@ -806,6 +877,13 @@ fn scenario_summary_csv(
             .kv("conn_handshake_p50_us", num(cn.handshake_p50_us, 3))
             .kv("conn_handshake_p99_us", num(cn.handshake_p99_us, 3))
             .kv("conn_total", cn.total_conns.to_string());
+    }
+    if let Some(eff) = art.effective {
+        if let Some(frac) = eff.resumed_fraction() {
+            c.kv("resumed_fraction", num(frac, 3))
+                .kv("resumed_handshakes", eff.resumed_handshakes.to_string())
+                .kv("full_handshakes", eff.full_handshakes.to_string());
+        }
     }
     c
 }
@@ -918,21 +996,36 @@ fn perf_cells(
 
 /// The per-point saturation-sweep curve as a columnar `saturation.csv`.
 fn saturation_csv(sweep: &SweepResult) -> Csv {
+    // The per-load-point series *is* the degradation curve: each row is a point
+    // on the offered-load axis. The annotation columns make it self-describing —
+    // `pct_of_peak_throughput` traces the plateau/roll-off and `past_lossfree_knee`
+    // marks where loss/latency begin to climb (the saturation point).
     const HEADERS: &[&str] = &[
         "point",
         "offered_mbps",
         "throughput_gbps",
         "loss_pct",
         "latency_p99_us",
+        "pct_of_peak_throughput",
+        "past_lossfree_knee",
     ];
     let mut c = Csv::new(HEADERS);
+    let peak = sweep.saturation_gbps;
     for (i, p) in sweep.points.iter().enumerate() {
+        let pct_of_peak = if peak > 0.0 {
+            p.throughput_gbps / peak * 100.0
+        } else {
+            0.0
+        };
+        let past_knee = sweep.knee_offered_mbps > 0.0 && p.offered_mbps > sweep.knee_offered_mbps;
         c.row(vec![
             (i + 1).to_string(),
             num(p.offered_mbps, 3),
             num(p.throughput_gbps, 4),
             num(p.loss_pct, 4),
             num(p.latency_p99_us, 3),
+            num(pct_of_peak, 1),
+            past_knee.to_string(),
         ]);
     }
     c
@@ -1004,17 +1097,22 @@ fn sysinfo_csv(info: &SysInfo) -> Csv {
             info.cpu_mhz.map(|v| num(v, 1)).unwrap_or_default(),
         )
         .kv("governor", info.governor.clone().unwrap_or_default())
+        .kv("turbo", opt(info.turbo))
         .kv("smt", opt(info.smt))
         .kv(
             "isolated_cpus",
             info.isolated_cpus.clone().unwrap_or_default(),
         )
+        .kv("numa_nodes", opt(info.numa_nodes))
         .kv("mem_total_kb", opt(info.mem_total_kb))
         .kv("thp", info.thp.clone().unwrap_or_default())
         .kv("ktls", info.ktls.to_string())
         .kv("ktls_usable", info.ktls_usable.to_string())
         .kv("wsl", info.wsl.to_string())
         .kv("io_uring", opt(info.io_uring))
+        .kv("seshat_version", info.seshat_version.clone())
+        .kv("seshat_git", info.seshat_git.clone().unwrap_or_default())
+        .kv("scg_git", info.scg_git.clone().unwrap_or_default())
         .kv("nic_count", info.nics.len().to_string());
     for nic in &info.nics {
         let detail = format!(
@@ -1031,6 +1129,12 @@ fn sysinfo_csv(info: &SysInfo) -> Csv {
 /// Render an `Option<T: ToString>` as its value or empty string.
 fn opt<T: ToString>(v: Option<T>) -> String {
     v.map(|x| x.to_string()).unwrap_or_default()
+}
+
+/// Total messages measured across all runs (the denominator for per-message
+/// metrics such as memory copies per message).
+fn total_messages(stats: &RunStats) -> u64 {
+    stats.runs.iter().map(|r| r.messages).sum()
 }
 
 /// Replace characters unsafe for a path segment with `_`.
@@ -1098,6 +1202,9 @@ mod tests {
             mode: RunMode::Throughput,
             rtt: None,
             conn: None,
+            co_corrected: false,
+            send_lag_mean_us: 0.0,
+            send_lag_max_us: 0.0,
         }
     }
 

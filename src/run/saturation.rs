@@ -96,7 +96,7 @@ pub fn sweep_saturation(
         let mut params = base.clone();
         params.runs = 1;
         params.sender = sustained_at(&base.sender, rate);
-        let (summary, _handshake) = run_once(transport, &params)?;
+        let (summary, _handshake, _lag) = run_once(transport, &params)?;
         points.push(SweepPoint {
             offered_mbps: rate,
             throughput_gbps: summary.throughput_gbps,
