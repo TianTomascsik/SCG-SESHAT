@@ -170,6 +170,10 @@ impl PerfSampler {
     pub fn stop(mut self) -> PerfResult {
         if let Some(mut child) = self.child.take() {
             // Send SIGINT so perf writes its summary.
+            // SAFETY: `libc::kill` is a plain syscall with no memory-safety
+            // preconditions; `child.id()` is the PID of the perf child this
+            // `PerfSampler` owns and has not yet reaped (it was `take`n above and
+            // is `wait`ed for right below), and `SIGINT` is a valid signal number.
             unsafe { libc::kill(child.id() as i32, libc::SIGINT) };
             let _ = child.wait();
         }
@@ -191,6 +195,10 @@ impl PerfSampler {
 impl Drop for PerfSampler {
     fn drop(&mut self) {
         if let Some(mut child) = self.child.take() {
+            // SAFETY: `libc::kill` is a plain syscall with no memory-safety
+            // preconditions; `child.id()` is the PID of the perf child this
+            // `PerfSampler` owns and has not yet reaped (it was `take`n above and
+            // is `wait`ed for right below), and `SIGKILL` is a valid signal number.
             unsafe { libc::kill(child.id() as i32, libc::SIGKILL) };
             let _ = child.wait();
         }

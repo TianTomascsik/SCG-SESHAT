@@ -1776,6 +1776,13 @@ fn run_hotreload_scenario(
                 if let (Some(path), Some(pid)) = (&config_path, pid_for_reload) {
                     let backup = std::fs::read_to_string(path).ok();
                     let _ = std::fs::write(path, "{ invalid json!!!");
+                    // SAFETY: `kill` is an FFI call with no memory-safety
+                    // preconditions; `pid` is the PID of the live gateway child
+                    // process spawned and owned by `dut` (from
+                    // `dut.first_process().map(|p| p.pid())`), and `libc::SIGHUP`
+                    // is a valid signal number. The return value is intentionally
+                    // discarded — a failed signal only means the reload was not
+                    // delivered, which is handled by the gateway staying running.
                     let _ = unsafe { libc::kill(pid, libc::SIGHUP) };
                     log::info!(
                         "hot-reload: pushed invalid config + SIGHUP at {}s (expect rollback)",
@@ -1794,6 +1801,13 @@ fn run_hotreload_scenario(
             ReloadAction::UpdateTlsProfile | ReloadAction::RotateCert => {
                 // Config-swap + SIGHUP: new connections get new config.
                 if let (Some(_path), Some(pid)) = (config_path, pid_for_reload) {
+                    // SAFETY: `kill` is an FFI call with no memory-safety
+                    // preconditions; `pid` is the PID of the live gateway child
+                    // process spawned and owned by `dut` (from
+                    // `dut.first_process().map(|p| p.pid())`), and `libc::SIGHUP`
+                    // is a valid signal number. The return value is intentionally
+                    // discarded — a failed signal only means the reload SIGHUP was
+                    // not delivered, which the caller treats as a best-effort path.
                     let _ = unsafe { libc::kill(pid, libc::SIGHUP) };
                     log::info!(
                         "hot-reload: SIGHUP sent to gateway (pid={pid}) at {}s (action={:?})",
@@ -1809,7 +1823,7 @@ fn run_hotreload_scenario(
 
         reload_succeeded_clone.store(succeeded, std::sync::atomic::Ordering::Relaxed);
         reload_duration_us_clone.store(
-            action_started.elapsed().as_micros() as u64,
+            u64::try_from(action_started.elapsed().as_micros()).unwrap_or(u64::MAX),
             std::sync::atomic::Ordering::Relaxed,
         );
         reload_fired_clone.store(true, std::sync::atomic::Ordering::Relaxed);

@@ -211,6 +211,9 @@ impl GatewayUdsTransport {
 
         std::fs::create_dir_all(work_dir)?;
 
+        // SAFETY: `getuid()` is an always-successful POSIX syscall that takes no
+        // arguments, dereferences no pointers, and cannot fail; it returns the
+        // real user ID of the calling process with no preconditions.
         let uid = unsafe { libc::getuid() };
         let classes = normalize_classes(classes);
 

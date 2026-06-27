@@ -57,6 +57,10 @@ pub fn tos_to_dscp(tos: u8) -> u8 {
 /// DSCP value.
 pub fn set_dscp(fd: i32, dscp: u8) -> io::Result<()> {
     let tos = dscp_to_tos(dscp) as libc::c_int;
+    // SAFETY: `fd` is the caller-supplied socket descriptor; the option pointer/len
+    // pair points to a fully-initialised stack `libc::c_int` (`tos`) whose size is
+    // passed as `socklen_t`, matching the `IP_TOS` option kernel expects. The
+    // return value is checked below and converted to `io::Error::last_os_error()`.
     let ret = unsafe {
         libc::setsockopt(
             fd,
@@ -77,6 +81,10 @@ pub fn set_dscp(fd: i32, dscp: u8) -> io::Result<()> {
 /// ancillary data (for UDP). Returns an error on non-UDP or unsupported OS.
 pub fn enable_recvtos(fd: i32) -> io::Result<()> {
     let one: libc::c_int = 1;
+    // SAFETY: `fd` is the caller-supplied socket descriptor; the option pointer/len
+    // pair points to a fully-initialised stack `libc::c_int` (`one`) whose size is
+    // passed as `socklen_t`, matching the boolean flag the `IP_RECVTOS` option
+    // expects. The return value is checked below and turned into an `io::Error`.
     let ret = unsafe {
         libc::setsockopt(
             fd,
@@ -101,6 +109,11 @@ pub fn enable_recvtos(fd: i32) -> io::Result<()> {
 pub fn get_tos(fd: i32) -> io::Result<u8> {
     let mut tos: libc::c_int = 0;
     let mut len = std::mem::size_of::<libc::c_int>() as libc::socklen_t;
+    // SAFETY: `fd` is the caller-supplied socket descriptor; `tos` is an
+    // initialised, writable stack `libc::c_int` and `len` is an initialised,
+    // writable `socklen_t` holding its size, so the kernel writes at most
+    // `len` bytes into `tos` for the `IP_TOS` option. The return value is
+    // checked below before `tos` is read.
     let ret = unsafe {
         libc::getsockopt(
             fd,
@@ -130,12 +143,21 @@ pub fn recv_one_with_tos(fd: i32, buf: &mut [u8]) -> io::Result<(usize, u8)> {
         iov_len: buf.len(),
     };
 
+    // SAFETY: `libc::msghdr` is a plain C struct of integers and raw pointers for
+    // which the all-zeroes bit pattern is a valid initialised value (null pointers,
+    // zero lengths); every field used by `recvmsg` is overwritten with valid values
+    // immediately below before the struct is passed to the kernel.
     let mut msg: libc::msghdr = unsafe { std::mem::zeroed() };
     msg.msg_iov = &mut iov;
     msg.msg_iovlen = 1;
     msg.msg_control = cmsg_buf.as_mut_ptr() as *mut libc::c_void;
     msg.msg_controllen = cmsg_buf.len() as libc::size_t;
 
+    // SAFETY: `fd` is the caller-supplied socket descriptor and `msg` is a fully
+    // populated `msghdr` whose `msg_iov`/`msg_control` point to the live, mutable
+    // `iov`/`cmsg_buf` stack buffers for the duration of the call, with lengths
+    // matching those buffers. The return value is checked below before any
+    // ancillary data is read.
     let n = unsafe { libc::recvmsg(fd, &mut msg, 0) };
     if n < 0 {
         return Err(io::Error::last_os_error());
@@ -143,6 +165,12 @@ pub fn recv_one_with_tos(fd: i32, buf: &mut [u8]) -> io::Result<(usize, u8)> {
 
     // Walk cmsg headers looking for IP_TOS.
     let mut tos: u8 = 0;
+    // SAFETY: `msg` was just populated by a successful `recvmsg`, so its control
+    // buffer and `msg_controllen` describe valid kernel-written cmsg data. Each
+    // `cmsg` returned by `CMSG_FIRSTHDR`/`CMSG_NXTHDR` is either null (loop exits)
+    // or points to a live `cmsghdr` within that buffer, so dereferencing it and
+    // reading the single TOS byte at `CMSG_DATA(cmsg)` (the IP_TOS payload, checked
+    // via cmsg_level/cmsg_type) stays in bounds and references initialised memory.
     unsafe {
         let mut cmsg = libc::CMSG_FIRSTHDR(&msg);
         while !cmsg.is_null() {

@@ -33,6 +33,12 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 /// Check if we have CAP_NET_ADMIN by attempting to set IP_TRANSPARENT on a
 /// dummy socket.
 pub fn has_cap_net_admin() -> bool {
+    // SAFETY: `libc::socket` is called with valid constant domain/type/protocol
+    // arguments and its return value is checked (`fd < 0` bails out before any
+    // further use). `setsockopt` receives that valid `fd`, a pointer to the live
+    // stack `c_int` `one` whose length is passed exactly as `size_of::<c_int>()`,
+    // and its result `rc` is the value returned. `libc::close` is called once on
+    // the same valid `fd` before returning, so the descriptor is not leaked.
     unsafe {
         let fd = libc::socket(libc::AF_INET, libc::SOCK_STREAM, 0);
         if fd < 0 {

@@ -341,6 +341,11 @@ fn ktls_usable() -> bool {
     // Complete the handshake so the socket is ESTABLISHED (TCP_ULP requirement).
     let _server = listener.accept();
     let name = b"tls";
+    // SAFETY: `client.as_raw_fd()` is a valid, open, ESTABLISHED TCP descriptor
+    // owned by `client` and kept alive for the whole call; `name` is a live,
+    // fully-initialised `b"tls"` byte slice, so `name.as_ptr()`/`name.len()`
+    // form a valid pointer/length pair for an `optval` of that length; the
+    // return value is checked on the next line (`ret == 0`).
     let ret = unsafe {
         libc::setsockopt(
             client.as_raw_fd(),

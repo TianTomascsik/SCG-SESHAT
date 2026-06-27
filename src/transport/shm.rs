@@ -290,6 +290,9 @@ impl GatewayShmTransport {
 
         std::fs::create_dir_all(work_dir)?;
 
+        // SAFETY: `libc::getuid()` is an always-successful POSIX syscall that takes no
+        // arguments, never fails, touches no memory, and cannot trap; it simply returns
+        // the caller's real user ID as a `uid_t`. There is no precondition to uphold.
         let uid = unsafe { libc::getuid() };
         let shm_ring = if ring_capacity == 0 {
             DEFAULT_RING_CAPACITY as usize

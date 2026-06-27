@@ -138,7 +138,12 @@ pub enum Topology {
 }
 
 /// Security/transport parameters applied to a secured path's rules.
-#[derive(Debug, Clone)]
+///
+/// `Debug` is implemented by hand (not derived) so PSK secret material
+/// (`psk_hex`, `psk_identity`) is never printed if this struct is logged with
+/// `{:?}`. A hand-written impl is also safer against drift: a future field is
+/// not emitted unless explicitly added, so a new secret cannot leak by omission.
+#[derive(Clone)]
 pub struct SecuritySpec {
     /// `routing | tls | ktls | dtls`.
     pub provider: String,
@@ -193,6 +198,46 @@ pub struct SecuritySpec {
     pub busy_poll_us: Option<u32>,
     pub bdp_adaptive: bool,
     pub bdp_queue_budget_us: Option<u64>,
+}
+
+impl std::fmt::Debug for SecuritySpec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // PSK material is redacted; presence (`Some`/`None`) is preserved.
+        f.debug_struct("SecuritySpec")
+            .field("provider", &self.provider)
+            .field("proto", &self.proto)
+            .field("protocol_version", &self.protocol_version)
+            .field("verify", &self.verify)
+            .field("server_name", &self.server_name)
+            .field("server_cert", &self.server_cert)
+            .field("server_key", &self.server_key)
+            .field("client_cert", &self.client_cert)
+            .field("client_key", &self.client_key)
+            .field("ca_cert", &self.ca_cert)
+            .field("app_protocol", &self.app_protocol)
+            .field("profile", &self.profile)
+            .field("traffic_class", &self.traffic_class)
+            .field("psk_identity", &self.psk_identity.as_ref().map(|_| "[REDACTED]"))
+            .field("psk_hex", &self.psk_hex.as_ref().map(|_| "[REDACTED]"))
+            .field("cipher_list", &self.cipher_list)
+            .field("ciphersuites", &self.ciphersuites)
+            .field("resumption", &self.resumption)
+            .field("encrypt_listen_proto", &self.encrypt_listen_proto)
+            .field("encrypt_upstream_proto", &self.encrypt_upstream_proto)
+            .field("decrypt_listen_proto", &self.decrypt_listen_proto)
+            .field("decrypt_upstream_proto", &self.decrypt_upstream_proto)
+            .field("zero_copy", &self.zero_copy)
+            .field("spin_wait_us", &self.spin_wait_us)
+            .field("perf_profile", &self.perf_profile)
+            .field("sock_buf_size", &self.sock_buf_size)
+            .field("pipe_size", &self.pipe_size)
+            .field("relay_buf_size", &self.relay_buf_size)
+            .field("notsent_lowat", &self.notsent_lowat)
+            .field("busy_poll_us", &self.busy_poll_us)
+            .field("bdp_adaptive", &self.bdp_adaptive)
+            .field("bdp_queue_budget_us", &self.bdp_queue_budget_us)
+            .finish()
+    }
 }
 
 impl SecuritySpec {
@@ -706,6 +751,9 @@ pub fn add_management_uds_template(plan: &mut PathPlan, app_id: &str) -> io::Res
     template.listen_addr = "unused".to_string();
     template.listen_proto = "uds".to_string();
     template.app_id = Some(app_id.to_string());
+    // SAFETY: `libc::getuid()` is an always-safe POSIX syscall wrapper: it takes
+    // no arguments, dereferences no pointers, cannot fail, and simply returns the
+    // calling process's real UID. No invariant is required for soundness.
     template.allowed_uids = vec![unsafe { libc::getuid() }];
     config.rules.push(template);
 
@@ -878,6 +926,22 @@ pub fn locate_working_binary(work_dir: &Path) -> Option<PathBuf> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod secret_redaction_tests {
+    use super::*;
+
+    #[test]
+    fn securityspec_debug_redacts_psk() {
+        let mut s = SecuritySpec::routing_tcp();
+        s.psk_identity = Some("super-secret-identity".to_string());
+        s.psk_hex = Some("00112233445566778899aabbccddeeff".to_string());
+        let out = format!("{s:?}");
+        assert!(!out.contains("super-secret-identity"), "psk_identity leaked: {out}");
+        assert!(!out.contains("00112233445566778899aabbccddeeff"), "psk_hex leaked: {out}");
+        assert!(out.contains("REDACTED"), "expected redaction marker: {out}");
+    }
 }
 
 #[cfg(test)]

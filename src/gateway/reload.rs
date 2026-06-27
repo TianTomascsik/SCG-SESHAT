@@ -116,6 +116,9 @@ pub fn wait_reload_settled(mgmt: &MgmtClient, timeout: Duration) -> bool {
 }
 
 fn send_sighup(pid: i32) -> io::Result<()> {
+    // SAFETY: `libc::kill` is an FFI call that takes two `i32` values by copy and has no
+    // memory-safety preconditions; `pid` and `libc::SIGHUP` are plain integers, so no pointers
+    // or buffers are dereferenced. The return value `rc` is checked below for failure.
     let rc = unsafe { libc::kill(pid, libc::SIGHUP) };
     if rc != 0 {
         return Err(io::Error::last_os_error());
