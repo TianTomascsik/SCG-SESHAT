@@ -1,0 +1,49 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG WireGuard (kernel-offload) Suite",
+    "description": "Benchmarks the SCG kernel WireGuard crypto provider. REQUIRES the privileged netns harness: run scripts/wg_setup.sh first (loads the wireguard module, installs/uses wireguard-tools, creates the peer network namespace + veth), drive these scenarios, then scripts/wg_teardown.sh. The generic `seshat run` path records WireGuard as skipped because kernel WireGuard needs CAP_NET_ADMIN and a separate netns for the peer gateway.",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 1,
+    "duration_secs": 5,
+    "warmup_secs": 2,
+    "cooldown_secs": 1,
+    "scg_process_name": "gateway",
+    "collect_system_metrics": true,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "wireguard_udp_throughput_1400B",
+      "category": "protocol",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-scg" },
+      "protocol": { "type": "wireguard" },
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:12200",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "wireguard_udp_latency_128B",
+      "category": "protocol",
+      "message_size_bytes": 128,
+      "connections": 1,
+      "mode": "pingpong",
+      "gateway": { "enabled": true, "chain": "scg-scg" },
+      "protocol": { "type": "wireguard" },
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:12200",
+        "pattern": "periodic",
+        "interval_us": 1000
+      }
+    }
+  ]
+}

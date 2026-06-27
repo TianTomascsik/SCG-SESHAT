@@ -131,6 +131,9 @@ if [[ "$SKIP_TESTS" == false ]]; then
   run_gateway_cargo test -p gateway resumption
   run_gateway_cargo test -p gateway poll_two_fds_with_spin_observes_ready_fd
   run_gateway_cargo test -p gateway set_notsent_lowat_roundtrip
+  # WireGuard provider: unit tests + the unprivileged relay round-trip. The
+  # real-interface provisioning test auto-skips when unprivileged.
+  run_gateway_cargo test -p gateway wireguard
 
   info "running targeted SESHAT tests"
   run_seshat_cargo test perf_profile
@@ -412,6 +415,28 @@ if [[ "$PERF" == true ]]; then
   ' "$SUMMARY"; then
     record_failure "--perf requested but no perf_task_clock_ms values were recorded"
   fi
+fi
+
+# --- WireGuard kernel data-path gate (privileged; auto-skips otherwise) ---
+# Kernel WireGuard needs CAP_NET_ADMIN, the wireguard module, and a peer netns,
+# so this section only runs when those prerequisites are present. It stands up a
+# real kernel WireGuard tunnel (scripts/wg_setup.sh) and drives plaintext UDP
+# through the SCG WireGuard provider, gating on packet loss (scripts/wg_smoke.sh).
+WG_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=scripts/wg_env.sh
+source "$WG_DIR/wg_env.sh"
+if wg_prereqs_ok; then
+  info "running WireGuard kernel data-path benchmark"
+  # wg_bench.sh provisions the tunnel itself and measures via the UDP probe
+  # (SESHAT's sender/receiver are TCP-only and cannot drive a UDP path).
+  if GATEWAY_BIN="$GATEWAY_BIN" "$WG_DIR/wg_bench.sh"; then
+    info "WireGuard data-path benchmark passed (throughput/latency printed above)"
+  else
+    record_failure "WireGuard kernel data-path benchmark failed"
+  fi
+  "$WG_DIR/wg_teardown.sh" >/dev/null 2>&1 || true
+else
+  info "[SKIPPED] WireGuard benchmark — needs $(wg_prereqs_reason); see scripts/wg_setup.sh"
 fi
 
 if [[ "$gate_failures" -ne 0 ]]; then

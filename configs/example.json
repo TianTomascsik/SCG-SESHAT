@@ -96,10 +96,10 @@
       ]
     },
     {
-      "name": "disabled_wireguard_test",
+      "name": "wireguard_udp_kernel",
       "category": "protocol",
       "enabled": false,
-      "disabled_reason": "SCG WireGuard support pending",
+      "disabled_reason": "WireGuard is a kernel-offload provider; benchmark it via the privileged harness (scripts/wg_setup.sh + perf_gate.sh) — needs CAP_NET_ADMIN, the wireguard module, and a network namespace. The generic `seshat run` path skips it.",
       "message_size_bytes": 1400,
       "connections": 4,
       "protocol": { "type": "wireguard" },

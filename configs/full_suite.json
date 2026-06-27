@@ -547,15 +547,15 @@
     },
 
     {
-      "name": "wireguard_tcp_4KB",
+      "name": "wireguard_udp_4KB",
       "enabled": false,
       "category": "protocol",
       "message_size_bytes": 4096,
       "connections": 1,
-      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "gateway": { "enabled": true, "chain": "scg-scg" },
       "protocol": { "type": "wireguard" },
-      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:12200", "pattern": "sustained" },
-      "disabled_reason": "WireGuard provider not yet implemented in the SCG gateway"
+      "sender": { "interface": "udp", "target_addr": "127.0.0.1:12200", "pattern": "sustained" },
+      "disabled_reason": "WireGuard is a kernel-offload provider; benchmark via the privileged harness (scripts/wg_setup.sh + perf_gate.sh). Requires CAP_NET_ADMIN, the wireguard module, and a network namespace; the generic run path skips it."
     },
     {
       "name": "ipsec_ikev2_tcp_4KB",

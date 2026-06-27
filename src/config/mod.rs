@@ -155,11 +155,20 @@ fn validate_scenario(s: &Scenario) -> ScenarioReport {
             .push("scenario needs a `sender` or at least one `streams` entry".to_string());
     }
 
-    // WireGuard / IPSec are SCG stubs — must be disabled.
+    // WireGuard is a kernel-offload SCG crypto provider over UDP datagrams.
+    // IPSec is still an SCG stub and must be disabled.
     match s.protocol.kind {
-        ProtocolType::Wireguard => r.errors.push(
-            "protocol.type=wireguard is an SCG stub; set enabled=false (see WP6.1)".to_string(),
-        ),
+        ProtocolType::Wireguard => {
+            // The gateway provisions a kernel `wg` interface and relays UDP
+            // datagrams through it, so WireGuard scenarios must use the UDP
+            // interface (as DTLS does).
+            if let Some(snd) = s.sender.as_ref() {
+                if snd.interface != Interface::Udp {
+                    r.errors
+                        .push("protocol.type=wireguard requires sender.interface=udp".to_string());
+                }
+            }
+        }
         ProtocolType::Ipsec => r
             .errors
             .push("protocol.type=ipsec is an SCG stub; set enabled=false (see WP6.1)".to_string()),
@@ -600,16 +609,31 @@ mod tests {
     }
 
     #[test]
-    fn wireguard_enabled_rejected() {
+    fn wireguard_enabled_accepted() {
+        // WireGuard is now a real kernel-offload provider over UDP.
         let cfg = parse(
             r#"{ "suite": { "name": "t", "version": "1" },
                 "scenarios": [
-                  { "name": "wg", "protocol": { "type": "wireguard" },
+                  { "name": "wg", "gateway": { "enabled": true },
+                    "protocol": { "type": "wireguard" },
                     "sender": { "interface": "udp", "target_addr": "127.0.0.1:1" } }
                 ] }"#,
         );
-        let rep = validate(&cfg);
-        assert!(!rep.ok());
+        assert!(validate(&cfg).ok());
+    }
+
+    #[test]
+    fn wireguard_non_udp_rejected() {
+        // WireGuard is datagram-only; a TCP sender is a configuration error.
+        let cfg = parse(
+            r#"{ "suite": { "name": "t", "version": "1" },
+                "scenarios": [
+                  { "name": "wg", "gateway": { "enabled": true },
+                    "protocol": { "type": "wireguard" },
+                    "sender": { "interface": "tcp", "target_addr": "127.0.0.1:1" } }
+                ] }"#,
+        );
+        assert!(!validate(&cfg).ok());
     }
 
     #[test]
