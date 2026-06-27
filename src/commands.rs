@@ -598,6 +598,119 @@ fn resolve_security(s: &Scenario) -> GwSecurity {
     }
 }
 
+fn selected_server_identity(s: &Scenario) -> Option<crate::pki::Identity> {
+    let certs = &s.protocol.certificates;
+    Some(crate::pki::Identity {
+        cert: certs.server_cert.as_ref()?.clone(),
+        key: certs.server_key.as_ref()?.clone(),
+    })
+}
+
+fn selected_mtls_bundle(s: &Scenario) -> Option<crate::pki::CaBundle> {
+    let certs = &s.protocol.certificates;
+    Some(crate::pki::CaBundle {
+        ca_cert: certs.ca_cert.as_ref()?.clone(),
+        server: crate::pki::Identity {
+            cert: certs.server_cert.as_ref()?.clone(),
+            key: certs.server_key.as_ref()?.clone(),
+        },
+        client: crate::pki::Identity {
+            cert: certs.client_cert.as_ref()?.clone(),
+            key: certs.client_key.as_ref()?.clone(),
+        },
+    })
+}
+
+fn server_identity_for_scenario(
+    scenario: &Scenario,
+    work_dir: &Path,
+    purpose: &str,
+) -> Result<crate::pki::Identity, Box<dyn std::error::Error>> {
+    if let Some(identity) = selected_server_identity(scenario) {
+        return Ok(identity);
+    }
+    if !crate::pki::openssl_available() {
+        return Err(format!(
+            "scenario '{}' needs {purpose} certificates but the openssl CLI is unavailable",
+            scenario.name
+        )
+        .into());
+    }
+    Ok(crate::pki::generate_self_signed(work_dir, 2)?)
+}
+
+fn mtls_bundle_for_scenario(
+    scenario: &Scenario,
+    work_dir: &Path,
+    purpose: &str,
+) -> Result<crate::pki::CaBundle, Box<dyn std::error::Error>> {
+    if let Some(bundle) = selected_mtls_bundle(scenario) {
+        return Ok(bundle);
+    }
+    if !crate::pki::openssl_available() {
+        return Err(format!(
+            "scenario '{}' needs a {purpose} CA bundle but the openssl CLI is unavailable",
+            scenario.name
+        )
+        .into());
+    }
+    Ok(crate::pki::generate_mtls_bundle(work_dir, 2)?)
+}
+
+fn apply_protocol_security_overrides(mut spec: SecuritySpec, scenario: &Scenario) -> SecuritySpec {
+    spec = apply_cipher_override(spec, scenario);
+    spec = match (&scenario.protocol.psk_identity, &scenario.protocol.psk_hex) {
+        (Some(identity), Some(hex_key)) => spec.with_psk(identity, hex_key),
+        _ => spec,
+    };
+    if let Some(ref profile) = scenario.protocol.profile {
+        spec = spec.with_profile(profile);
+    }
+    spec.with_resumption(scenario.protocol.resumption)
+        .with_certificate_selection(&scenario.protocol.certificates)
+}
+
+fn build_security_spec(
+    plan: &GatewayPlan,
+    scenario: &Scenario,
+    work_dir: &Path,
+) -> Result<SecuritySpec, Box<dyn std::error::Error>> {
+    let spec = match plan.security {
+        GwSecurity::Routing => SecuritySpec::routing_tcp(),
+        GwSecurity::Tls { version, ktls } => {
+            let id = server_identity_for_scenario(scenario, work_dir, "TLS")?;
+            let mut s = SecuritySpec::tls_server(version, &id.cert, &id.key);
+            if ktls {
+                s = s.provider("ktls");
+            }
+            s
+        }
+        GwSecurity::Mtls { version, ktls } => {
+            let bundle = mtls_bundle_for_scenario(scenario, work_dir, "TLS")?;
+            let mut s = SecuritySpec::tls_mutual(version, &bundle);
+            if ktls {
+                s = s.provider("ktls");
+            }
+            s
+        }
+        GwSecurity::IntegrityOnly { version } => {
+            let id = server_identity_for_scenario(scenario, work_dir, "TLS integrity-only")?;
+            SecuritySpec::tls_server(version, &id.cert, &id.key).with_profile("integrity-only")
+        }
+        GwSecurity::Dtls { version, mutual } => {
+            if mutual {
+                let bundle = mtls_bundle_for_scenario(scenario, work_dir, "DTLS")?;
+                SecuritySpec::dtls_mutual(version, &bundle)
+            } else {
+                let id = server_identity_for_scenario(scenario, work_dir, "DTLS")?;
+                SecuritySpec::dtls_server(version, &id.cert, &id.key)
+            }
+        }
+    };
+
+    Ok(apply_protocol_security_overrides(spec, scenario))
+}
+
 /// Build a `SecuritySpec` for multi-stream scenarios. Uses routing by default
 /// (each stream routes through the same gateway rules), but honors the scenario-
 /// level protocol selection when specified.
@@ -606,63 +719,7 @@ fn build_multistream_spec(
     scenario: &Scenario,
     work_dir: &Path,
 ) -> Result<SecuritySpec, Box<dyn std::error::Error>> {
-    let spec = match plan.security {
-        GwSecurity::Routing => SecuritySpec::routing_tcp(),
-        GwSecurity::Tls { version, ktls } => {
-            if !crate::pki::openssl_available() {
-                return Err("openssl unavailable for multi-stream TLS".into());
-            }
-            let id = crate::pki::generate_self_signed(work_dir, 2)?;
-            let mut s = SecuritySpec::tls_server(version, &id.cert, &id.key);
-            if ktls {
-                s = s.provider("ktls");
-            }
-            s
-        }
-        GwSecurity::Mtls { version, ktls } => {
-            if !crate::pki::openssl_available() {
-                return Err("openssl unavailable for multi-stream mTLS".into());
-            }
-            let bundle = crate::pki::generate_mtls_bundle(work_dir, 2)?;
-            let mut s = SecuritySpec::tls_mutual(version, &bundle);
-            if ktls {
-                s = s.provider("ktls");
-            }
-            s
-        }
-        GwSecurity::IntegrityOnly { version } => {
-            if !crate::pki::openssl_available() {
-                return Err("openssl unavailable for multi-stream integrity-only".into());
-            }
-            let id = crate::pki::generate_self_signed(work_dir, 2)?;
-            SecuritySpec::tls_server(version, &id.cert, &id.key).with_profile("integrity-only")
-        }
-        GwSecurity::Dtls { version, mutual } => {
-            if !crate::pki::openssl_available() {
-                return Err("openssl unavailable for multi-stream DTLS".into());
-            }
-            if mutual {
-                let bundle = crate::pki::generate_mtls_bundle(work_dir, 2)?;
-                SecuritySpec::dtls_mutual(version, &bundle)
-            } else {
-                let id = crate::pki::generate_self_signed(work_dir, 2)?;
-                SecuritySpec::dtls_server(version, &id.cert, &id.key)
-            }
-        }
-    };
-
-    // Apply cipher/PSK from scenario-level protocol config.
-    let spec = apply_cipher_override(spec, scenario);
-    let spec = match (&scenario.protocol.psk_identity, &scenario.protocol.psk_hex) {
-        (Some(identity), Some(hex_key)) => spec.with_psk(identity, hex_key),
-        _ => spec,
-    };
-    let spec = if let Some(ref profile) = scenario.protocol.profile {
-        spec.with_profile(profile)
-    } else {
-        spec
-    };
-    Ok(spec)
+    build_security_spec(plan, scenario, work_dir)
 }
 
 /// Decide whether a scenario can be driven through the gateway in this slice and
@@ -963,81 +1020,12 @@ fn run_gateway_scenario(
         None
     };
 
-    let spec = match plan.security {
-        GwSecurity::Routing => SecuritySpec::routing_tcp(),
-        GwSecurity::Tls { version, ktls } => {
-            if !crate::pki::openssl_available() {
-                log::warn!(
-                    "scenario '{}' needs TLS certificates but the openssl CLI is unavailable; skipping",
-                    scenario.name
-                );
-                return Ok(false);
-            }
-            let id = crate::pki::generate_self_signed(&work_dir, 2)?;
-            let mut spec = SecuritySpec::tls_server(version, &id.cert, &id.key);
-            if ktls {
-                spec = spec.provider("ktls");
-            }
-            spec
+    let spec = match build_security_spec(plan, scenario, &work_dir) {
+        Ok(spec) => spec,
+        Err(e) => {
+            log::warn!("scenario '{}': {e}; skipping", scenario.name);
+            return Ok(false);
         }
-        GwSecurity::Mtls { version, ktls } => {
-            if !crate::pki::openssl_available() {
-                log::warn!(
-                    "scenario '{}' needs a TLS CA bundle but the openssl CLI is unavailable; skipping",
-                    scenario.name
-                );
-                return Ok(false);
-            }
-            let bundle = crate::pki::generate_mtls_bundle(&work_dir, 2)?;
-            let mut spec = SecuritySpec::tls_mutual(version, &bundle);
-            if ktls {
-                spec = spec.provider("ktls");
-            }
-            spec
-        }
-        GwSecurity::IntegrityOnly { version } => {
-            if !crate::pki::openssl_available() {
-                log::warn!(
-                    "scenario '{}' needs TLS certificates but the openssl CLI is unavailable; skipping",
-                    scenario.name
-                );
-                return Ok(false);
-            }
-            let id = crate::pki::generate_self_signed(&work_dir, 2)?;
-            SecuritySpec::tls_server(version, &id.cert, &id.key).with_profile("integrity-only")
-        }
-        GwSecurity::Dtls { version, mutual } => {
-            if !crate::pki::openssl_available() {
-                log::warn!(
-                    "scenario '{}' needs DTLS certificates but the openssl CLI is unavailable; skipping",
-                    scenario.name
-                );
-                return Ok(false);
-            }
-            if mutual {
-                let bundle = crate::pki::generate_mtls_bundle(&work_dir, 2)?;
-                SecuritySpec::dtls_mutual(version, &bundle)
-            } else {
-                let id = crate::pki::generate_self_signed(&work_dir, 2)?;
-                SecuritySpec::dtls_server(version, &id.cert, &id.key)
-            }
-        }
-    };
-
-    // Apply cipher/PSK overrides from the scenario protocol config.
-    let spec = apply_cipher_override(spec, scenario);
-
-    // Apply PSK if configured (subset146-psk).
-    let spec = match (&scenario.protocol.psk_identity, &scenario.protocol.psk_hex) {
-        (Some(identity), Some(hex_key)) => spec.with_psk(identity, hex_key),
-        _ => spec,
-    };
-
-    // Apply named profile override (e.g. subset146-pki, integrity-only).
-    let spec = if let Some(ref profile) = scenario.protocol.profile {
-        spec.with_profile(profile)
-    } else {
-        spec
     };
 
     // Apply ALE/RAW asymmetric framing for UDP-over-TLS scenarios.
@@ -1439,8 +1427,12 @@ fn run_multistream_scenario(
             receiver_cores: cores.receiver.clone(),
         });
 
-        // Create a transport pair through the gateway for this stream.
-        let pair = dut.as_transport().loopback_pair(msg_bytes)?;
+        // Create a transport pair through the gateway for this stream, keeping
+        // the declared traffic class for transports that provision class-
+        // specific local endpoints.
+        let pair = dut
+            .as_transport()
+            .loopback_pair_for_class(msg_bytes, &stream.priority.traffic_class)?;
         pairs.push(pair);
     }
 
@@ -1608,64 +1600,11 @@ fn run_hotreload_scenario(
     std::fs::create_dir_all(&work_dir)?;
 
     // Build the security spec normally.
-    let spec = match plan.security {
-        GwSecurity::Routing => SecuritySpec::routing_tcp(),
-        GwSecurity::Tls { version, ktls } => {
-            if !crate::pki::openssl_available() {
-                log::warn!(
-                    "scenario '{}': openssl unavailable; skipping",
-                    scenario.name
-                );
-                return Ok(false);
-            }
-            let id = crate::pki::generate_self_signed(&work_dir, 2)?;
-            let mut spec = SecuritySpec::tls_server(version, &id.cert, &id.key);
-            if ktls {
-                spec = spec.provider("ktls");
-            }
-            spec
-        }
-        GwSecurity::Mtls { version, ktls } => {
-            if !crate::pki::openssl_available() {
-                log::warn!(
-                    "scenario '{}': openssl unavailable; skipping",
-                    scenario.name
-                );
-                return Ok(false);
-            }
-            let bundle = crate::pki::generate_mtls_bundle(&work_dir, 2)?;
-            let mut spec = SecuritySpec::tls_mutual(version, &bundle);
-            if ktls {
-                spec = spec.provider("ktls");
-            }
-            spec
-        }
-        GwSecurity::IntegrityOnly { version } => {
-            if !crate::pki::openssl_available() {
-                log::warn!(
-                    "scenario '{}': openssl unavailable; skipping",
-                    scenario.name
-                );
-                return Ok(false);
-            }
-            let id = crate::pki::generate_self_signed(&work_dir, 2)?;
-            SecuritySpec::tls_server(version, &id.cert, &id.key).with_profile("integrity-only")
-        }
-        GwSecurity::Dtls { version, mutual } => {
-            if !crate::pki::openssl_available() {
-                log::warn!(
-                    "scenario '{}': openssl unavailable; skipping",
-                    scenario.name
-                );
-                return Ok(false);
-            }
-            if mutual {
-                let bundle = crate::pki::generate_mtls_bundle(&work_dir, 2)?;
-                SecuritySpec::dtls_mutual(version, &bundle)
-            } else {
-                let id = crate::pki::generate_self_signed(&work_dir, 2)?;
-                SecuritySpec::dtls_server(version, &id.cert, &id.key)
-            }
+    let spec = match build_security_spec(plan, scenario, &work_dir) {
+        Ok(spec) => spec,
+        Err(e) => {
+            log::warn!("scenario '{}': {e}; skipping", scenario.name);
+            return Ok(false);
         }
     };
 

@@ -33,6 +33,24 @@ const READY_TIMEOUT: Duration = Duration::from_secs(15);
 /// Default ring capacity per direction (1 MiB).
 const DEFAULT_RING_CAPACITY: u64 = 1024 * 1024;
 
+fn class_label(class: TrafficClass) -> &'static str {
+    match class {
+        TrafficClass::Normal => "normal",
+        TrafficClass::Safety => "safety",
+    }
+}
+
+fn traffic_class_from_label(label: &str) -> io::Result<TrafficClass> {
+    match label {
+        "normal" | "non-safety" | "bulk" | "best-effort" => Ok(TrafficClass::Normal),
+        "safety" | "safety-critical" => Ok(TrafficClass::Safety),
+        other => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("unsupported SHM traffic class '{other}'"),
+        )),
+    }
+}
+
 /// Sender side wrapping an `ScgClient` connected to the encrypt SHM endpoint.
 struct ShmSink {
     client: ScgClient,
@@ -102,7 +120,10 @@ impl DataSource for ShmSource {
         let cap = max.min(buf.len() / stride).min(lens.len());
 
         // Block once for the first message; if it times out the ring is idle.
-        let mut count = match self.client.recv_into(&mut buf[..stride], Some(self.timeout)) {
+        let mut count = match self
+            .client
+            .recv_into(&mut buf[..stride], Some(self.timeout))
+        {
             Ok(Some((_tid, len))) => {
                 lens[0] = len;
                 1
@@ -221,6 +242,7 @@ pub struct GatewayShmTransport {
 impl GatewayShmTransport {
     /// Start a gateway configured for SHM endpoints and provision the management
     /// API.
+    #[allow(clippy::too_many_arguments)]
     pub fn start(
         name: &'static str,
         spec: &SecuritySpec,
@@ -232,7 +254,36 @@ impl GatewayShmTransport {
         ring_capacity: u64,
         tuning: &crate::gateway::config::ShmTuning,
     ) -> io::Result<Self> {
-        use crate::gateway::config::{ApiConfig, GatewayConfig, RuleConfig};
+        Self::start_with_classes(
+            name,
+            spec,
+            topology,
+            binary,
+            work_dir,
+            gateway_cores,
+            app_id,
+            ring_capacity,
+            tuning,
+            &[TrafficClass::Normal],
+        )
+    }
+
+    /// Start a gateway with SHM endpoint templates for the requested traffic
+    /// classes.
+    #[allow(clippy::too_many_arguments)]
+    pub fn start_with_classes(
+        name: &'static str,
+        spec: &SecuritySpec,
+        topology: Topology,
+        binary: &Path,
+        work_dir: &Path,
+        gateway_cores: &[usize],
+        app_id: &str,
+        ring_capacity: u64,
+        tuning: &crate::gateway::config::ShmTuning,
+        classes: &[TrafficClass],
+    ) -> io::Result<Self> {
+        use crate::gateway::config::{ApiConfig, GatewayConfig};
         use crate::gateway::NamedGateway;
         use std::sync::atomic::{AtomicU64, Ordering};
         static SHM_MGMT_ID: AtomicU64 = AtomicU64::new(0);
@@ -245,22 +296,12 @@ impl GatewayShmTransport {
         } else {
             ring_capacity as usize
         };
+        let classes = normalize_classes(classes);
 
         // Build SHM rules: listen_proto="shm" with app_id and allowed_uids.
         // apply_encrypt/apply_decrypt reset listen_proto, so set it after.
         let upstream_addr = format!("127.0.0.1:{}", gateway::reserve_local_port()?);
-        let encrypt = spec.apply_encrypt(
-            RuleConfig::new("seshat-encrypt", "encrypt", "unused", &upstream_addr)
-                .app_id(app_id)
-                .traffic_class("normal")
-                .allowed_uid(uid),
-        ).listen_proto("shm");
-        let decrypt = spec.apply_decrypt(
-            RuleConfig::new("seshat-decrypt", "decrypt", "unused", &upstream_addr)
-                .app_id(app_id)
-                .traffic_class("normal")
-                .allowed_uid(uid),
-        ).listen_proto("shm");
+        let rules = build_rules_for_classes(spec, app_id, uid, &upstream_addr, &classes);
 
         // Build plan with API config (required for SHM endpoint provisioning).
         let id = SHM_MGMT_ID.fetch_add(1, Ordering::Relaxed);
@@ -276,7 +317,7 @@ impl GatewayShmTransport {
         let gateways = match topology {
             Topology::SingleGateway => vec![NamedGateway {
                 label: "scg".to_string(),
-                config: GatewayConfig::new(vec![encrypt, decrypt])
+                config: GatewayConfig::new(rules)
                     .log_level("info")
                     .allow_all()
                     .api(api),
@@ -291,17 +332,20 @@ impl GatewayShmTransport {
                     shm_ring,
                 )
                 .shm_tuning(tuning);
+                let (encrypt_rules, decrypt_rules): (Vec<_>, Vec<_>) = rules
+                    .into_iter()
+                    .partition(|rule| rule.direction == "encrypt");
                 vec![
                     NamedGateway {
                         label: "scg-a".to_string(),
-                        config: GatewayConfig::new(vec![encrypt])
+                        config: GatewayConfig::new(encrypt_rules)
                             .log_level("info")
                             .allow_all()
                             .api(api),
                     },
                     NamedGateway {
                         label: "scg-b".to_string(),
-                        config: GatewayConfig::new(vec![decrypt])
+                        config: GatewayConfig::new(decrypt_rules)
                             .log_level("info")
                             .allow_all()
                             .api(api2),
@@ -331,6 +375,67 @@ impl GatewayShmTransport {
         })
     }
 
+    pub fn loopback_pair_for_class(
+        &self,
+        _message_bytes: u32,
+        class: TrafficClass,
+    ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
+        let mgmt = MgmtClient::new(&self.mgmt_socket);
+
+        // The decrypt endpoint must be listening before encrypt performs its
+        // initial TLS handshake; otherwise the retry backoff can consume an
+        // entire short measurement window.
+        let decrypt_ep = mgmt
+            .create_shm(&self.app_id, class, Direction::Decrypt, self.ring_capacity)
+            .map_err(io::Error::other)?;
+
+        let encrypt_ep = mgmt
+            .create_shm(&self.app_id, class, Direction::Encrypt, self.ring_capacity)
+            .map_err(io::Error::other)?;
+
+        let sink = Box::new(ShmSink {
+            client: encrypt_ep.client,
+            traffic_id: 1,
+        });
+        let source = Box::new(ShmSource {
+            client: decrypt_ep.client,
+            timeout: RECV_POLL_TIMEOUT,
+        });
+
+        Ok((sink, source))
+    }
+
+    pub fn pingpong_pair_for_class(
+        &self,
+        _message_bytes: u32,
+        class: TrafficClass,
+    ) -> io::Result<(Box<dyn DuplexEnd>, Box<dyn DuplexEnd>)> {
+        let mgmt = MgmtClient::new(&self.mgmt_socket);
+
+        // Same provisioning order as `loopback_pair`: the decrypt endpoint must
+        // exist before encrypt performs its initial TLS handshake.
+        let decrypt_ep = mgmt
+            .create_shm(&self.app_id, class, Direction::Decrypt, self.ring_capacity)
+            .map_err(io::Error::other)?;
+
+        let encrypt_ep = mgmt
+            .create_shm(&self.app_id, class, Direction::Encrypt, self.ring_capacity)
+            .map_err(io::Error::other)?;
+
+        // The client drives the loop: send on encrypt, read the echo off
+        // decrypt. The gateway relays between the two, so the server end is a
+        // no-op stub.
+        let client = Box::new(ShmDuplexClient {
+            tx: encrypt_ep.client,
+            rx: decrypt_ep.client,
+            traffic_id: 1,
+            timeout: RECV_POLL_TIMEOUT,
+        });
+        let server = Box::new(ShmNullServer);
+
+        Ok((client, server))
+    }
+
     /// OS pids of the gateway process(es).
     pub fn pids(&self) -> Vec<i32> {
         self.running
@@ -356,6 +461,65 @@ impl GatewayShmTransport {
     }
 }
 
+fn normalize_classes(classes: &[TrafficClass]) -> Vec<TrafficClass> {
+    let mut out = Vec::new();
+    for class in classes {
+        if !out.contains(class) {
+            out.push(*class);
+        }
+    }
+    if out.is_empty() {
+        out.push(TrafficClass::Normal);
+    }
+    out
+}
+
+fn build_rules_for_classes(
+    spec: &SecuritySpec,
+    app_id: &str,
+    uid: u32,
+    upstream_addr: &str,
+    classes: &[TrafficClass],
+) -> Vec<crate::gateway::config::RuleConfig> {
+    use crate::gateway::config::RuleConfig;
+
+    let mut rules = Vec::with_capacity(classes.len() * 2);
+    for class in classes {
+        let label = class_label(*class);
+        let encrypt = spec
+            .apply_encrypt(
+                RuleConfig::new(
+                    &format!("seshat-encrypt-{label}"),
+                    "encrypt",
+                    "unused",
+                    upstream_addr,
+                )
+                .app_id(app_id)
+                .traffic_class(label)
+                .allowed_uid(uid),
+            )
+            .traffic_class(label)
+            .listen_proto("shm");
+        let decrypt = spec
+            .apply_decrypt(
+                RuleConfig::new(
+                    &format!("seshat-decrypt-{label}"),
+                    "decrypt",
+                    "unused",
+                    upstream_addr,
+                )
+                .app_id(app_id)
+                .traffic_class(label)
+                .allowed_uid(uid),
+            )
+            .traffic_class(label)
+            .listen_proto("shm");
+        rules.push(encrypt);
+        rules.push(decrypt);
+    }
+    rules
+}
+
 impl Transport for GatewayShmTransport {
     fn name(&self) -> &'static str {
         self.name
@@ -363,80 +527,69 @@ impl Transport for GatewayShmTransport {
 
     fn loopback_pair(
         &self,
-        _message_bytes: u32,
+        message_bytes: u32,
     ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
-        let mgmt = MgmtClient::new(&self.mgmt_socket);
+        self.loopback_pair_for_class(message_bytes, TrafficClass::Normal)
+    }
 
-        // The decrypt endpoint must be listening before encrypt performs its
-        // initial TLS handshake; otherwise the retry backoff can consume an
-        // entire short measurement window.
-        let decrypt_ep = mgmt
-            .create_shm(
-                &self.app_id,
-                TrafficClass::Normal,
-                Direction::Decrypt,
-                self.ring_capacity,
-            )
-            .map_err(io::Error::other)?;
-
-        let encrypt_ep = mgmt
-            .create_shm(
-                &self.app_id,
-                TrafficClass::Normal,
-                Direction::Encrypt,
-                self.ring_capacity,
-            )
-            .map_err(io::Error::other)?;
-
-        let sink = Box::new(ShmSink {
-            client: encrypt_ep.client,
-            traffic_id: 1,
-        });
-        let source = Box::new(ShmSource {
-            client: decrypt_ep.client,
-            timeout: RECV_POLL_TIMEOUT,
-        });
-
-        Ok((sink, source))
+    fn loopback_pair_for_class(
+        &self,
+        message_bytes: u32,
+        traffic_class: &str,
+    ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
+        self.loopback_pair_for_class(message_bytes, traffic_class_from_label(traffic_class)?)
     }
 
     fn pingpong_pair(
         &self,
-        _message_bytes: u32,
+        message_bytes: u32,
     ) -> io::Result<(Box<dyn DuplexEnd>, Box<dyn DuplexEnd>)> {
-        let mgmt = MgmtClient::new(&self.mgmt_socket);
+        self.pingpong_pair_for_class(message_bytes, TrafficClass::Normal)
+    }
+}
 
-        // Same provisioning order as `loopback_pair`: the decrypt endpoint must
-        // exist before encrypt performs its initial TLS handshake.
-        let decrypt_ep = mgmt
-            .create_shm(
-                &self.app_id,
-                TrafficClass::Normal,
-                Direction::Decrypt,
-                self.ring_capacity,
-            )
-            .map_err(io::Error::other)?;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        let encrypt_ep = mgmt
-            .create_shm(
-                &self.app_id,
-                TrafficClass::Normal,
-                Direction::Encrypt,
-                self.ring_capacity,
-            )
-            .map_err(io::Error::other)?;
+    fn spec() -> SecuritySpec {
+        SecuritySpec::routing_tcp()
+    }
 
-        // The client drives the loop: send on encrypt, read the echo off
-        // decrypt. The gateway relays between the two, so the server end is a
-        // no-op stub.
-        let client = Box::new(ShmDuplexClient {
-            tx: encrypt_ep.client,
-            rx: decrypt_ep.client,
-            traffic_id: 1,
-            timeout: RECV_POLL_TIMEOUT,
-        });
-        let server = Box::new(ShmNullServer);
+    #[test]
+    fn shm_rules_are_created_per_traffic_class() {
+        let rules = build_rules_for_classes(
+            &spec(),
+            "app",
+            1000,
+            "127.0.0.1:9000",
+            &[TrafficClass::Normal, TrafficClass::Safety],
+        );
 
-        Ok((client, server))
+        assert_eq!(rules.len(), 4);
+        assert!(rules.iter().any(|r| {
+            r.name == "seshat-encrypt-normal"
+                && r.direction == "encrypt"
+                && r.listen_proto == "shm"
+                && r.traffic_class == "normal"
+        }));
+        assert!(rules.iter().any(|r| {
+            r.name == "seshat-decrypt-safety"
+                && r.direction == "decrypt"
+                && r.listen_proto == "shm"
+                && r.traffic_class == "safety"
+        }));
+    }
+
+    #[test]
+    fn class_labels_accept_legacy_safety_names() {
+        assert_eq!(
+            traffic_class_from_label("safety-critical").unwrap(),
+            TrafficClass::Safety
+        );
+        assert_eq!(
+            traffic_class_from_label("non-safety").unwrap(),
+            TrafficClass::Normal
+        );
     }
 }

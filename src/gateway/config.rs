@@ -167,6 +167,10 @@ fn is_zero_u64(v: &u64) -> bool {
     *v == 0
 }
 
+fn is_zero_u32(v: &u32) -> bool {
+    *v == 0
+}
+
 /// A single proxy rule (one direction of one path).
 #[derive(Debug, Clone, Serialize)]
 pub struct RuleConfig {
@@ -201,6 +205,20 @@ pub struct RuleConfig {
     /// Overrides the gateway-global profile for this rule when set.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub perf_profile: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sock_buf_size: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pipe_size: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relay_buf_size: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notsent_lowat: Option<usize>,
+    #[serde(default, skip_serializing_if = "is_zero_u32")]
+    pub busy_poll_us: u32,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub bdp_adaptive: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bdp_queue_budget_us: Option<u64>,
 }
 
 impl RuleConfig {
@@ -223,6 +241,13 @@ impl RuleConfig {
             zero_copy: false,
             spin_wait_us: 0,
             perf_profile: None,
+            sock_buf_size: None,
+            pipe_size: None,
+            relay_buf_size: None,
+            notsent_lowat: None,
+            busy_poll_us: 0,
+            bdp_adaptive: false,
+            bdp_queue_budget_us: None,
         }
     }
 
@@ -349,6 +374,27 @@ mod tests {
         r2.perf_profile = Some("throughput".to_string());
         let v2: serde_json::Value = serde_json::to_value(&r2).unwrap();
         assert_eq!(v2["perf_profile"], "throughput");
+    }
+
+    #[test]
+    fn low_level_perf_overrides_serialize_when_set() {
+        let mut r = RuleConfig::new("r", "encrypt", "127.0.0.1:1", "127.0.0.1:2");
+        r.sock_buf_size = Some(262_144);
+        r.pipe_size = Some(262_144);
+        r.relay_buf_size = Some(131_072);
+        r.notsent_lowat = Some(0);
+        r.busy_poll_us = 50;
+        r.bdp_adaptive = true;
+        r.bdp_queue_budget_us = Some(500);
+
+        let v: serde_json::Value = serde_json::to_value(&r).unwrap();
+        assert_eq!(v["sock_buf_size"], 262_144);
+        assert_eq!(v["pipe_size"], 262_144);
+        assert_eq!(v["relay_buf_size"], 131_072);
+        assert_eq!(v["notsent_lowat"], 0);
+        assert_eq!(v["busy_poll_us"], 50);
+        assert_eq!(v["bdp_adaptive"], true);
+        assert_eq!(v["bdp_queue_budget_us"], 500);
     }
 
     #[test]

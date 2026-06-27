@@ -1,0 +1,349 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG Profile Regression Gate",
+    "description": "Compact profile gate for SCG routing, TLS 1.3, and kTLS 1.3 across latency, balanced, and throughput profiles.",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 2,
+    "duration_secs": 1,
+    "warmup_secs": 1,
+    "cooldown_secs": 0,
+    "auto_affinity": true,
+    "scg_process_name": "gateway",
+    "collect_system_metrics": true,
+    "metrics_sample_rate_hz": 5,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "profile_direct_throughput_1KB",
+      "category": "profile-throughput",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:14100",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "profile_direct_latency_1KB",
+      "category": "profile-latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:14101",
+        "pattern": "periodic",
+        "interval_us": 500
+      }
+    },
+    {
+      "name": "profile_direct_pingpong_1KB",
+      "category": "profile-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:14102",
+        "pattern": "sustained"
+      }
+    },
+
+    {
+      "name": "profile_routing_latency_throughput_1KB",
+      "category": "profile-throughput",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "perf_profile": "latency" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14110", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_routing_balanced_throughput_1KB",
+      "category": "profile-throughput",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "perf_profile": "balanced" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14111", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_routing_throughput_throughput_1KB",
+      "category": "profile-throughput",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "perf_profile": "throughput" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14112", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_routing_latency_latency_1KB",
+      "category": "profile-latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "perf_profile": "latency" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14113", "pattern": "periodic", "interval_us": 500 }
+    },
+    {
+      "name": "profile_routing_balanced_latency_1KB",
+      "category": "profile-latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "perf_profile": "balanced" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14114", "pattern": "periodic", "interval_us": 500 }
+    },
+    {
+      "name": "profile_routing_throughput_latency_1KB",
+      "category": "profile-latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "perf_profile": "throughput" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14115", "pattern": "periodic", "interval_us": 500 }
+    },
+    {
+      "name": "profile_routing_latency_pingpong_1KB",
+      "category": "profile-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "perf_profile": "latency" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14116", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_routing_balanced_pingpong_1KB",
+      "category": "profile-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "perf_profile": "balanced" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14117", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_routing_throughput_pingpong_1KB",
+      "category": "profile-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "perf_profile": "throughput" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14118", "pattern": "sustained" }
+    },
+
+    {
+      "name": "profile_tls13_latency_throughput_1KB",
+      "category": "profile-throughput",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "optimization_flags": { "perf_profile": "latency" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14120", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_tls13_balanced_throughput_1KB",
+      "category": "profile-throughput",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "optimization_flags": { "perf_profile": "balanced" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14121", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_tls13_throughput_throughput_1KB",
+      "category": "profile-throughput",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "optimization_flags": { "perf_profile": "throughput" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14122", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_tls13_latency_latency_1KB",
+      "category": "profile-latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "optimization_flags": { "perf_profile": "latency" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14123", "pattern": "periodic", "interval_us": 500 }
+    },
+    {
+      "name": "profile_tls13_balanced_latency_1KB",
+      "category": "profile-latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "optimization_flags": { "perf_profile": "balanced" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14124", "pattern": "periodic", "interval_us": 500 }
+    },
+    {
+      "name": "profile_tls13_throughput_latency_1KB",
+      "category": "profile-latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "optimization_flags": { "perf_profile": "throughput" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14125", "pattern": "periodic", "interval_us": 500 }
+    },
+    {
+      "name": "profile_tls13_latency_pingpong_1KB",
+      "category": "profile-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "optimization_flags": { "perf_profile": "latency" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14126", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_tls13_balanced_pingpong_1KB",
+      "category": "profile-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "optimization_flags": { "perf_profile": "balanced" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14127", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_tls13_throughput_pingpong_1KB",
+      "category": "profile-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "optimization_flags": { "perf_profile": "throughput" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14128", "pattern": "sustained" }
+    },
+
+    {
+      "name": "profile_ktls13_latency_throughput_1KB",
+      "category": "profile-throughput",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "requirements": { "ktls": true },
+      "optimization_flags": { "perf_profile": "latency" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14130", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_ktls13_balanced_throughput_1KB",
+      "category": "profile-throughput",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "requirements": { "ktls": true },
+      "optimization_flags": { "perf_profile": "balanced" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14131", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_ktls13_throughput_throughput_1KB",
+      "category": "profile-throughput",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "requirements": { "ktls": true },
+      "optimization_flags": { "perf_profile": "throughput" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14132", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_ktls13_latency_latency_1KB",
+      "category": "profile-latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "requirements": { "ktls": true },
+      "optimization_flags": { "perf_profile": "latency" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14133", "pattern": "periodic", "interval_us": 500 }
+    },
+    {
+      "name": "profile_ktls13_balanced_latency_1KB",
+      "category": "profile-latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "requirements": { "ktls": true },
+      "optimization_flags": { "perf_profile": "balanced" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14134", "pattern": "periodic", "interval_us": 500 }
+    },
+    {
+      "name": "profile_ktls13_throughput_latency_1KB",
+      "category": "profile-latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "requirements": { "ktls": true },
+      "optimization_flags": { "perf_profile": "throughput" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14135", "pattern": "periodic", "interval_us": 500 }
+    },
+    {
+      "name": "profile_ktls13_latency_pingpong_1KB",
+      "category": "profile-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "requirements": { "ktls": true },
+      "optimization_flags": { "perf_profile": "latency" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14136", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_ktls13_balanced_pingpong_1KB",
+      "category": "profile-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "requirements": { "ktls": true },
+      "optimization_flags": { "perf_profile": "balanced" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14137", "pattern": "sustained" }
+    },
+    {
+      "name": "profile_ktls13_throughput_pingpong_1KB",
+      "category": "profile-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "requirements": { "ktls": true },
+      "optimization_flags": { "perf_profile": "throughput" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14138", "pattern": "sustained" }
+    }
+  ]
+}

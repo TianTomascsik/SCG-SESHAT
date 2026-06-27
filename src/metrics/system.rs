@@ -147,7 +147,10 @@ impl PerfSampler {
             .arg(&pid_list)
             .args([
                 "-e",
-                "cycles,instructions,cache-references,cache-misses,context-switches,raw_syscalls:sys_enter,task-clock",
+                // Keep the default set to events available to unprivileged perf
+                // users. Optional tracepoints such as raw_syscalls can make
+                // perf abort the whole group on locked-down hosts.
+                "cycles,instructions,cache-references,cache-misses,context-switches,task-clock",
                 "--log-fd",
                 "2",
             ])

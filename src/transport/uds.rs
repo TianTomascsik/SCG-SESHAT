@@ -28,6 +28,24 @@ use crate::gateway::{self, RunningPath, SecuritySpec, Topology};
 /// How long to wait for each gateway process to become ready.
 const READY_TIMEOUT: Duration = Duration::from_secs(15);
 
+fn class_label(class: TrafficClass) -> &'static str {
+    match class {
+        TrafficClass::Normal => "normal",
+        TrafficClass::Safety => "safety",
+    }
+}
+
+fn traffic_class_from_label(label: &str) -> io::Result<TrafficClass> {
+    match label {
+        "normal" | "non-safety" | "bulk" | "best-effort" => Ok(TrafficClass::Normal),
+        "safety" | "safety-critical" => Ok(TrafficClass::Safety),
+        other => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("unsupported UDS traffic class '{other}'"),
+        )),
+    }
+}
+
 /// Sender side wrapping an `ScgClient` connected to the encrypt endpoint.
 struct UdsSink {
     client: ScgClient,
@@ -162,7 +180,31 @@ impl GatewayUdsTransport {
         gateway_cores: &[usize],
         app_id: &str,
     ) -> io::Result<Self> {
-        use crate::gateway::config::{ApiConfig, GatewayConfig, RuleConfig};
+        Self::start_with_classes(
+            name,
+            spec,
+            topology,
+            binary,
+            work_dir,
+            gateway_cores,
+            app_id,
+            &[TrafficClass::Normal],
+        )
+    }
+
+    /// Start a gateway with UDS endpoint templates for the requested traffic
+    /// classes.
+    pub fn start_with_classes(
+        name: &'static str,
+        spec: &SecuritySpec,
+        topology: Topology,
+        binary: &Path,
+        work_dir: &Path,
+        gateway_cores: &[usize],
+        app_id: &str,
+        classes: &[TrafficClass],
+    ) -> io::Result<Self> {
+        use crate::gateway::config::{ApiConfig, GatewayConfig};
         use crate::gateway::NamedGateway;
         use std::sync::atomic::{AtomicU64, Ordering};
         static UDS_MGMT_ID: AtomicU64 = AtomicU64::new(0);
@@ -170,6 +212,7 @@ impl GatewayUdsTransport {
         std::fs::create_dir_all(work_dir)?;
 
         let uid = unsafe { libc::getuid() };
+        let classes = normalize_classes(classes);
 
         // Build UDS rules: the gateway needs `listen_proto: "uds"` rules with an
         // `app_id` so that the management API can create endpoints for this app.
@@ -177,18 +220,7 @@ impl GatewayUdsTransport {
         // NB: apply_encrypt/apply_decrypt call .proto() which resets listen_proto,
         // so we must set listen_proto("uds") AFTER applying the security spec.
         let upstream_addr = format!("127.0.0.1:{}", gateway::reserve_local_port()?);
-        let encrypt = spec.apply_encrypt(
-            RuleConfig::new("seshat-encrypt", "encrypt", "unused", &upstream_addr)
-                .app_id(app_id)
-                .traffic_class("normal")
-                .allowed_uid(uid),
-        ).listen_proto("uds");
-        let decrypt = spec.apply_decrypt(
-            RuleConfig::new("seshat-decrypt", "decrypt", "unused", &upstream_addr)
-                .app_id(app_id)
-                .traffic_class("normal")
-                .allowed_uid(uid),
-        ).listen_proto("uds");
+        let rules = build_rules_for_classes(spec, app_id, uid, &upstream_addr, &classes);
 
         // Build plan with API config (required for UDS endpoint provisioning).
         let id = UDS_MGMT_ID.fetch_add(1, Ordering::Relaxed);
@@ -203,7 +235,7 @@ impl GatewayUdsTransport {
         let gateways = match topology {
             Topology::SingleGateway => vec![NamedGateway {
                 label: "scg".to_string(),
-                config: GatewayConfig::new(vec![encrypt, decrypt])
+                config: GatewayConfig::new(rules)
                     .log_level("info")
                     .allow_all()
                     .api(api),
@@ -217,17 +249,20 @@ impl GatewayUdsTransport {
                     &runtime_dir2.to_string_lossy(),
                     1024 * 1024,
                 );
+                let (encrypt_rules, decrypt_rules): (Vec<_>, Vec<_>) = rules
+                    .into_iter()
+                    .partition(|rule| rule.direction == "encrypt");
                 vec![
                     NamedGateway {
                         label: "scg-a".to_string(),
-                        config: GatewayConfig::new(vec![encrypt])
+                        config: GatewayConfig::new(encrypt_rules)
                             .log_level("info")
                             .allow_all()
                             .api(api),
                     },
                     NamedGateway {
                         label: "scg-b".to_string(),
-                        config: GatewayConfig::new(vec![decrypt])
+                        config: GatewayConfig::new(decrypt_rules)
                             .log_level("info")
                             .allow_all()
                             .api(api2),
@@ -257,6 +292,65 @@ impl GatewayUdsTransport {
         })
     }
 
+    pub fn loopback_pair_for_class(
+        &self,
+        _message_bytes: u32,
+        class: TrafficClass,
+    ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
+        let mgmt = MgmtClient::new(&self.mgmt_socket);
+
+        // Bring up the decrypt listener first. The encrypt endpoint dials it as
+        // part of its initial TLS handshake; provisioning encrypt first makes
+        // its first connect race a closed port and adds a one-second retry,
+        // which used to consume an entire short benchmark window.
+        let decrypt_ep = mgmt
+            .create_uds(&self.app_id, class, Direction::Decrypt)
+            .map_err(io::Error::other)?;
+
+        let encrypt_ep = mgmt
+            .create_uds(&self.app_id, class, Direction::Encrypt)
+            .map_err(io::Error::other)?;
+
+        let sink = Box::new(UdsSink {
+            client: encrypt_ep.client,
+            traffic_id: 1,
+        });
+        let source = Box::new(UdsSource {
+            client: decrypt_ep.client,
+            timeout: RECV_POLL_TIMEOUT,
+        });
+
+        Ok((sink, source))
+    }
+
+    pub fn pingpong_pair_for_class(
+        &self,
+        _message_bytes: u32,
+        class: TrafficClass,
+    ) -> io::Result<(Box<dyn DuplexEnd>, Box<dyn DuplexEnd>)> {
+        let mgmt = MgmtClient::new(&self.mgmt_socket);
+
+        let decrypt_ep = mgmt
+            .create_uds(&self.app_id, class, Direction::Decrypt)
+            .map_err(io::Error::other)?;
+
+        let encrypt_ep = mgmt
+            .create_uds(&self.app_id, class, Direction::Encrypt)
+            .map_err(io::Error::other)?;
+
+        // The client sends on encrypt and reads the echo off decrypt; the
+        // gateway relays between them, so the server end is a no-op stub.
+        let client = Box::new(UdsDuplexClient {
+            tx: encrypt_ep.client,
+            rx: decrypt_ep.client,
+            traffic_id: 1,
+            timeout: RECV_POLL_TIMEOUT,
+        });
+        let server = Box::new(UdsNullServer);
+
+        Ok((client, server))
+    }
+
     /// OS pids of the gateway process(es), for `/proc/<pid>` system metrics.
     pub fn pids(&self) -> Vec<i32> {
         self.running
@@ -282,6 +376,65 @@ impl GatewayUdsTransport {
     }
 }
 
+fn normalize_classes(classes: &[TrafficClass]) -> Vec<TrafficClass> {
+    let mut out = Vec::new();
+    for class in classes {
+        if !out.contains(class) {
+            out.push(*class);
+        }
+    }
+    if out.is_empty() {
+        out.push(TrafficClass::Normal);
+    }
+    out
+}
+
+fn build_rules_for_classes(
+    spec: &SecuritySpec,
+    app_id: &str,
+    uid: u32,
+    upstream_addr: &str,
+    classes: &[TrafficClass],
+) -> Vec<crate::gateway::config::RuleConfig> {
+    use crate::gateway::config::RuleConfig;
+
+    let mut rules = Vec::with_capacity(classes.len() * 2);
+    for class in classes {
+        let label = class_label(*class);
+        let encrypt = spec
+            .apply_encrypt(
+                RuleConfig::new(
+                    &format!("seshat-encrypt-{label}"),
+                    "encrypt",
+                    "unused",
+                    upstream_addr,
+                )
+                .app_id(app_id)
+                .traffic_class(label)
+                .allowed_uid(uid),
+            )
+            .traffic_class(label)
+            .listen_proto("uds");
+        let decrypt = spec
+            .apply_decrypt(
+                RuleConfig::new(
+                    &format!("seshat-decrypt-{label}"),
+                    "decrypt",
+                    "unused",
+                    upstream_addr,
+                )
+                .app_id(app_id)
+                .traffic_class(label)
+                .allowed_uid(uid),
+            )
+            .traffic_class(label)
+            .listen_proto("uds");
+        rules.push(encrypt);
+        rules.push(decrypt);
+    }
+    rules
+}
+
 impl Transport for GatewayUdsTransport {
     fn name(&self) -> &'static str {
         self.name
@@ -289,58 +442,69 @@ impl Transport for GatewayUdsTransport {
 
     fn loopback_pair(
         &self,
-        _message_bytes: u32,
+        message_bytes: u32,
     ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
-        let mgmt = MgmtClient::new(&self.mgmt_socket);
+        self.loopback_pair_for_class(message_bytes, TrafficClass::Normal)
+    }
 
-        // Bring up the decrypt listener first. The encrypt endpoint dials it as
-        // part of its initial TLS handshake; provisioning encrypt first makes
-        // its first connect race a closed port and adds a one-second retry,
-        // which used to consume an entire short benchmark window.
-        let decrypt_ep = mgmt
-            .create_uds(&self.app_id, TrafficClass::Normal, Direction::Decrypt)
-            .map_err(io::Error::other)?;
-
-        let encrypt_ep = mgmt
-            .create_uds(&self.app_id, TrafficClass::Normal, Direction::Encrypt)
-            .map_err(io::Error::other)?;
-
-        let sink = Box::new(UdsSink {
-            client: encrypt_ep.client,
-            traffic_id: 1,
-        });
-        let source = Box::new(UdsSource {
-            client: decrypt_ep.client,
-            timeout: RECV_POLL_TIMEOUT,
-        });
-
-        Ok((sink, source))
+    fn loopback_pair_for_class(
+        &self,
+        message_bytes: u32,
+        traffic_class: &str,
+    ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
+        self.loopback_pair_for_class(message_bytes, traffic_class_from_label(traffic_class)?)
     }
 
     fn pingpong_pair(
         &self,
-        _message_bytes: u32,
+        message_bytes: u32,
     ) -> io::Result<(Box<dyn DuplexEnd>, Box<dyn DuplexEnd>)> {
-        let mgmt = MgmtClient::new(&self.mgmt_socket);
+        self.pingpong_pair_for_class(message_bytes, TrafficClass::Normal)
+    }
+}
 
-        let decrypt_ep = mgmt
-            .create_uds(&self.app_id, TrafficClass::Normal, Direction::Decrypt)
-            .map_err(io::Error::other)?;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        let encrypt_ep = mgmt
-            .create_uds(&self.app_id, TrafficClass::Normal, Direction::Encrypt)
-            .map_err(io::Error::other)?;
+    fn spec() -> SecuritySpec {
+        SecuritySpec::routing_tcp()
+    }
 
-        // The client sends on encrypt and reads the echo off decrypt; the
-        // gateway relays between them, so the server end is a no-op stub.
-        let client = Box::new(UdsDuplexClient {
-            tx: encrypt_ep.client,
-            rx: decrypt_ep.client,
-            traffic_id: 1,
-            timeout: RECV_POLL_TIMEOUT,
-        });
-        let server = Box::new(UdsNullServer);
+    #[test]
+    fn uds_rules_are_created_per_traffic_class() {
+        let rules = build_rules_for_classes(
+            &spec(),
+            "app",
+            1000,
+            "127.0.0.1:9000",
+            &[TrafficClass::Normal, TrafficClass::Safety],
+        );
 
-        Ok((client, server))
+        assert_eq!(rules.len(), 4);
+        assert!(rules.iter().any(|r| {
+            r.name == "seshat-encrypt-normal"
+                && r.direction == "encrypt"
+                && r.listen_proto == "uds"
+                && r.traffic_class == "normal"
+        }));
+        assert!(rules.iter().any(|r| {
+            r.name == "seshat-decrypt-safety"
+                && r.direction == "decrypt"
+                && r.listen_proto == "uds"
+                && r.traffic_class == "safety"
+        }));
+    }
+
+    #[test]
+    fn class_labels_accept_legacy_safety_names() {
+        assert_eq!(
+            traffic_class_from_label("safety-critical").unwrap(),
+            TrafficClass::Safety
+        );
+        assert_eq!(
+            traffic_class_from_label("non-safety").unwrap(),
+            TrafficClass::Normal
+        );
     }
 }

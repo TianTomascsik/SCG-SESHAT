@@ -154,6 +154,8 @@ Ready-made configs ship in [`configs/`](configs):
 [`run_all.sh`](run_all.sh) executes the generated `canonical_matrix` plus the
 matched `interface_comparison`, latency, saturation, ping-pong, and connection
 rate suites. `./run_all.sh --nightly` selects the generated exhaustive matrix.
+`./run_all.sh --safety-tests` runs only the safety-isolation unit checks and
+host-QoS dry run, without executing benchmark/performance suites.
 The runner rejects duplicate enabled benchmark shapes before it starts a run
 when `jq` is available.
 
@@ -328,7 +330,16 @@ metrics:
   "mutual_auth": false,     // true → mTLS / mutual DTLS
   "protection_mode": "full",// full | integrity-only | routing-only
   "app_protocol": "none",   // none | ale | raw   (UDP-over-TLS framing)
-  "cipher_suite": null
+  "cipher_suite": null,
+  "resumption": false,
+  "certificates": {
+    "server_cert": "/path/server.pem",
+    "server_key": "/path/server.key",
+    "client_cert": "/path/client.pem",
+    "client_key": "/path/client.key",
+    "ca_cert": "/path/ca.pem",
+    "server_name": "localhost"
+  }
 }
 ```
 

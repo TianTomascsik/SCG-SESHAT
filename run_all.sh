@@ -12,12 +12,13 @@
 #   ./run_all.sh --skip-build           # Skip cargo build
 #   ./run_all.sh --perf                 # Enable perf stat collection
 #   ./run_all.sh --nightly              # Run the exhaustive generated matrix
+#   ./run_all.sh --safety-tests         # Run safety-isolation checks only
 #
 # This script:
 #  1. Builds SESHAT (release) and the SCG gateway
 #  2. Dumps system info for reproducibility
-#  3. Runs the non-overlapping canonical suites (feature matrix, latency,
-#     saturation, RTT, connrate)
+#  3. Runs the non-overlapping canonical suites (feature matrix, profile gate,
+#     latency, saturation, RTT, connrate)
 #  4. Consolidates all results into a performance overview
 #  5. Generates a human-readable summary report
 #
@@ -32,6 +33,7 @@ QUICK=false
 SKIP_BUILD=false
 FILTER=""
 PERF=false
+SAFETY_TESTS=false
 TIER="canonical"
 TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
 
@@ -44,6 +46,8 @@ while [[ $# -gt 0 ]]; do
     --scenario-filter) FILTER="$2"; shift 2 ;;
     --perf)           PERF=true; shift ;;
     --nightly)        TIER="nightly"; shift ;;
+    --safety-tests|--isolation-tests)
+                      SAFETY_TESTS=true; shift ;;
     -h|--help)
       sed -n '2,/^$/p' "$0" | grep '^#' | cut -c3-
       exit 0 ;;
@@ -63,7 +67,7 @@ if [[ "$QUICK" == true ]]; then
 fi
 
 # Perf backend
-if [[ "$PERF" == true ]]; then
+if [[ "$PERF" == true && "$SAFETY_TESTS" == false ]]; then
   if ! command -v perf >/dev/null 2>&1; then
     echo "--perf requires the 'perf' executable (install linux-tools/perf first)" >&2
     exit 2
@@ -73,6 +77,8 @@ if [[ "$PERF" == true ]]; then
     exit 2
   fi
   EXTRA_ARGS+=(--metrics-backend perf)
+elif [[ "$PERF" == true ]]; then
+  echo "--perf is ignored in --safety-tests mode (no benchmark/perf run is executed)" >&2
 fi
 
 # ─── Colors ──────────────────────────────────────────────────────────────────
@@ -107,6 +113,81 @@ subrule() {
   (( fill < 0 )) && fill=0
   echo -e "${DIM}${prefix}$(printf '─%.0s' $(seq 1 $fill))${NC}"
 }
+
+configure_test_targets() {
+  SESHAT_TEST_ENV=(env)
+  if [[ -n "${CARGO_TARGET_DIR:-}" ]]; then
+    SESHAT_TEST_ENV=(env CARGO_TARGET_DIR="$CARGO_TARGET_DIR")
+  elif [[ -e target && ! -w target ]]; then
+    local seshat_target="${TMPDIR:-/tmp}/scg-seshat-target-${USER:-codex}"
+    mkdir -p "$seshat_target"
+    SESHAT_TEST_ENV=(env CARGO_TARGET_DIR="$seshat_target")
+    info "target/ is not writable; using CARGO_TARGET_DIR=$seshat_target"
+  elif [[ ! -e target && ! -w . ]]; then
+    local seshat_target="${TMPDIR:-/tmp}/scg-seshat-target-${USER:-codex}"
+    mkdir -p "$seshat_target"
+    SESHAT_TEST_ENV=(env CARGO_TARGET_DIR="$seshat_target")
+    info "workspace is not writable for target/; using CARGO_TARGET_DIR=$seshat_target"
+  fi
+
+  GATEWAY_TEST_ENV=(env)
+  if [[ -n "${SCG_CARGO_TARGET_DIR:-}" ]]; then
+    GATEWAY_TEST_ENV=(env CARGO_TARGET_DIR="$SCG_CARGO_TARGET_DIR")
+  elif [[ -e ../SCG/target && ! -w ../SCG/target ]]; then
+    local gateway_target="${TMPDIR:-/tmp}/scg-gateway-target-${USER:-codex}"
+    mkdir -p "$gateway_target"
+    GATEWAY_TEST_ENV=(env CARGO_TARGET_DIR="$gateway_target")
+    info "../SCG/target is not writable; using SCG CARGO_TARGET_DIR=$gateway_target"
+  elif [[ ! -e ../SCG/target && ! -w ../SCG ]]; then
+    local gateway_target="${TMPDIR:-/tmp}/scg-gateway-target-${USER:-codex}"
+    mkdir -p "$gateway_target"
+    GATEWAY_TEST_ENV=(env CARGO_TARGET_DIR="$gateway_target")
+    info "../SCG is not writable for target/; using SCG CARGO_TARGET_DIR=$gateway_target"
+  fi
+}
+
+run_seshat_cargo() {
+  "${SESHAT_TEST_ENV[@]}" cargo "$@"
+}
+
+run_gateway_cargo() {
+  (cd ../SCG && "${GATEWAY_TEST_ENV[@]}" cargo "$@")
+}
+
+run_safety_tests() {
+  rule "SAFETY ISOLATION TESTS"
+  configure_test_targets
+
+  info "Running SCG connection-pool isolation tests..."
+  run_gateway_cargo test -p gateway conn_pool
+
+  info "Running SCG endpoint class-key tests..."
+  run_gateway_cargo test -p gateway template_and_owner_keys_are_distinct
+
+  info "Running SCG QoS and Safety scheduling tests..."
+  run_gateway_cargo test -p gateway safety_defaults_to_ef_and_priority
+  run_gateway_cargo test -p gateway normal_defaults_to_none_and_zero_priority
+  run_gateway_cargo test -p gateway safety_priority_never_deprioritizes_and_normal_is_noop
+
+  info "Running SESHAT UDS/SHM class-provisioning tests..."
+  run_seshat_cargo test rules_are_created_per_traffic_class
+  run_seshat_cargo test class_labels_accept_legacy_safety_names
+
+  if [[ -x ../SCG/scripts/scg-host-qos.sh ]]; then
+    info "Validating host QoS helper syntax and dry-run commands..."
+    bash -n ../SCG/scripts/scg-host-qos.sh
+    ../SCG/scripts/scg-host-qos.sh apply --dev eth0 --normal-rate 800mbit --dry-run >/dev/null
+  else
+    warn "SCG host QoS helper not found; skipping shell dry-run"
+  fi
+
+  ok "Safety isolation tests completed"
+}
+
+if [[ "$SAFETY_TESTS" == true ]]; then
+  run_safety_tests
+  exit 0
+fi
 
 # ─── Box-Drawing Table Helpers ───────────────────────────────────────────────
 # Usage: draw_border "top"|"mid"|"bot" width1 width2 ...
@@ -203,6 +284,7 @@ if [[ "$TIER" == "nightly" ]]; then
     configs/full_matrix.json
     configs/interface_comparison.json
     configs/hotreload_matrix.json
+    configs/profile_regression.json
     configs/latency.json
     configs/saturation.json
     configs/pingpong.json
@@ -212,6 +294,7 @@ if [[ "$TIER" == "nightly" ]]; then
     [configs/full_matrix.json]="Exhaustive generated protocol, payload, topology, and scalability matrix"
     [configs/interface_comparison.json]="Matched loopback, SCG TCP, TPROXY, UDS, and SHM comparison"
     [configs/hotreload_matrix.json]="Generated compatible hot-reload matrix"
+    [configs/profile_regression.json]="SCG latency, balanced, and throughput profile regression gate"
     [configs/latency.json]="Paced sub-saturation one-way latency"
     [configs/saturation.json]="Offered-load sweep (find loss-free ceiling)"
     [configs/pingpong.json]="Closed-loop round-trip time"
@@ -221,6 +304,7 @@ else
   CONFIGS=(
     configs/canonical_matrix.json
     configs/interface_comparison.json
+    configs/profile_regression.json
     configs/latency.json
     configs/saturation.json
     configs/pingpong.json
@@ -229,6 +313,7 @@ else
   CONFIG_DESC=(
     [configs/canonical_matrix.json]="Generated compact protocol and transport matrix"
     [configs/interface_comparison.json]="Matched loopback, SCG TCP, TPROXY, UDS, and SHM comparison"
+    [configs/profile_regression.json]="SCG latency, balanced, and throughput profile regression gate"
     [configs/latency.json]="Paced sub-saturation one-way latency"
     [configs/saturation.json]="Offered-load sweep (find loss-free ceiling)"
     [configs/pingpong.json]="Closed-loop round-trip time"

@@ -265,6 +265,13 @@ fn validate_scenario(s: &Scenario) -> ScenarioReport {
         }
     }
 
+    if s.protocol.resumption && s.protocol.kind != ProtocolType::Tls {
+        r.errors
+            .push("protocol.resumption is only valid for TLS/kTLS scenarios".to_string());
+    }
+
+    validate_certificate_selection(s, &mut r);
+
     // Hot-reload needs the gateway.
     if let Some(reload) = &s.reload_event {
         if !s.gateway.enabled {
@@ -294,6 +301,60 @@ fn validate_scenario(s: &Scenario) -> ScenarioReport {
     }
 
     r
+}
+
+fn validate_certificate_selection(s: &Scenario, r: &mut ScenarioReport) {
+    let certs = &s.protocol.certificates;
+    if certs.is_empty() {
+        return;
+    }
+
+    if !matches!(s.protocol.kind, ProtocolType::Tls | ProtocolType::Dtls) {
+        r.errors.push(
+            "protocol.certificates is only valid for TLS, kTLS, or DTLS scenarios".to_string(),
+        );
+    }
+
+    match (&certs.server_cert, &certs.server_key) {
+        (Some(_), None) => r
+            .errors
+            .push("protocol.certificates.server_cert requires server_key".to_string()),
+        (None, Some(_)) => r
+            .errors
+            .push("protocol.certificates.server_key requires server_cert".to_string()),
+        _ => {}
+    }
+
+    match (&certs.client_cert, &certs.client_key) {
+        (Some(_), None) => r
+            .errors
+            .push("protocol.certificates.client_cert requires client_key".to_string()),
+        (None, Some(_)) => r
+            .errors
+            .push("protocol.certificates.client_key requires client_cert".to_string()),
+        _ => {}
+    }
+
+    let pki_profile = s.protocol.profile.as_deref() == Some("subset146-pki");
+    let has_path_material = certs.server_cert.is_some()
+        || certs.server_key.is_some()
+        || certs.client_cert.is_some()
+        || certs.client_key.is_some()
+        || certs.ca_cert.is_some();
+    if (s.protocol.mutual_auth || pki_profile) && has_path_material {
+        if !certs.has_mutual_bundle() {
+            r.errors.push(
+                "protocol.certificates for mutual TLS/subset146-pki must include \
+                 server_cert, server_key, client_cert, client_key, and ca_cert"
+                    .to_string(),
+            );
+        }
+    } else if certs.client_cert.is_some() || certs.client_key.is_some() {
+        r.warnings.push(
+            "protocol.certificates.client_cert/client_key are ignored unless mutual_auth=true"
+                .to_string(),
+        );
+    }
 }
 
 fn validate_addr(interface: Interface, addr: &str, ctx: &str, r: &mut ScenarioReport) {
@@ -672,6 +733,148 @@ mod tests {
             .errors
             .iter()
             .any(|e| e.contains("start_mbps")));
+    }
+
+    #[test]
+    fn tls_resumption_flag_is_validated() {
+        let tls = parse(
+            r#"{ "suite": { "name": "t", "version": "1" },
+                "scenarios": [
+                  { "name": "tls-resume", "protocol": { "type": "tls", "resumption": true },
+                    "sender": { "interface": "tcp", "target_addr": "127.0.0.1:1" } }
+                ] }"#,
+        );
+        assert!(validate(&tls).ok());
+
+        let plain = parse(
+            r#"{ "suite": { "name": "t", "version": "1" },
+                "scenarios": [
+                  { "name": "bad-resume", "protocol": { "type": "none", "resumption": true },
+                    "sender": { "interface": "tcp", "target_addr": "127.0.0.1:1" } }
+                ] }"#,
+        );
+        let rep = validate(&plain);
+        assert!(!rep.ok());
+        assert!(rep.scenarios[0]
+            .errors
+            .iter()
+            .any(|e| e.contains("resumption")));
+    }
+
+    #[test]
+    fn external_certificate_paths_validate_for_ktls() {
+        let cfg = parse(
+            r#"{ "suite": { "name": "t", "version": "1" },
+                "scenarios": [
+                  { "name": "ktls-cert", "gateway": { "enabled": true },
+                    "protocol": {
+                      "type": "tls",
+                      "kernel": true,
+                      "certificates": {
+                        "server_cert": "/certs/server.pem",
+                        "server_key": "/certs/server.key"
+                      }
+                    },
+                    "sender": { "interface": "tcp", "target_addr": "127.0.0.1:1" } }
+                ] }"#,
+        );
+        assert!(validate(&cfg).ok());
+    }
+
+    #[test]
+    fn certificate_pairing_is_validated() {
+        let cfg = parse(
+            r#"{ "suite": { "name": "t", "version": "1" },
+                "scenarios": [
+                  { "name": "bad-cert", "gateway": { "enabled": true },
+                    "protocol": {
+                      "type": "tls",
+                      "certificates": { "server_cert": "/certs/server.pem" }
+                    },
+                    "sender": { "interface": "tcp", "target_addr": "127.0.0.1:1" } }
+                ] }"#,
+        );
+        let rep = validate(&cfg);
+        assert!(!rep.ok());
+        assert!(rep.scenarios[0]
+            .errors
+            .iter()
+            .any(|e| e.contains("server_cert requires server_key")));
+    }
+
+    #[test]
+    fn mutual_certificate_selection_requires_complete_bundle() {
+        let cfg = parse(
+            r#"{ "suite": { "name": "t", "version": "1" },
+                "scenarios": [
+                  { "name": "bad-mtls", "gateway": { "enabled": true },
+                    "protocol": {
+                      "type": "tls",
+                      "mutual_auth": true,
+                      "certificates": {
+                        "server_cert": "/certs/server.pem",
+                        "server_key": "/certs/server.key"
+                      }
+                    },
+                    "sender": { "interface": "tcp", "target_addr": "127.0.0.1:1" } }
+                ] }"#,
+        );
+        let rep = validate(&cfg);
+        assert!(!rep.ok());
+        assert!(rep.scenarios[0]
+            .errors
+            .iter()
+            .any(|e| e.contains("mutual TLS")));
+    }
+
+    #[test]
+    fn certificates_require_crypto_protocol() {
+        let cfg = parse(
+            r#"{ "suite": { "name": "t", "version": "1" },
+                "scenarios": [
+                  { "name": "plain-cert",
+                    "protocol": {
+                      "type": "none",
+                      "certificates": { "server_name": "localhost" }
+                    },
+                    "sender": { "interface": "tcp", "target_addr": "127.0.0.1:1" } }
+                ] }"#,
+        );
+        let rep = validate(&cfg);
+        assert!(!rep.ok());
+        assert!(rep.scenarios[0]
+            .errors
+            .iter()
+            .any(|e| e.contains("TLS, kTLS, or DTLS")));
+    }
+
+    #[test]
+    fn profile_regression_config_validates() {
+        let cfg = parse(include_str!("../../configs/profile_regression.json"));
+        let rep = validate(&cfg);
+        assert!(
+            rep.ok(),
+            "profile regression config should validate cleanly: {:?}",
+            rep
+        );
+        assert_eq!(cfg.scenarios.len(), 30);
+
+        for prefix in ["profile_routing", "profile_tls13", "profile_ktls13"] {
+            for profile in ["latency", "balanced", "throughput"] {
+                assert!(cfg
+                    .scenarios
+                    .iter()
+                    .any(|s| s.name == format!("{prefix}_{profile}_throughput_1KB")));
+                assert!(cfg
+                    .scenarios
+                    .iter()
+                    .any(|s| s.name == format!("{prefix}_{profile}_latency_1KB")));
+                assert!(cfg
+                    .scenarios
+                    .iter()
+                    .any(|s| s.name == format!("{prefix}_{profile}_pingpong_1KB")));
+            }
+        }
     }
 
     #[test]

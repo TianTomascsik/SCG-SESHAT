@@ -175,6 +175,19 @@ pub trait Transport {
         message_bytes: u32,
     ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)>;
 
+    /// Establish a connected pair for a specific gateway traffic class.
+    ///
+    /// Most transports do not need separate local provisioning per class and
+    /// therefore fall back to the normal loopback pair. Gateway-backed UDS/SHM
+    /// override this so safety streams request safety endpoints from SCG.
+    fn loopback_pair_for_class(
+        &self,
+        message_bytes: u32,
+        _traffic_class: &str,
+    ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
+        self.loopback_pair(message_bytes)
+    }
+
     /// Establish one connected `(client, server)` full-duplex pair for the
     /// closed-loop ping-pong RTT mode (Phase F). The client drives the loop;
     /// the server echoes each message back. Transports that cannot offer a

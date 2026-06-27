@@ -12,6 +12,7 @@
 #![allow(dead_code)]
 
 use serde::Deserialize;
+use std::path::PathBuf;
 
 /// Top-level config document.
 #[derive(Debug, Clone, Deserialize)]
@@ -389,6 +390,55 @@ pub struct Protocol {
     /// PSK hex-encoded key material.
     #[serde(default)]
     pub psk_hex: Option<String>,
+    /// Enable TLS session resumption/tickets for reconnect-heavy scenarios.
+    #[serde(default)]
+    pub resumption: bool,
+    /// Certificate material to use instead of SESHAT's generated benchmark PKI.
+    #[serde(default)]
+    pub certificates: CertificateSelection,
+}
+
+/// TLS/DTLS certificate material selected by a scenario.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct CertificateSelection {
+    /// Decrypt-side/server certificate PEM.
+    pub server_cert: Option<PathBuf>,
+    /// Decrypt-side/server private key PEM.
+    pub server_key: Option<PathBuf>,
+    /// Encrypt-side/client certificate PEM for mutual TLS.
+    pub client_cert: Option<PathBuf>,
+    /// Encrypt-side/client private key PEM for mutual TLS.
+    pub client_key: Option<PathBuf>,
+    /// Trust anchor used for peer verification.
+    pub ca_cert: Option<PathBuf>,
+    /// SNI/hostname used by the TLS/DTLS connector.
+    pub server_name: Option<String>,
+}
+
+impl CertificateSelection {
+    /// Whether no certificate-related override was supplied.
+    pub fn is_empty(&self) -> bool {
+        self.server_cert.is_none()
+            && self.server_key.is_none()
+            && self.client_cert.is_none()
+            && self.client_key.is_none()
+            && self.ca_cert.is_none()
+            && self.server_name.is_none()
+    }
+
+    /// Whether the selection contains a complete server identity.
+    pub fn has_server_identity(&self) -> bool {
+        self.server_cert.is_some() && self.server_key.is_some()
+    }
+
+    /// Whether the selection contains a complete mutual-TLS bundle.
+    pub fn has_mutual_bundle(&self) -> bool {
+        self.has_server_identity()
+            && self.client_cert.is_some()
+            && self.client_key.is_some()
+            && self.ca_cert.is_some()
+    }
 }
 
 /// Base protocol type (F-06).
@@ -667,6 +717,18 @@ pub struct OptimizationFlags {
     pub spin_wait_us: Option<u64>,
     /// Socket buffer size override.
     pub sock_buf_size: Option<usize>,
+    /// Splice pipe/chunk size override.
+    pub pipe_size: Option<usize>,
+    /// Userspace relay buffer size override.
+    pub relay_buf_size: Option<usize>,
+    /// TCP_NOTSENT_LOWAT override. A value of 0 disables it.
+    pub notsent_lowat: Option<usize>,
+    /// TCP SO_BUSY_POLL / pre-poll spin override in microseconds.
+    pub busy_poll_us: Option<u32>,
+    /// Enable latency-profile BDP-adaptive sizing.
+    pub bdp_adaptive: bool,
+    /// Target queueing budget for BDP-adaptive sizing.
+    pub bdp_queue_budget_us: Option<u64>,
     /// Number of buffer slots.
     pub buffer_slots: Option<usize>,
     /// Buffer slot size.
@@ -722,6 +784,9 @@ impl Scenario {
                     label.push_str("+integrity");
                 } else if p.mutual_auth {
                     label.push_str("+mtls");
+                }
+                if p.resumption {
+                    label.push_str("+resume");
                 }
                 label
             }

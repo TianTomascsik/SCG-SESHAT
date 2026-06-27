@@ -27,6 +27,7 @@ use crate::gateway::process::GatewayProcess;
 
 /// The type of reload event to inject.
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum ReloadAction {
     /// Rewrite the config file with `new_config` and send SIGHUP.
     ConfigSwap { new_config: GatewayConfig },

@@ -171,6 +171,8 @@ pub struct SecuritySpec {
     pub cipher_list: Option<String>,
     /// TLS 1.3 ciphersuites override.
     pub ciphersuites: Option<String>,
+    /// Enable TLS session resumption/tickets.
+    pub resumption: bool,
     /// Per-direction listen/upstream proto overrides for asymmetric paths
     /// (ALE/RAW: encrypt listens UDP, forwards TCP; decrypt listens TCP,
     /// forwards UDP). When `None`, both directions use `self.proto`.
@@ -184,6 +186,13 @@ pub struct SecuritySpec {
     pub spin_wait_us: u64,
     /// Gateway performance profile (`throughput | latency | balanced`).
     pub perf_profile: Option<String>,
+    pub sock_buf_size: Option<usize>,
+    pub pipe_size: Option<usize>,
+    pub relay_buf_size: Option<usize>,
+    pub notsent_lowat: Option<usize>,
+    pub busy_poll_us: Option<u32>,
+    pub bdp_adaptive: bool,
+    pub bdp_queue_budget_us: Option<u64>,
 }
 
 impl SecuritySpec {
@@ -207,6 +216,7 @@ impl SecuritySpec {
             psk_hex: None,
             cipher_list: None,
             ciphersuites: None,
+            resumption: false,
             encrypt_listen_proto: None,
             encrypt_upstream_proto: None,
             decrypt_listen_proto: None,
@@ -214,6 +224,13 @@ impl SecuritySpec {
             zero_copy: false,
             spin_wait_us: 0,
             perf_profile: None,
+            sock_buf_size: None,
+            pipe_size: None,
+            relay_buf_size: None,
+            notsent_lowat: None,
+            busy_poll_us: None,
+            bdp_adaptive: false,
+            bdp_queue_budget_us: None,
         }
     }
 
@@ -239,6 +256,7 @@ impl SecuritySpec {
             psk_hex: None,
             cipher_list: None,
             ciphersuites: None,
+            resumption: false,
             encrypt_listen_proto: None,
             encrypt_upstream_proto: None,
             decrypt_listen_proto: None,
@@ -246,6 +264,13 @@ impl SecuritySpec {
             zero_copy: false,
             spin_wait_us: 0,
             perf_profile: None,
+            sock_buf_size: None,
+            pipe_size: None,
+            relay_buf_size: None,
+            notsent_lowat: None,
+            busy_poll_us: None,
+            bdp_adaptive: false,
+            bdp_queue_budget_us: None,
         }
     }
 
@@ -272,6 +297,7 @@ impl SecuritySpec {
             psk_hex: None,
             cipher_list: None,
             ciphersuites: None,
+            resumption: false,
             encrypt_listen_proto: None,
             encrypt_upstream_proto: None,
             decrypt_listen_proto: None,
@@ -279,6 +305,13 @@ impl SecuritySpec {
             zero_copy: false,
             spin_wait_us: 0,
             perf_profile: None,
+            sock_buf_size: None,
+            pipe_size: None,
+            relay_buf_size: None,
+            notsent_lowat: None,
+            busy_poll_us: None,
+            bdp_adaptive: false,
+            bdp_queue_budget_us: None,
         }
     }
 
@@ -305,6 +338,7 @@ impl SecuritySpec {
             psk_hex: None,
             cipher_list: None,
             ciphersuites: None,
+            resumption: false,
             encrypt_listen_proto: None,
             encrypt_upstream_proto: None,
             decrypt_listen_proto: None,
@@ -312,6 +346,13 @@ impl SecuritySpec {
             zero_copy: false,
             spin_wait_us: 0,
             perf_profile: None,
+            sock_buf_size: None,
+            pipe_size: None,
+            relay_buf_size: None,
+            notsent_lowat: None,
+            busy_poll_us: None,
+            bdp_adaptive: false,
+            bdp_queue_budget_us: None,
         }
     }
 
@@ -338,6 +379,7 @@ impl SecuritySpec {
             psk_hex: None,
             cipher_list: None,
             ciphersuites: None,
+            resumption: false,
             encrypt_listen_proto: None,
             encrypt_upstream_proto: None,
             decrypt_listen_proto: None,
@@ -345,6 +387,13 @@ impl SecuritySpec {
             zero_copy: false,
             spin_wait_us: 0,
             perf_profile: None,
+            sock_buf_size: None,
+            pipe_size: None,
+            relay_buf_size: None,
+            notsent_lowat: None,
+            busy_poll_us: None,
+            bdp_adaptive: false,
+            bdp_queue_budget_us: None,
         }
     }
 
@@ -381,6 +430,41 @@ impl SecuritySpec {
         self
     }
 
+    /// Enable/disable TLS session resumption.
+    pub fn with_resumption(mut self, enabled: bool) -> Self {
+        self.resumption = enabled;
+        self
+    }
+
+    /// Override the generated benchmark PKI with scenario-selected certificate
+    /// material. Any field left unset keeps the identity already present on the
+    /// spec, which lets SESHAT generate the missing default when no explicit
+    /// certificate was requested.
+    pub fn with_certificate_selection(
+        mut self,
+        certs: &crate::config::schema::CertificateSelection,
+    ) -> Self {
+        if let Some(v) = &certs.server_cert {
+            self.server_cert = Some(v.clone());
+        }
+        if let Some(v) = &certs.server_key {
+            self.server_key = Some(v.clone());
+        }
+        if let Some(v) = &certs.client_cert {
+            self.client_cert = Some(v.clone());
+        }
+        if let Some(v) = &certs.client_key {
+            self.client_key = Some(v.clone());
+        }
+        if let Some(v) = &certs.ca_cert {
+            self.ca_cert = Some(v.clone());
+        }
+        if let Some(v) = &certs.server_name {
+            self.server_name = Some(v.clone());
+        }
+        self
+    }
+
     /// Configure asymmetric per-direction protocols for ALE/RAW UDP-over-TLS.
     ///
     /// ALE/RAW framing: encrypt listens on UDP, forwards to TCP (TLS); decrypt
@@ -400,6 +484,13 @@ impl SecuritySpec {
         self.zero_copy = flags.zero_copy;
         self.spin_wait_us = flags.spin_wait_us.unwrap_or(0);
         self.perf_profile = flags.perf_profile.clone();
+        self.sock_buf_size = flags.sock_buf_size;
+        self.pipe_size = flags.pipe_size;
+        self.relay_buf_size = flags.relay_buf_size;
+        self.notsent_lowat = flags.notsent_lowat;
+        self.busy_poll_us = flags.busy_poll_us;
+        self.bdp_adaptive = flags.bdp_adaptive;
+        self.bdp_queue_budget_us = flags.bdp_queue_budget_us;
         self
     }
 
@@ -430,10 +521,20 @@ impl SecuritySpec {
         if let Some(v) = &self.ciphersuites {
             rule = rule.param("ciphersuites", v.clone());
         }
+        if self.resumption {
+            rule = rule.param("resumption", true);
+        }
         // Optimization flags (F1/F2/perf_profile).
         rule.zero_copy = self.zero_copy;
         rule.spin_wait_us = self.spin_wait_us;
         rule.perf_profile = self.perf_profile.clone();
+        rule.sock_buf_size = self.sock_buf_size;
+        rule.pipe_size = self.pipe_size;
+        rule.relay_buf_size = self.relay_buf_size;
+        rule.notsent_lowat = self.notsent_lowat;
+        rule.busy_poll_us = self.busy_poll_us.unwrap_or(0);
+        rule.bdp_adaptive = self.bdp_adaptive;
+        rule.bdp_queue_budget_us = self.bdp_queue_budget_us;
         rule
     }
 
@@ -812,6 +913,97 @@ mod tests {
         assert_eq!(plan.gateways[1].config.rules.len(), 1);
         assert_eq!(plan.gateways[0].config.rules[0].direction, "encrypt");
         assert_eq!(plan.gateways[1].config.rules[0].direction, "decrypt");
+    }
+
+    #[test]
+    fn selected_certificates_are_emitted_to_tls_rules() {
+        let generated = crate::pki::CaBundle {
+            ca_cert: PathBuf::from("/generated/ca.pem"),
+            server: crate::pki::Identity {
+                cert: PathBuf::from("/generated/server.pem"),
+                key: PathBuf::from("/generated/server.key"),
+            },
+            client: crate::pki::Identity {
+                cert: PathBuf::from("/generated/client.pem"),
+                key: PathBuf::from("/generated/client.key"),
+            },
+        };
+        let certs = crate::config::schema::CertificateSelection {
+            server_cert: Some(PathBuf::from("/chosen/server.pem")),
+            server_key: Some(PathBuf::from("/chosen/server.key")),
+            client_cert: Some(PathBuf::from("/chosen/client.pem")),
+            client_key: Some(PathBuf::from("/chosen/client.key")),
+            ca_cert: Some(PathBuf::from("/chosen/ca.pem")),
+            server_name: Some("bench.local".to_string()),
+        };
+        let spec =
+            SecuritySpec::tls_mutual("tls1.3", &generated).with_certificate_selection(&certs);
+        let plan = build_path(&spec, Topology::SingleGateway, "127.0.0.1:65002").unwrap();
+        let enc = &plan.gateways[0].config.rules[0];
+        let dec = &plan.gateways[0].config.rules[1];
+
+        assert_eq!(enc.provider_params["verify"].as_str(), Some("server"));
+        assert_eq!(
+            enc.provider_params["server_name"].as_str(),
+            Some("bench.local")
+        );
+        assert_eq!(
+            enc.provider_params["cert_path"].as_str(),
+            Some("/chosen/client.pem")
+        );
+        assert_eq!(
+            enc.provider_params["key_path"].as_str(),
+            Some("/chosen/client.key")
+        );
+        assert_eq!(
+            enc.provider_params["ca_path"].as_str(),
+            Some("/chosen/ca.pem")
+        );
+        assert_eq!(dec.provider_params["verify"].as_str(), Some("mutual"));
+        assert_eq!(
+            dec.provider_params["cert_path"].as_str(),
+            Some("/chosen/server.pem")
+        );
+        assert_eq!(
+            dec.provider_params["key_path"].as_str(),
+            Some("/chosen/server.key")
+        );
+        assert_eq!(
+            dec.provider_params["ca_path"].as_str(),
+            Some("/chosen/ca.pem")
+        );
+    }
+
+    #[test]
+    fn ktls_keeps_selected_server_certificate() {
+        let certs = crate::config::schema::CertificateSelection {
+            server_cert: Some(PathBuf::from("/chosen/server.pem")),
+            server_key: Some(PathBuf::from("/chosen/server.key")),
+            ..Default::default()
+        };
+        let spec = SecuritySpec::tls_server(
+            "tls1.3",
+            Path::new("/generated/server.pem"),
+            Path::new("/generated/server.key"),
+        )
+        .provider("ktls")
+        .with_certificate_selection(&certs);
+        let plan = build_path(&spec, Topology::SingleGateway, "127.0.0.1:65003").unwrap();
+        let enc = &plan.gateways[0].config.rules[0];
+        let dec = &plan.gateways[0].config.rules[1];
+
+        assert_eq!(enc.security_provider, "ktls");
+        assert_eq!(dec.security_provider, "ktls");
+        assert_eq!(enc.provider_params["verify"].as_str(), Some("none"));
+        assert_eq!(dec.provider_params["verify"].as_str(), Some("none"));
+        assert_eq!(
+            dec.provider_params["cert_path"].as_str(),
+            Some("/chosen/server.pem")
+        );
+        assert_eq!(
+            dec.provider_params["key_path"].as_str(),
+            Some("/chosen/server.key")
+        );
     }
 
     /// Serve exactly one 4-byte echo, tolerating spurious readiness-probe
