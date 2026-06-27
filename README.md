@@ -149,6 +149,11 @@ Ready-made configs ship in [`configs/`](configs):
   time (`mode: pingpong`), loopback TCP/UDP.
 - [`configs/connrate.json`](configs/connrate.json) — loopback and gateway
   completed-path connection-establishment rate/latency (`mode: connrate`).
+- [`configs/perf_investigation.json`](configs/perf_investigation.json) — curated
+  **diagnostic** suite for improving SCG latency/throughput: per-path baselines,
+  A/B optimization-knob pairs (zero_copy, spin_wait, perf_profile), saturation
+  degradation curves, paced latency, RTT, and handshake cost. Driven by
+  [`scripts/collect_perf_data.sh`](scripts/collect_perf_data.sh) (below).
 
 ---
 
@@ -175,11 +180,17 @@ when `jq` is available.
 | Connection establishment | TCP connect/accept/close churn across configurable connector threads | Connections/second and completed-path establishment latency percentiles |
 | Multi-stream QoS | Concurrent safety, monitoring, and bulk streams with DSCP/traffic-class settings | Per-stream throughput/latency/loss, fairness, and safety-starvation verdict |
 | Reliability and reload | Traffic continues while an endpoint is added/removed or a configuration reload is triggered | Drop count and continuity verdict during the event |
-| System resource use | Samples attached gateway PIDs during every gateway-backed run | CPU, RSS/PSS, context switches, I/O; `--perf` additionally records cycles, instructions, IPC, cache references/misses, syscalls, task-clock, and elapsed time |
+| System resource use | Samples attached gateway PIDs during every gateway-backed run | CPU, RSS/PSS, **process-wide context switches** (summed across threads), I/O; `--perf` additionally records cycles, instructions, IPC, cache references/misses, syscalls, task-clock, and elapsed time |
+| Memory copies per message | `--metrics-backend ebpf` runs a `bpftrace` probe over the gateway PIDs (needs root) | `mem_copies_per_msg` — user↔kernel payload copies ÷ messages; ~0 on the splice/kTLS zero-copy paths, >0 on userspace TLS |
+| Session resumption | The gateway logs `resumed=` per TLS/kTLS accept; the log scan counts them | `resumed_fraction` — ground-truth resumed-vs-full handshakes, alongside the timing-based first/resumed handshake latency |
 
-`perf` metrics are collected only when `--perf` is explicitly requested and the
-host can attach `perf stat`; the runner fails rather than publishing a report
-with blank requested hardware counters.
+CPU-seconds and context-switch **totals are exact** (cumulative-counter deltas,
+independent of the sample rate); only peaks come from the timeseries. Open-loop
+**latency is coordinated-omission-corrected** for paced senders (each row carries
+`co_corrected` and the `send_lag_*` magnitude). `perf` metrics are collected only
+when the host can attach `perf stat`; `ebpf`/flamegraph stages need root. The full
+methodology and its limitations are documented in
+[`docs/methodology.md`](docs/methodology.md).
 
 ### Full feature suite coverage
 
@@ -201,12 +212,42 @@ The groups below make the scenario names and intent visible at a glance.
 | Virtual topology and impairment | `scg_routing_veth_4KB`, `scg_tls13_netns_4KB`, `scg_routing_netem_50ms_4KB`, `scg_routing_netem_1pct_loss_4KB` (all require `CAP_NET_ADMIN`) |
 
 The generated catalog explicitly marks technical limitations that would
-otherwise misrepresent a result: DTLS multi-connection reporting (one shared
-backend datagram flow), kTLS+mTLS (SCG falls back to userspace TLS), TLS session
-resumption (no ticket/cache telemetry), and TLS-profile reload (SCG has no
-changed-rule reload acknowledgement yet). IPSec is outside the benchmark scope.
-A missing gateway binary, OpenSSL, kTLS, perf permission, or required privileges
-produces a recorded skip rather than a fabricated result.
+otherwise misrepresent a result: DTLS multi-connection reporting (the gateway
+demuxes by peer, but all sessions share one backend socket so the harness cannot
+attribute per-connection metrics), kTLS+mTLS (SCG falls back to userspace TLS),
+and TLS-profile reload (the SCG config diff is name-keyed, so a same-name profile
+change is a no-op — the harness flags `change_applied=false`). Session resumption
+*is* now reported as ground truth via the gateway's `resumed=` log
+(`resumed_fraction`). IPSec is outside the benchmark scope. A missing gateway
+binary, OpenSSL, kTLS, perf permission, or required privileges produces a
+recorded skip rather than a fabricated result.
+
+### Performance data collection (one-shot)
+
+To gather everything needed to diagnose and improve SCG latency/throughput in a
+single bundle, run [`scripts/collect_perf_data.sh`](scripts/collect_perf_data.sh):
+
+```bash
+# fast, curated diagnostic (per-path + A/B knobs + saturation + latency + connrate)
+scripts/collect_perf_data.sh
+# run as root to also capture memory-copies-per-message and a gateway CPU flamegraph
+sudo scripts/collect_perf_data.sh
+# broaden coverage: all features/transports/QoS, then the combinatorial sweep
+sudo SCOPE=full   scripts/collect_perf_data.sh
+# exhaustive combinations — triage-grade; shorten the per-point window to stay tractable,
+# then re-measure the interesting points at full rigor. MATRIX_FILE=full_matrix.json = largest tier.
+sudo SCOPE=matrix RUNS=3 DURATION=4s scripts/collect_perf_data.sh
+```
+
+It first **preflights every prerequisite** (cargo, openssl, perf + paranoid level,
+bpftrace, root, `CAP_NET_ADMIN`, ip/tc/iptables, taskset/cpupower) and prints a
+checklist of what each gates, then builds both binaries, captures the host
+fingerprint and harness calibration, runs the selected suite(s) with `perf`
+hardware counters (and `ebpf` memory-copies when root), profiles the gateway
+under load into a flamegraph (root/perf), and writes a timestamped bundle plus
+`MANIFEST.txt` under `perf-data/`. Privileged stages degrade to `[SKIPPED]` with a
+reason rather than failing. Knobs: `SCOPE`, `RUNS`, `DURATION`, `PROFILE_SECS`,
+`GATEWAY_BIN`, `SKIP_BUILD`, `SKIP_FLAMEGRAPH` (see the script header).
 
 ### WireGuard (kernel offload)
 
@@ -261,6 +302,7 @@ metadata lives in [`configs/wireguard.json`](configs/wireguard.json). On Arch:
 | [`saturation.json`](configs/saturation.json) | `sat_tcp_loopback_1KB`, `sat_udp_loopback_1KB`, `sat_scg_routing_tcp_1KB`, `sat_scg_dtls12_udp_1KB`: offered-load sweeps and loss-free ceilings |
 | [`pingpong.json`](configs/pingpong.json) | `pp_tcp_loopback_64B`, `pp_tcp_loopback_1KB`, `pp_udp_loopback_64B`, `pp_udp_loopback_1KB`: loopback closed-loop RTT controls |
 | [`connrate.json`](configs/connrate.json) | `conn_tcp_loopback_1thread`, `conn_tcp_loopback_4thread`: TCP connection/handshake rate controls |
+| [`perf_investigation.json`](configs/perf_investigation.json) | `path_*`, `ab_*` (zero_copy/spin_wait/perf_profile A/B), `sat_*`, `lat_*`, `connrate_tls13`: diagnostic suite driven by `scripts/collect_perf_data.sh` |
 
 ---
 
