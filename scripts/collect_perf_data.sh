@@ -76,7 +76,7 @@ thread_cpu_report() {
   echo "tid,comm,cpu_pct_of_one_core"
   awk -v secs="$secs" -v clk="$clk" '
     NR==FNR { j0[$1]=$3; next }
-    { d=$3-j0[$1]; if(d<0)d=0; printf "%s,%s,%.1f\n",$1,$2,(d/clk)/secs*100 }
+    { d=$3-j0[$1]; if(d<0)d=0; printf "%s,%s,%.2f\n",$1,$2,(d/clk)/secs*100 }
   ' "$before" "$after" | sort -t, -k3 -nr
 }
 
@@ -247,20 +247,54 @@ if [ "$PERF_RECORD_OK" -eq 1 ] && [ "${SKIP_FLAMEGRAPH:-0}" != "1" ]; then
     note "WARN: no rebuild available (SKIP_BUILD / GATEWAY_BIN) — gateway frames may stay unresolved"
   fi
   man "profile gateway_bin: $GW_PROFILE"
+  SESHAT_PID=""   # defined up-front so the trailing `wait` is safe under `set -u`
 
-  note "driving '$PROFILE_SCENARIO' and recording the gateway for ${PROFILE_SECS}s @ ${PROFILE_FREQ}Hz"
+  # Resolve which config actually contains PROFILE_SCENARIO: the default
+  # (diagnostic) config first, then any other configs/*.json. Lets a UDP/DTLS or
+  # features scenario be profiled without the caller knowing which suite owns it,
+  # and fails loudly on a typo instead of silently driving nothing.
+  PROFILE_CONFIG="$CONFIG"
+  if ! grep -q "\"$PROFILE_SCENARIO\"" "$CONFIG" 2>/dev/null; then
+    for c in "$SESHAT_DIR"/configs/*.json; do
+      grep -q "\"$PROFILE_SCENARIO\"" "$c" 2>/dev/null && { PROFILE_CONFIG="$c"; break; }
+    done
+  fi
+  GWPID=""
+  if ! grep -q "\"$PROFILE_SCENARIO\"" "$PROFILE_CONFIG" 2>/dev/null; then
+    note "[SKIPPED] PROFILE_SCENARIO '$PROFILE_SCENARIO' not found in any configs/*.json — set a valid scenario name"
+    man  "profile: SKIPPED (PROFILE_SCENARIO '$PROFILE_SCENARIO' not in any config)"
+  else
+  note "driving '$PROFILE_SCENARIO' ($(basename "$PROFILE_CONFIG")) and recording the gateway for ${PROFILE_SECS}s @ ${PROFILE_FREQ}Hz"
+  # Pre-existing gateways (a system service, a stray dev run) must NOT be profiled
+  # by mistake — record the set that exists *before* the load so we can pick the
+  # new, seshat-spawned one afterwards.
+  PRE_GW=" $(pgrep -x gateway 2>/dev/null | tr '\n' ' ')"
+
   # Long single-scenario run in the background; attach perf to the live gateway.
-  # The load run launches the symbolised gateway via SCG_GATEWAY_BIN.
-  SCG_GATEWAY_BIN="$GW_PROFILE" run_seshat run --config "$CONFIG" --output-dir "$PROF_DIR/load" \
+  # `export` (not a prefix) so seshat's child actually launches the *symbolised*
+  # binary; the global export at Stage 0 otherwise pins it to the stripped release.
+  export SCG_GATEWAY_BIN="$GW_PROFILE"
+  run_seshat run --config "$PROFILE_CONFIG" --output-dir "$PROF_DIR/load" \
     --runs 1 --duration "$((PROFILE_SECS + 8))s" --warmup 3s \
     --scenario "$PROFILE_SCENARIO" >"$PROF_DIR/load.log" 2>&1 &
   SESHAT_PID=$!
-  GWPID=""
-  for _ in $(seq 1 100); do
-    GWPID="$(pgrep -x gateway | head -1 || true)"
+  # Pick the gateway PID that appeared *after* the load started (the one under test),
+  # never a pre-existing idle gateway. Prefer one whose /proc/<pid>/exe matches the
+  # symbolised binary; fall back to the newest non-pre-existing gateway.
+  for _ in $(seq 1 150); do
+    # Stop early if the load run already failed on a fatal config/bind error.
+    grep -qiE 'no scenario named|Failed to bind|address already in use' "$PROF_DIR/load.log" 2>/dev/null && break
+    for p in $(pgrep -x gateway 2>/dev/null | sort -rn); do
+      case "$PRE_GW" in *" $p "*) continue;; esac          # skip pre-existing
+      exe="$(readlink -f "/proc/$p/exe" 2>/dev/null || true)"
+      if [ "$exe" = "$(readlink -f "$GW_PROFILE" 2>/dev/null)" ]; then GWPID="$p"; break; fi
+      [ -z "$GWPID" ] && GWPID="$p"                          # fallback: newest fresh gateway
+    done
     [ -n "$GWPID" ] && break
     sleep 0.2
   done
+  [ -n "$GWPID" ] && note "profiling gateway pid $GWPID (exe: $(readlink -f /proc/$GWPID/exe 2>/dev/null || echo '?'))"
+  fi
   if [ -n "$GWPID" ]; then
     sleep 2  # let it reach steady state
 
@@ -277,29 +311,40 @@ if [ "$PERF_RECORD_OK" -eq 1 ] && [ "${SKIP_FLAMEGRAPH:-0}" != "1" ]; then
       >"$PROF_DIR/threads.csv" 2>/dev/null || true
     rm -f "$PROF_DIR/.threads.before" "$PROF_DIR/.threads.after"
 
-    # Hottest thread overall + hottest data-plane (rule-*) thread.
-    HOT_LINE="$(tail -n +2 "$PROF_DIR/threads.csv" 2>/dev/null | head -1)"
-    HOT_COMM="$(printf '%s' "$HOT_LINE" | cut -d, -f2)"
-    HOT_PCT="$(printf  '%s' "$HOT_LINE" | cut -d, -f3)"
-    RULE_COMM="$(tail -n +2 "$PROF_DIR/threads.csv" 2>/dev/null | awk -F, '$2 ~ /^rule-/{print $2; exit}')"
-    [ -n "$HOT_COMM" ] && note "hottest thread: $HOT_COMM (${HOT_PCT:-?}% of one core)"
-    if [ -n "$HOT_PCT" ] && awk -v p="$HOT_PCT" 'BEGIN{exit !(p+0 >= 90)}'; then
-      man "profile load: OK — hottest thread $HOT_COMM at ${HOT_PCT}% of a core (>=90%, SCG-bound)"
-    else
-      note "[LOW-LOAD] hottest thread only ${HOT_PCT:-?}% of a core — profile may be harness-limited, not SCG-bound"
-      man "profile load: [LOW-LOAD] hottest thread $HOT_COMM at ${HOT_PCT:-?}% (<90%) — interpret with care"
-    fi
-
-    # Full report, per-thread (comm) breakdown, and a data-plane-only view.
+    # Generate perf reports first; we derive the hot data-plane thread from perf's
+    # own per-comm overhead (robust), not from /proc CPU% — the zero-copy splice
+    # relay shows near-zero utime+stime even when it is the bottleneck.
     perf report --stdio -i "$PROF_DIR/perf.data" >"$PROF_DIR/perf-report.txt" 2>/dev/null && note "perf-report.txt"
     perf report --stdio -i "$PROF_DIR/perf.data" --sort comm,dso >"$PROF_DIR/perf-report-by-thread.txt" 2>/dev/null \
       && note "perf-report-by-thread.txt"
-    if [ -n "$RULE_COMM" ]; then
-      perf report --stdio -i "$PROF_DIR/perf.data" --comms "$RULE_COMM" \
-        >"$PROF_DIR/perf-report-dataplane.txt" 2>/dev/null \
-        && note "perf-report-dataplane.txt (thread $RULE_COMM)"
+
+    # Busiest comm overall, and busiest *data-plane* comm (rule-*/-pool-*/relay), per perf.
+    HOT_COMM="$(awk '/^[[:space:]]+[0-9.]+%/{print $3; exit}' "$PROF_DIR/perf-report-by-thread.txt" 2>/dev/null)"
+    DP_COMM="$(awk '/^[[:space:]]+[0-9.]+%/{ if($3 ~ /rule-|pool|relay/){print $3; exit} }' "$PROF_DIR/perf-report-by-thread.txt" 2>/dev/null)"
+    [ -z "$DP_COMM" ] && DP_COMM="$HOT_COMM"
+    DP_CPU="$(awk -F, 'NR>1 && $2 ~ /rule-|pool|relay/{print $3; exit}' "$PROF_DIR/threads.csv" 2>/dev/null)"
+
+    # Authoritative SCG-bound-vs-harness signal: seshat's own calibration-based
+    # headroom verdict from the load run (our CPU% is only supporting evidence).
+    HEADROOM_LINE="$(grep -aE 'Headroom|bottleneck' "$PROF_DIR/load.log" 2>/dev/null | tail -1 | sed 's/^[[:space:]]*//')"
+    note "busiest thread: ${HOT_COMM:-?}; data-plane: ${DP_COMM:-?} (~${DP_CPU:-?}% of a core)"
+    [ -n "$HEADROOM_LINE" ] && note "seshat verdict: $HEADROOM_LINE"
+    if printf '%s' "$HEADROOM_LINE" | grep -q 'HARNESS-LIMITED'; then
+      note "[HARNESS-LIMITED] load did not saturate SCG — flamegraph shows the I/O-bound regime, not a CPU bottleneck"
+      man "profile load: [HARNESS-LIMITED] busiest=$HOT_COMM data-plane=$DP_COMM (~${DP_CPU:-?}% core) — $HEADROOM_LINE"
+    elif printf '%s' "$HEADROOM_LINE" | grep -qiE 'bottleneck:?[[:space:]]*scg'; then
+      man "profile load: OK (SCG-bound) — data-plane $DP_COMM ~${DP_CPU:-?}% core — $HEADROOM_LINE"
     else
-      note "no rule-* data-plane thread sampled — check PROFILE_SCENARIO / load"
+      man "profile load: data-plane $DP_COMM ~${DP_CPU:-?}% core — ${HEADROOM_LINE:-no headroom line}"
+    fi
+
+    # Data-plane-only view, filtered to the busiest data-plane thread per perf.
+    if [ -n "$DP_COMM" ]; then
+      perf report --stdio -i "$PROF_DIR/perf.data" --comms "$DP_COMM" \
+        >"$PROF_DIR/perf-report-dataplane.txt" 2>/dev/null \
+        && note "perf-report-dataplane.txt (thread $DP_COMM)"
+    else
+      note "no data-plane thread sampled — check PROFILE_SCENARIO / load / pid selection"
     fi
 
     # Folded stacks + SVG when a flamegraph tool is present.
