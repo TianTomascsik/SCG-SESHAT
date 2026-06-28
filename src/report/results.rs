@@ -189,10 +189,12 @@ pub struct ReloadArtifact {
     pub throughput_gbps: f64,
     pub rollback_continuity_passed: Option<bool>,
     /// Whether the requested change actually took effect. `Some(false)` for a
-    /// same-name TLS-profile / cert reload, which the SCG's name-keyed config
-    /// diff classifies as `unchanged` and never applies — so a zero-drop result
-    /// is a no-op, not proof of seamless in-place reload. `None` when not
-    /// classified (add/remove connection, invalid-config rollback).
+    /// same-name TLS-profile / cert reload, because the harness only SIGHUPs the
+    /// *unchanged* config file (no diff is produced). The gateway itself now
+    /// applies same-name field changes (`diff`'s `changed` bucket), but this
+    /// action does not rewrite the file to trigger it — so a zero-drop result is
+    /// a no-op, not proof of seamless in-place reload. `None` when not classified
+    /// (add/remove connection, invalid-config rollback).
     pub change_applied: Option<bool>,
 }
 

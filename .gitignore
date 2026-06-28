@@ -11,3 +11,5 @@
 *.log
 
 results/*
+
+perf-data/

@@ -172,7 +172,10 @@ mod tests {
 
     #[test]
     fn profile_lookup() {
-        assert_eq!(profile_from_protocol("tls13"), Some(EncapProfile::Tls13Aead));
+        assert_eq!(
+            profile_from_protocol("tls13"),
+            Some(EncapProfile::Tls13Aead)
+        );
         assert_eq!(profile_from_protocol("dtls"), Some(EncapProfile::Dtls12Gcm));
         assert_eq!(profile_from_protocol("unknown"), None);
     }

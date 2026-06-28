@@ -27,7 +27,7 @@ with a non-zero inter-message gap; *blast* = an unthrottled open-loop sender.
 | Coordinated-omission-corrected latency | **Implemented (paced)** | `src/run/engine.rs` (scheduled-send stamping) |
 | Reproducibility capture: governor, **turbo**, SMT, isolcpus, **NUMA**, THP, **git hashes** + preflight warnings | **Implemented** | `src/sysinfo.rs` (`preflight_warnings`) |
 | DTLS/UDP **multi-connection** per-connection metrics | **Not measured (scoped)** | gateway demuxes by peer but forwards to one backend; see §4 |
-| Hot-reload **TLS-profile swap on active connection** | **Not effective (no-op)** | SCG diff is name-keyed; see §4 |
+| Hot-reload **TLS-profile swap on active connection** | **Gateway field-aware; harness no-op** | SCG `diff` now restarts changed same-name rules; SESHAT reload action doesn't yet rewrite the file. See §4 |
 | WireGuard in the **unified `seshat run`** table | **Out of unified run** | script-orchestrated `scripts/wg_*.sh`; see §4 |
 | IPSec/IKEv2 | **Not implemented (SCG stub)** | disabled scenarios |
 
@@ -162,15 +162,22 @@ are deterministic; CSV-only, per-run output enables independent re-analysis.
    Correct per-connection metrics need either N independent ingress→backend rule
    pairs or an aggregate-only N-flow receiver. The 4-conn scenario is kept
    disabled rather than emit wrong numbers.
-5. **Hot-reload TLS-profile / cert change is a no-op on the current SCG.** The
-   gateway's config diff matches rules **by name only**
-   (`GatewayConfig::diff`), so a same-name rule whose profile changed is
-   classified `unchanged` and never re-applied. A zero-drop result therefore
-   proves nothing (nothing happened); the harness flags this as
-   `change_applied=false` and the scenario is disabled. Add/remove connection
-   (gRPC) and invalid-config rollback *do* take effect and must stay zero-drop.
-   True seamless profile reload needs an SCG enhancement (content-aware diff or a
-   gRPC rule-update API).
+5. **Hot-reload TLS-profile / cert change: gateway now field-aware; harness
+   scenario not yet exercising it.** *Historical note:* the gateway's
+   `GatewayConfig::diff` used to match rules **by name only**, so a same-name
+   rule whose profile changed was classified `unchanged` and never re-applied
+   (a true no-op). That gateway limitation has since been fixed: `diff` now has a
+   `changed` bucket driven by `RuleConfig::reload_differs`, which compares
+   security-relevant fields (provider, upstream, protocol, profile, `verify`,
+   cert/CA, classification, QoS) and restarts the affected listener. So a
+   same-name field change **is** now applied by the gateway. SESHAT's
+   `UpdateTlsProfile`/`RotateCert` actions, however, currently only send SIGHUP
+   *without rewriting the config file*, so at the harness level they remain a
+   no-op and are still reported `change_applied=false` — the limitation is now on
+   the harness side, not the gateway. Exercising the new capability requires the
+   reload action to write a modified same-name rule (future work). Add/remove
+   connection (gRPC) and invalid-config rollback *do* take effect and stay
+   zero-drop.
 6. **WireGuard is not in the unified `seshat run` table.** It is a kernel offload
    that needs a separate network namespace per gateway; the in-process spawn is
    not netns-aware and the distributed sender/receiver are TCP-only. WG is

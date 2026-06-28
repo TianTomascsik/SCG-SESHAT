@@ -8,6 +8,12 @@
 # cost, perf hardware counters (IPC/cache/syscalls), memory-copies-per-message
 # (root + bpftrace), and a CPU flamegraph of the gateway under load (root/perf).
 #
+# The flamegraph stage profiles a *symbolised* gateway (built with the `profiling`
+# cargo profile so frames resolve, not bare hex), reports per-thread CPU% so the
+# hot data-plane thread (`rule-*`) is identified mechanically, emits a data-plane-
+# only report, and flags [LOW-LOAD] when no thread saturates a core (i.e. the
+# profile is harness-limited rather than SCG-bound).
+#
 # Everything degrades gracefully: unprivileged runs still yield the full CSV
 # dataset; perf/eBPF/flamegraph stages print [SKIPPED] with the reason.
 #
@@ -21,7 +27,7 @@
 #                    hot-reload; veth/netns topologies) + interface_comparison.json (transports)
 #     matrix     — + generated size×connections×protocol×transport sweep (long).
 #                  MATRIX_FILE=full_matrix.json for the exhaustive ~1.6k-row sweep (hours).
-#   RUNS=3 DURATION=6s PROFILE_SECS=15 PROFILE_SCENARIO=path_routing_4KB
+#   RUNS=3 DURATION=6s PROFILE_SECS=30 PROFILE_FREQ=4000 PROFILE_SCENARIO=path_routing_4KB
 #   GATEWAY_BIN=/path/to/gateway   SKIP_FLAMEGRAPH=1   SKIP_BUILD=1
 set -uo pipefail
 
@@ -36,13 +42,43 @@ MANIFEST="$OUT_DIR/MANIFEST.txt"
 
 RUNS="${RUNS:-3}"
 DURATION="${DURATION:-6s}"
-PROFILE_SECS="${PROFILE_SECS:-15}"
+PROFILE_SECS="${PROFILE_SECS:-30}"
+PROFILE_FREQ="${PROFILE_FREQ:-4000}"
 PROFILE_SCENARIO="${PROFILE_SCENARIO:-path_routing_4KB}"
 CONFIG="$SESHAT_DIR/configs/perf_investigation.json"
 
 log()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 note() { printf '    %s\n' "$*"; }
 man()  { printf '%s\n' "$*" >>"$MANIFEST"; }
+
+# Snapshot per-thread CPU jiffies for a live process — "tid comm utime+stime"
+# per thread. `comm` may contain spaces/parens, so we split on the last ')'.
+snapshot_thread_jiffies() {
+  local pid="$1" t
+  for t in /proc/"$pid"/task/*/stat; do
+    [ -r "$t" ] || continue
+    awk '{
+      tid=$1; line=$0
+      lp=index(line,"(")
+      rp=0; for(i=length(line);i>0;i--){ if(substr(line,i,1)==")"){ rp=i; break } }
+      comm=substr(line, lp+1, rp-lp-1)
+      n=split(substr(line, rp+2), f, " ")   # f[1]=state(field3) ... utime=field14=>f[12], stime=field15=>f[13]
+      print tid, comm, f[12]+f[13]
+    }' "$t"
+  done
+}
+
+# Turn two jiffie snapshots into a CSV of per-thread CPU% of one core over `secs`,
+# busiest first. Lets us flag a flamegraph taken on an idle (harness-limited) gateway.
+thread_cpu_report() {
+  local before="$1" after="$2" secs="$3" clk
+  clk="$(getconf CLK_TCK 2>/dev/null || echo 100)"
+  echo "tid,comm,cpu_pct_of_one_core"
+  awk -v secs="$secs" -v clk="$clk" '
+    NR==FNR { j0[$1]=$3; next }
+    { d=$3-j0[$1]; if(d<0)d=0; printf "%s,%s,%.1f\n",$1,$2,(d/clk)/secs*100 }
+  ' "$before" "$after" | sort -t, -k3 -nr
+}
 
 : >"$MANIFEST"
 man "SCG performance data bundle — $STAMP"
@@ -110,14 +146,15 @@ fi
 # build, then a release build into a writable alt target dir (the shared
 # target/ may be permission-locked), then any existing debug binary.
 GW="${GATEWAY_BIN:-}"
+GW_TARGET_DIR=""   # cargo target dir used for the release build; reused for the profiling build (Stage 5)
 if [ -z "$GW" ] && [ -n "$SCG_DIR" ] && [ "${SKIP_BUILD:-0}" != "1" ]; then
   log "Building SCG gateway (release)"
   if ( cd "$SCG_DIR" && cargo build --release -p gateway --quiet ) 2>/dev/null && [ -x "$SCG_DIR/target/release/gateway" ]; then
-    GW="$SCG_DIR/target/release/gateway"
+    GW="$SCG_DIR/target/release/gateway"; GW_TARGET_DIR="$SCG_DIR/target"
   else
     note "shared target/ not writable — building into $OUT_DIR/scg-target"
     if ( cd "$SCG_DIR" && CARGO_TARGET_DIR="$OUT_DIR/scg-target" cargo build --release -p gateway --quiet ) && [ -x "$OUT_DIR/scg-target/release/gateway" ]; then
-      GW="$OUT_DIR/scg-target/release/gateway"
+      GW="$OUT_DIR/scg-target/release/gateway"; GW_TARGET_DIR="$OUT_DIR/scg-target"
     fi
   fi
 fi
@@ -193,9 +230,28 @@ fi
 log "Stage 5/5 — gateway CPU profile (flamegraph)"
 if [ "$PERF_RECORD_OK" -eq 1 ] && [ "${SKIP_FLAMEGRAPH:-0}" != "1" ]; then
   PROF_DIR="$OUT_DIR/profile"; mkdir -p "$PROF_DIR"
-  note "driving '$PROFILE_SCENARIO' and recording the gateway for ${PROFILE_SECS}s"
+
+  # Profile a *symbolised* gateway so frames resolve instead of bare hex. Build
+  # the `profiling` profile (release codegen + DWARF + frame pointers) into the
+  # same target dir the release build used; fall back to $GW if we can't rebuild.
+  GW_PROFILE="$GW"
+  if [ -n "$GW_TARGET_DIR" ] && [ -n "$SCG_DIR" ] && [ "${SKIP_BUILD:-0}" != "1" ]; then
+    note "building symbolised gateway (--profile profiling, force-frame-pointers)"
+    if ( cd "$SCG_DIR" && RUSTFLAGS="-C force-frame-pointers=yes" CARGO_TARGET_DIR="$GW_TARGET_DIR" \
+           cargo build --profile profiling -p gateway --quiet ) && [ -x "$GW_TARGET_DIR/profiling/gateway" ]; then
+      GW_PROFILE="$GW_TARGET_DIR/profiling/gateway"
+    else
+      note "WARN: profiling build failed — recording stripped $GW (gateway frames may stay unresolved)"
+    fi
+  else
+    note "WARN: no rebuild available (SKIP_BUILD / GATEWAY_BIN) — gateway frames may stay unresolved"
+  fi
+  man "profile gateway_bin: $GW_PROFILE"
+
+  note "driving '$PROFILE_SCENARIO' and recording the gateway for ${PROFILE_SECS}s @ ${PROFILE_FREQ}Hz"
   # Long single-scenario run in the background; attach perf to the live gateway.
-  run_seshat run --config "$CONFIG" --output-dir "$PROF_DIR/load" \
+  # The load run launches the symbolised gateway via SCG_GATEWAY_BIN.
+  SCG_GATEWAY_BIN="$GW_PROFILE" run_seshat run --config "$CONFIG" --output-dir "$PROF_DIR/load" \
     --runs 1 --duration "$((PROFILE_SECS + 8))s" --warmup 3s \
     --scenario "$PROFILE_SCENARIO" >"$PROF_DIR/load.log" 2>&1 &
   SESHAT_PID=$!
@@ -207,8 +263,45 @@ if [ "$PERF_RECORD_OK" -eq 1 ] && [ "${SKIP_FLAMEGRAPH:-0}" != "1" ]; then
   done
   if [ -n "$GWPID" ]; then
     sleep 2  # let it reach steady state
-    perf record -F 999 -g --call-graph dwarf -p "$GWPID" -o "$PROF_DIR/perf.data" -- sleep "$PROFILE_SECS" 2>"$PROF_DIR/perf-record.log" || note "perf record returned nonzero"
+
+    # Per-thread CPU% across the record window, so the hot data-plane thread is
+    # identified mechanically and an idle (harness-limited) profile is flagged.
+    snapshot_thread_jiffies "$GWPID" >"$PROF_DIR/.threads.before" 2>/dev/null || true
+
+    perf record -F "$PROFILE_FREQ" -g --call-graph dwarf -p "$GWPID" \
+      -o "$PROF_DIR/perf.data" -- sleep "$PROFILE_SECS" 2>"$PROF_DIR/perf-record.log" \
+      || note "perf record returned nonzero"
+
+    snapshot_thread_jiffies "$GWPID" >"$PROF_DIR/.threads.after" 2>/dev/null || true
+    thread_cpu_report "$PROF_DIR/.threads.before" "$PROF_DIR/.threads.after" "$PROFILE_SECS" \
+      >"$PROF_DIR/threads.csv" 2>/dev/null || true
+    rm -f "$PROF_DIR/.threads.before" "$PROF_DIR/.threads.after"
+
+    # Hottest thread overall + hottest data-plane (rule-*) thread.
+    HOT_LINE="$(tail -n +2 "$PROF_DIR/threads.csv" 2>/dev/null | head -1)"
+    HOT_COMM="$(printf '%s' "$HOT_LINE" | cut -d, -f2)"
+    HOT_PCT="$(printf  '%s' "$HOT_LINE" | cut -d, -f3)"
+    RULE_COMM="$(tail -n +2 "$PROF_DIR/threads.csv" 2>/dev/null | awk -F, '$2 ~ /^rule-/{print $2; exit}')"
+    [ -n "$HOT_COMM" ] && note "hottest thread: $HOT_COMM (${HOT_PCT:-?}% of one core)"
+    if [ -n "$HOT_PCT" ] && awk -v p="$HOT_PCT" 'BEGIN{exit !(p+0 >= 90)}'; then
+      man "profile load: OK — hottest thread $HOT_COMM at ${HOT_PCT}% of a core (>=90%, SCG-bound)"
+    else
+      note "[LOW-LOAD] hottest thread only ${HOT_PCT:-?}% of a core — profile may be harness-limited, not SCG-bound"
+      man "profile load: [LOW-LOAD] hottest thread $HOT_COMM at ${HOT_PCT:-?}% (<90%) — interpret with care"
+    fi
+
+    # Full report, per-thread (comm) breakdown, and a data-plane-only view.
     perf report --stdio -i "$PROF_DIR/perf.data" >"$PROF_DIR/perf-report.txt" 2>/dev/null && note "perf-report.txt"
+    perf report --stdio -i "$PROF_DIR/perf.data" --sort comm,dso >"$PROF_DIR/perf-report-by-thread.txt" 2>/dev/null \
+      && note "perf-report-by-thread.txt"
+    if [ -n "$RULE_COMM" ]; then
+      perf report --stdio -i "$PROF_DIR/perf.data" --comms "$RULE_COMM" \
+        >"$PROF_DIR/perf-report-dataplane.txt" 2>/dev/null \
+        && note "perf-report-dataplane.txt (thread $RULE_COMM)"
+    else
+      note "no rule-* data-plane thread sampled — check PROFILE_SCENARIO / load"
+    fi
+
     # Folded stacks + SVG when a flamegraph tool is present.
     if perf script -i "$PROF_DIR/perf.data" >"$PROF_DIR/perf-script.txt" 2>/dev/null; then
       if command -v inferno-collapse-perf >/dev/null 2>&1 && command -v inferno-flamegraph >/dev/null 2>&1; then
@@ -219,7 +312,7 @@ if [ "$PERF_RECORD_OK" -eq 1 ] && [ "${SKIP_FLAMEGRAPH:-0}" != "1" ]; then
         note "no flamegraph tool (inferno/FlameGraph); perf-script.txt is foldable later"
       fi
     fi
-    man "profile/: perf.data, perf-report.txt, perf-script.txt[, flamegraph.svg] — where gateway CPU time goes"
+    man "profile/: perf.data, perf-report.txt, perf-report-by-thread.txt, perf-report-dataplane.txt, threads.csv[, flamegraph.svg]"
   else
     note "[SKIPPED] could not find the gateway PID under load"
     man "profile: SKIPPED (no gateway pid)"

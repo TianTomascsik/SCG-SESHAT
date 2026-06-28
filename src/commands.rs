@@ -1606,13 +1606,17 @@ fn run_multistream_scenario(
 
 // ─── F-11: Hot-Reload Execution ─────────────────────────────────────────────
 
-/// Whether a reload action is a no-op on the current SCG: its config diff
-/// matches rules **by name only** (`GatewayConfig::diff`), so a same-name rule
-/// whose parameters changed — a new TLS profile or a rotated cert — is
-/// classified `unchanged` and never re-applied. The change is silently dropped,
-/// so a "zero drops" result for these actions proves nothing (nothing happened),
-/// it is *not* evidence of seamless in-place re-keying. Add/remove connection
-/// (gRPC) and invalid-config rollback do take effect and must stay zero-drop.
+/// Whether a reload action is a no-op *as currently driven by this harness*.
+///
+/// The gateway itself now applies same-name field changes: `GatewayConfig::diff`
+/// has a `changed` bucket (`RuleConfig::reload_differs`) that restarts a listener
+/// whose provider/upstream/profile/`verify`/cert/class/QoS changed. But SESHAT's
+/// `UpdateTlsProfile`/`RotateCert` actions only send SIGHUP *without rewriting the
+/// config file*, so no diff is produced and nothing is re-applied — a harness-side
+/// no-op. A "zero drops" result for these actions therefore still proves nothing
+/// (the config never changed). Add/remove connection (gRPC) and invalid-config
+/// rollback do take effect and must stay zero-drop. To actually exercise the
+/// gateway's new in-place reload, the action must write a modified same-name rule.
 fn reload_is_noop_on_scg(action: config::ReloadAction) -> bool {
     matches!(
         action,
@@ -1923,10 +1927,11 @@ fn run_hotreload_scenario(
         },
         16,
     );
-    // The SCG config diff is name-keyed, so a same-name TLS-profile / cert change
-    // is classified `unchanged` and never applied — a no-op. Report that honestly:
-    // a zero-drop result for such an action is not proof of seamless reload, it
-    // means the change was silently dropped. `change_applied = Some(false)` flags it.
+    // The harness's TLS-profile / cert reload only SIGHUPs the *unchanged* file, so
+    // no config diff is produced — a no-op. (The gateway itself now applies
+    // same-name field changes via the `changed` diff bucket, but this action does
+    // not rewrite the file to trigger it.) Report honestly: a zero-drop result
+    // here is not proof of seamless reload. `change_applied = Some(false)` flags it.
     let noop_on_scg = reload_is_noop_on_scg(reload_event.action);
     let change_applied = if noop_on_scg { Some(false) } else { None };
     if let Some(run) = stats.runs.first() {

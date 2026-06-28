@@ -231,11 +231,13 @@ fn expand_hotreload(spec: &MatrixSpec) -> Result<Value, Box<dyn std::error::Erro
         {
             continue;
         }
-        // Do not emit a fake TLS-profile reload.  Current SCG reload diffs are
-        // name-based: changing a same-named rule updates the configuration
-        // snapshot but does not restart that data-plane rule.  The catalog
-        // carries an explicit disabled limitation until SCG supplies a
-        // changed-rule lifecycle plus an acknowledgement/telemetry surface.
+        // Do not emit a TLS-profile reload scenario yet.  The SCG gateway now
+        // restarts a changed same-name data-plane rule (its `diff` gained a
+        // `changed` bucket / `reload_differs`), so the changed-rule lifecycle
+        // exists.  What is still missing here is the harness side: the reload
+        // action must rewrite the config file with a modified same-name rule (and
+        // ideally read back a reload-acknowledgement) before this can be measured
+        // honestly; until then it stays disabled.
         let actions = ["add_connection", "remove_connection", "invalid_config"];
         for &connections in &[1_u32, 4, 16, 64] {
             for &load in &["sub-saturation", "saturation"] {

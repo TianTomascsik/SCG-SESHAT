@@ -350,6 +350,24 @@ mod tests {
     }
 
     #[test]
+    fn dtls_rule_flattens_session_limits() {
+        // SCG parity: a DTLS encrypt rule can drive the gateway's admission-control
+        // knobs (max_sessions / idle_ttl_secs) through the generic provider params,
+        // so the harness can exercise the session cap without a struct change.
+        let r = RuleConfig::new("dtls-enc", "encrypt", "127.0.0.1:6000", "127.0.0.1:6001")
+            .security("dtls")
+            .protocol_version("dtls1.2")
+            .param("verify", "none")
+            .param("max_sessions", 32)
+            .param("idle_ttl_secs", 90);
+        let v: serde_json::Value = serde_json::to_value(&r).unwrap();
+        assert_eq!(v["security_provider"], "dtls");
+        assert_eq!(v["verify"], "none");
+        assert_eq!(v["max_sessions"], 32);
+        assert_eq!(v["idle_ttl_secs"], 90);
+    }
+
+    #[test]
     fn uds_rule_has_app_id_and_uids() {
         let r = RuleConfig::new("uds", "encrypt", "unused", "127.0.0.1:7777")
             .listen_proto("uds")
