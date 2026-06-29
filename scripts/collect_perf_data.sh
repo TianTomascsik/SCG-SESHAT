@@ -384,3 +384,5 @@ log "Done"
 note "bundle: $OUT_DIR"
 [ -f "$TARBALL" ] && note "tarball: $TARBALL"
 cat "$MANIFEST"
+
+Resets in 18h

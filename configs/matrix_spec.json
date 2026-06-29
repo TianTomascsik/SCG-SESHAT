@@ -161,12 +161,30 @@
       "requirements": ["openssl"]
     },
     {
+      "id": "ktls_uds",
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "interfaces": ["unix"],
+      "chains": ["scg-direct"],
+      "connections": [1],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl", "ktls"]
+    },
+    {
       "id": "routing_shm",
       "protocol": { "type": "none", "protection_mode": "routing-only" },
       "interfaces": ["shm"],
       "chains": ["scg-direct"],
       "connections": [1],
       "tiers": ["canonical", "nightly"]
+    },
+    {
+      "id": "ktls_shm",
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "interfaces": ["shm"],
+      "chains": ["scg-direct"],
+      "connections": [1],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl", "ktls"]
     },
     {
       "id": "routing_tproxy",
