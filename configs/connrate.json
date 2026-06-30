@@ -22,6 +22,7 @@
   "scenarios": [
     {
       "name": "conn_tcp_loopback_1thread",
+      "description": "TCP connection-establishment rate, single connector thread.",
       "category": "connection",
       "mode": "connrate",
       "message_size_bytes": 64,
@@ -34,6 +35,7 @@
     },
     {
       "name": "conn_tcp_loopback_4thread",
+      "description": "TCP connection-establishment rate, four connector threads.",
       "category": "connection",
       "mode": "connrate",
       "message_size_bytes": 64,
@@ -46,6 +48,7 @@
     },
     {
       "name": "conn_scg_tls13_1thread",
+      "description": "TLS 1.3 handshake rate through the SCG, single connector thread.",
       "category": "connection",
       "mode": "connrate",
       "message_size_bytes": 64,
@@ -61,6 +64,7 @@
     },
     {
       "name": "conn_scg_tls13_4thread",
+      "description": "TLS 1.3 handshake rate through the SCG, four connector threads.",
       "category": "connection",
       "mode": "connrate",
       "message_size_bytes": 64,

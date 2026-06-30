@@ -159,13 +159,33 @@ Ready-made configs ship in [`configs/`](configs):
 
 ## Benchmark matrix and measurements
 
-[`run_all.sh`](run_all.sh) executes the generated `canonical_matrix` plus the
-matched `interface_comparison`, latency, saturation, ping-pong, and connection
-rate suites. `./run_all.sh --nightly` selects the generated exhaustive matrix.
-`./run_all.sh --safety-tests` runs only the safety-isolation unit checks and
-host-QoS dry run, without executing benchmark/performance suites.
-The runner rejects duplicate enabled benchmark shapes before it starts a run
-when `jq` is available.
+A full evaluation runs straight from the binary — build once, then run the
+`suite` subcommand (this replaces the old `run_all.sh` wrapper):
+
+```bash
+cargo build --release                              # build seshat (and ../SCG gateway)
+./target/release/seshat suite                      # canonical tier (default)
+./target/release/seshat suite --tier nightly       # exhaustive generated matrix
+./target/release/seshat suite --quick              # fast smoke (2s/1 run)
+./target/release/seshat suite --scenario-filter tcp  # only configs whose name matches
+```
+
+`suite` runs the generated `canonical_matrix` plus the matched
+`interface_comparison`, latency, saturation, ping-pong, and connection-rate
+suites (the tier → config-file map lives in
+[`configs/suites.json`](configs/suites.json)), consolidates every scenario into
+one timestamped result tree, and renders the performance overview to the
+terminal and `PERFORMANCE_OVERVIEW.txt`. Scenario names must be unique across a
+suite run; collisions are rejected before any benchmark starts.
+
+The console view is **compact by default** — a live progress bar (elapsed timer,
+spinner, current test) with one result line per scenario. Add `-v`/`--verbose`
+for the full per-run/calibration/result detail, `--describe` to show each
+scenario's one-line description, or `--quiet` for warnings plus the final report
+only (also the non-TTY/CI default). These global flags apply to `run` too.
+
+The safety-isolation unit checks (formerly `run_all.sh --safety-tests`) run as
+plain `cargo test`.
 
 ### What is measured
 
@@ -309,12 +329,16 @@ metadata lives in [`configs/wireguard.json`](configs/wireguard.json). On Arch:
 ## CLI reference
 
 ```
-seshat [--log-level error|warn|info|debug|trace] [--quiet] <command>
+seshat [--log-level error|warn|info|debug|trace] [--quiet] [--verbose] [--describe] <command>
 ```
+
+The global `--verbose`/`--describe`/`--quiet` flags control the console view for
+`run` and `suite` (see [Benchmark matrix and measurements](#benchmark-matrix-and-measurements)).
 
 | Command | Purpose | State |
 | --- | --- | --- |
-| `run` | Execute a full benchmark suite from a config | ✅ |
+| `run` | Execute a single config's benchmark suite | ✅ |
+| `suite` | Run a whole evaluation tier (many configs) + overview; replaces `run_all.sh` | ✅ |
 | `validate` | Parse + validate a config, report errors, do not run | ✅ |
 | `list` | Expand and list every scenario with its parameters | ✅ |
 | `calibrate` | Sweep the harness null-loopback throughput ceiling | ✅ |
@@ -525,10 +549,9 @@ src/run/                    measurement engine + calibration + distributed mode
 src/report/                 CSV writer + result-directory tree
 src/sysinfo.rs              host fingerprint
 src/{console,logging,time}.rs   support
-configs/                    example suites
+configs/                    example suites + suites.json tier manifest
 benchmark_features.md       feature specification (F-01..F-20)
 PLAN.md                     implementation plan + progress
-run_all.sh                  full benchmark execution + result consolidation
 ```
 
 ---

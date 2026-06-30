@@ -135,8 +135,29 @@ const RUNS_HEADERS: &[&str] = &[
 pub struct ScenarioOutcome {
     pub name: String,
     pub throughput_gbps: f64,
-    pub latency_p99_us: f64,
     pub loss_pct: f64,
+    /// Pre-formatted, mode-aware one-line metric for the compact progress view
+    /// (throughput, round-trip, or connection-rate depending on the run mode).
+    pub headline: String,
+}
+
+/// Build the compact, mode-aware headline metric shown in the live progress
+/// view: round-trip time for ping-pong, connection rate for connrate, otherwise
+/// throughput with p99 latency and loss.
+fn outcome_headline(stats: &RunStats) -> String {
+    if let Some(rtt) = &stats.rtt {
+        format!("rtt {:.1} µs  p99 {:.1} µs", rtt.p50_us, rtt.p99_us)
+    } else if let Some(conn) = &stats.conn {
+        format!(
+            "{:.0} conn/s  hs p99 {:.1} µs",
+            conn.conns_per_sec, conn.handshake_p99_us
+        )
+    } else {
+        format!(
+            "{:.3} Gbit/s  p99 {:.1} µs  loss {:.3} %",
+            stats.throughput_gbps.mean, stats.latency_p99_us.mean, stats.loss_pct
+        )
+    }
 }
 
 /// One completed row belonging to a generated interface-comparison group.
@@ -412,8 +433,8 @@ impl ResultDir {
         self.outcomes.push(ScenarioOutcome {
             name: scenario.name.clone(),
             throughput_gbps: stats.throughput_gbps.mean,
-            latency_p99_us: stats.latency_p99_us.mean,
             loss_pct: stats.loss_pct,
+            headline: outcome_headline(stats),
         });
         if let Some(comparison) = &scenario.comparison {
             self.comparisons.push(ComparisonOutcome {

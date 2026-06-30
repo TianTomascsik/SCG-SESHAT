@@ -23,14 +23,23 @@ pub const TAGLINE: &str = "SCG Evaluation, Stress & Harness Analysis Toolkit";
 
 static COLOR_ENABLED: AtomicBool = AtomicBool::new(false);
 static QUIET: AtomicBool = AtomicBool::new(false);
+static VERBOSE: AtomicBool = AtomicBool::new(false);
+static DESCRIBE: AtomicBool = AtomicBool::new(false);
 
 /// Initialise console behaviour. Call once at start-up.
 ///
-/// * `quiet` suppresses the banner and all non-essential decorative output.
-pub fn init(quiet: bool) {
+/// * `quiet` suppresses the banner and all non-essential decorative output and
+///   the live progress bar (warnings/errors and the final report still print).
+/// * `verbose` restores the full per-run/calibration/result detail that the
+///   default compact view suppresses in favour of the live progress bar.
+/// * `describe` includes each scenario's one-line description in the progress
+///   line and the compact per-scenario result lines.
+pub fn init(quiet: bool, verbose: bool, describe: bool) {
     let color = std::env::var_os("NO_COLOR").is_none() && std::io::stdout().is_terminal();
     COLOR_ENABLED.store(color, Ordering::Relaxed);
     QUIET.store(quiet, Ordering::Relaxed);
+    VERBOSE.store(verbose, Ordering::Relaxed);
+    DESCRIBE.store(describe, Ordering::Relaxed);
 }
 
 /// Whether colour output is currently enabled.
@@ -41,6 +50,17 @@ pub fn color_enabled() -> bool {
 /// Whether quiet mode is active.
 pub fn is_quiet() -> bool {
     QUIET.load(Ordering::Relaxed)
+}
+
+/// Whether verbose mode is active (full per-run detail rather than the compact
+/// default view). Quiet always wins over verbose.
+pub fn is_verbose() -> bool {
+    !is_quiet() && VERBOSE.load(Ordering::Relaxed)
+}
+
+/// Whether per-scenario descriptions should be shown alongside their names.
+pub fn is_describe() -> bool {
+    DESCRIBE.load(Ordering::Relaxed)
 }
 
 fn paint(code: &str, text: &str) -> String {

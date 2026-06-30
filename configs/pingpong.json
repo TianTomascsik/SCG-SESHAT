@@ -22,6 +22,7 @@
   "scenarios": [
     {
       "name": "pp_tcp_loopback_64B",
+      "description": "Closed-loop TCP round-trip time at 64 B (small-message RTT floor).",
       "category": "latency-rtt",
       "mode": "pingpong",
       "message_size_bytes": 64,
@@ -34,6 +35,7 @@
     },
     {
       "name": "pp_tcp_loopback_1KB",
+      "description": "Closed-loop TCP round-trip time at 1 KB.",
       "category": "latency-rtt",
       "mode": "pingpong",
       "message_size_bytes": 1024,
@@ -46,6 +48,7 @@
     },
     {
       "name": "pp_udp_loopback_64B",
+      "description": "Closed-loop UDP round-trip time at 64 B (small-message RTT floor).",
       "category": "latency-rtt",
       "mode": "pingpong",
       "message_size_bytes": 64,
@@ -58,6 +61,7 @@
     },
     {
       "name": "pp_udp_loopback_1KB",
+      "description": "Closed-loop UDP round-trip time at 1 KB.",
       "category": "latency-rtt",
       "mode": "pingpong",
       "message_size_bytes": 1024,

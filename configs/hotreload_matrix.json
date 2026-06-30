@@ -17,6 +17,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -45,6 +46,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -73,6 +75,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -101,6 +104,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -128,6 +132,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -155,6 +160,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -182,6 +188,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -210,6 +217,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -238,6 +246,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -266,6 +275,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -293,6 +303,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -320,6 +331,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -347,6 +359,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -375,6 +388,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -403,6 +417,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -431,6 +446,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -458,6 +474,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -485,6 +502,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -512,6 +530,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -540,6 +559,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -568,6 +588,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/plain, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -596,6 +617,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -623,6 +645,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -650,6 +673,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/plain, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -677,6 +701,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -707,6 +732,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -737,6 +763,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -767,6 +794,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -796,6 +824,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -825,6 +854,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -854,6 +884,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -884,6 +915,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -914,6 +946,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -944,6 +977,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -973,6 +1007,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1002,6 +1037,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1031,6 +1067,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1061,6 +1098,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1091,6 +1129,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1121,6 +1160,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1150,6 +1190,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1179,6 +1220,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1208,6 +1250,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1238,6 +1281,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1268,6 +1312,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1298,6 +1343,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1327,6 +1373,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1356,6 +1403,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1385,6 +1433,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1415,6 +1464,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1445,6 +1495,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1475,6 +1526,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1504,6 +1556,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1533,6 +1586,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1562,6 +1616,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1592,6 +1647,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1622,6 +1678,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1652,6 +1709,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1681,6 +1739,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1710,6 +1769,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1739,6 +1799,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1769,6 +1830,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1799,6 +1861,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1829,6 +1892,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1858,6 +1922,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1887,6 +1952,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1916,6 +1982,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1946,6 +2013,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1976,6 +2044,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2006,6 +2075,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2035,6 +2105,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2064,6 +2135,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2093,6 +2165,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2124,6 +2197,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2155,6 +2229,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2186,6 +2261,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2216,6 +2292,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2246,6 +2323,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2276,6 +2354,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2307,6 +2386,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2338,6 +2418,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2369,6 +2450,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2399,6 +2481,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2429,6 +2512,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2459,6 +2543,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2490,6 +2575,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2521,6 +2607,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2552,6 +2639,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2582,6 +2670,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2612,6 +2701,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2642,6 +2732,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2673,6 +2764,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2704,6 +2796,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2735,6 +2828,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2765,6 +2859,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2795,6 +2890,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2825,6 +2921,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2856,6 +2953,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2887,6 +2985,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2918,6 +3017,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2948,6 +3048,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -2978,6 +3079,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3008,6 +3110,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3039,6 +3142,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3070,6 +3174,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3101,6 +3206,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3131,6 +3237,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3161,6 +3268,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3191,6 +3299,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3222,6 +3331,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3253,6 +3363,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3284,6 +3395,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3314,6 +3426,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3344,6 +3457,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3374,6 +3488,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3405,6 +3520,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3436,6 +3552,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3467,6 +3584,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3497,6 +3615,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3527,6 +3646,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3557,6 +3677,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3589,6 +3710,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3621,6 +3743,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3653,6 +3776,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3684,6 +3808,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3715,6 +3840,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3746,6 +3872,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3778,6 +3905,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3810,6 +3938,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3842,6 +3971,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3873,6 +4003,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3904,6 +4035,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3935,6 +4067,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3967,6 +4100,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -3999,6 +4133,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4031,6 +4166,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4062,6 +4198,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4093,6 +4230,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4124,6 +4262,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4156,6 +4295,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4188,6 +4328,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4220,6 +4361,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4251,6 +4393,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4282,6 +4425,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4313,6 +4457,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4345,6 +4490,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4377,6 +4523,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4409,6 +4556,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4440,6 +4588,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4471,6 +4620,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4502,6 +4652,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4534,6 +4685,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4566,6 +4718,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4598,6 +4751,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4629,6 +4783,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4660,6 +4815,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4691,6 +4847,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4723,6 +4880,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4755,6 +4913,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4787,6 +4946,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4818,6 +4978,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4849,6 +5010,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4880,6 +5042,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4912,6 +5075,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4944,6 +5108,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -4976,6 +5141,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5007,6 +5173,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5038,6 +5205,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5069,6 +5237,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5100,6 +5269,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5131,6 +5301,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5162,6 +5333,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5192,6 +5364,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5222,6 +5395,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5252,6 +5426,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5283,6 +5458,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5314,6 +5490,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5345,6 +5522,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5375,6 +5553,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5405,6 +5584,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5435,6 +5615,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5466,6 +5647,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5497,6 +5679,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5528,6 +5711,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5558,6 +5742,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5588,6 +5773,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5618,6 +5804,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5649,6 +5836,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5680,6 +5868,7 @@
     {
       "category": "hotreload-sub-saturation",
       "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5711,6 +5900,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5741,6 +5931,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -5771,6 +5962,7 @@
     {
       "category": "hotreload-saturation",
       "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true

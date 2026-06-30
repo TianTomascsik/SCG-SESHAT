@@ -29,8 +29,12 @@ impl Log for SeshatLogger {
             Level::Debug => console::dim("DEBUG"),
             Level::Trace => console::dim("TRACE"),
         };
-        let mut stderr = std::io::stderr().lock();
-        let _ = writeln!(stderr, "[{tag}] {}", record.args());
+        // Suspend any active live progress bar so the line prints cleanly above
+        // it instead of colliding with the bar on stderr.
+        crate::progress::with_suspended_bar(|| {
+            let mut stderr = std::io::stderr().lock();
+            let _ = writeln!(stderr, "[{tag}] {}", record.args());
+        });
     }
 
     fn flush(&self) {

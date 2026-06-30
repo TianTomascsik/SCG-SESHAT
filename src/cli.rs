@@ -28,6 +28,15 @@ pub struct Cli {
     #[arg(long, default_value_t = false, global = true)]
     pub quiet: bool,
 
+    /// Restore the full per-run/calibration/result printout. The default view is
+    /// compact: a live progress bar plus one result line per scenario.
+    #[arg(long, short = 'v', default_value_t = false, global = true)]
+    pub verbose: bool,
+
+    /// Show each scenario's one-line description in the progress and result lines.
+    #[arg(long, default_value_t = false, global = true)]
+    pub describe: bool,
+
     #[command(subcommand)]
     pub command: Command,
 }
@@ -100,6 +109,9 @@ pub enum TopologyKind {
 pub enum Command {
     /// Run a full benchmark suite.
     Run(RunArgs),
+    /// Run a whole evaluation tier (many config files) in one pass and render
+    /// the consolidated performance overview (replaces the run_all.sh wrapper).
+    Suite(SuiteArgs),
     /// Run only the sender side (distributed mode).
     Sender(SenderArgs),
     /// Run only the receiver side (distributed mode).
@@ -156,7 +168,7 @@ pub struct RunArgs {
     #[arg(long)]
     pub config: PathBuf,
 
-    /// Result output directory (default: ./results/<timestamp>).
+    /// Result output directory (default: `./results/<timestamp>`).
     #[arg(long)]
     pub output_dir: Option<PathBuf>,
 
@@ -203,6 +215,82 @@ pub struct RunArgs {
     /// Parse + validate config, print the plan, but do not execute.
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
+}
+
+/// Benchmark evaluation tier selecting a bundled set of config suites.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum SuiteTier {
+    /// Compact, representative coverage (the default full evaluation).
+    Canonical,
+    /// Exhaustive coverage: the generated full matrix and hot-reload suites too.
+    Nightly,
+}
+
+impl SuiteTier {
+    /// Key used to look the tier up in the `configs/suites.json` manifest.
+    pub fn key(self) -> &'static str {
+        match self {
+            SuiteTier::Canonical => "canonical",
+            SuiteTier::Nightly => "nightly",
+        }
+    }
+}
+
+/// Arguments for `suite` — run an evaluation tier across many config files in a
+/// single pass and emit a consolidated performance overview (replaces run_all.sh).
+#[derive(Debug, clap::Args)]
+pub struct SuiteArgs {
+    /// Evaluation tier to run (ignored when explicit `--config`s are given).
+    #[arg(long, value_enum, default_value_t = SuiteTier::Canonical)]
+    pub tier: SuiteTier,
+
+    /// Explicit config file(s); repeatable. Overrides `--tier` when present.
+    #[arg(long)]
+    pub config: Vec<PathBuf>,
+
+    /// Only run config files whose file name contains this substring.
+    #[arg(long)]
+    pub scenario_filter: Option<String>,
+
+    /// Result output directory (default: `./results/<timestamp>`).
+    #[arg(long)]
+    pub output_dir: Option<PathBuf>,
+
+    /// Shorthand for `--duration 2s --warmup 1s --runs 1` (fast smoke pass).
+    #[arg(long, default_value_t = false)]
+    pub quick: bool,
+
+    /// Override the number of repetitions per scenario.
+    #[arg(long)]
+    pub runs: Option<u32>,
+
+    /// Override the measurement phase length (e.g. 30s, 500ms, 2m).
+    #[arg(long, value_parser = parse_duration)]
+    pub duration: Option<Duration>,
+
+    /// Override the warmup phase length.
+    #[arg(long, value_parser = parse_duration)]
+    pub warmup: Option<Duration>,
+
+    /// Override the pause between runs.
+    #[arg(long, value_parser = parse_duration)]
+    pub cooldown: Option<Duration>,
+
+    /// Custom label written into result metadata.
+    #[arg(long)]
+    pub tag: Option<String>,
+
+    /// Pin SESHAT threads to specific CPU cores (comma-separated).
+    #[arg(long, value_delimiter = ',')]
+    pub cpu_affinity: Vec<usize>,
+
+    /// Skip `/proc`/`perf` system-metric collection.
+    #[arg(long, default_value_t = false)]
+    pub no_system_metrics: bool,
+
+    /// Override the suite's system-metrics backend.
+    #[arg(long, value_enum)]
+    pub metrics_backend: Option<MetricsBackendArg>,
 }
 
 /// Arguments for `sender` (distributed mode).

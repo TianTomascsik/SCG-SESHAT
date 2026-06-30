@@ -6,8 +6,8 @@
 
 use crate::cli::{
     CalibrateArgs, Command, ImpairArgs, ListArgs, MatrixArgs, MatrixCommand, ReceiverArgs,
-    ReportArgs, RunArgs, SenderArgs, SetupArgs, SysinfoArgs, SysinfoFormat, TeardownArgs,
-    TopologyKind, ValidateArgs,
+    ReportArgs, RunArgs, SenderArgs, SetupArgs, SuiteArgs, SuiteTier, SysinfoArgs, SysinfoFormat,
+    TeardownArgs, TopologyKind, ValidateArgs,
 };
 use crate::config::{
     self, AppProtocol, Config, Defaults, GatewayChain, Interface, MetricsBackend, Mode,
@@ -43,6 +43,7 @@ pub type CmdResult = Result<(), Box<dyn std::error::Error>>;
 pub fn dispatch(command: Command) -> CmdResult {
     match command {
         Command::Run(args) => run(args),
+        Command::Suite(args) => suite(args),
         Command::Sender(args) => sender(args),
         Command::Receiver(args) => receiver(args),
         Command::Report(args) => report(args),
@@ -101,16 +102,38 @@ fn run(args: RunArgs) -> CmdResult {
     execute_suite(&args, &cfg)
 }
 
-/// Run every enabled scenario the Phase 1 engine can drive on a local loopback
-/// pair; scenarios needing gateway/crypto/topology features are skipped with a
-/// notice until the relevant phase lands. Results are written to a timestamped
-/// directory under `--output-dir` (default `./results`).
-fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
-    let base = args
-        .output_dir
-        .clone()
-        .unwrap_or_else(|| PathBuf::from("results"));
-    let mut rdir = ResultDir::create(&base)?;
+/// Shared state for executing one or more configs into a single result tree:
+/// the result directory, host fingerprint, ceiling caches, the once-probed
+/// gateway binary, and the live progress view. Both `run` (single config) and
+/// `suite` (a whole tier of configs) drive scenarios through this context.
+struct RunContext {
+    rdir: ResultDir,
+    host: crate::sysinfo::SysInfo,
+    /// Cache harness ceilings by (transport, on-wire size, connections) so the
+    /// NFR-PERF headroom probe runs at most once per distinct scenario shape.
+    ceilings: HashMap<(String, u32, usize), f64>,
+    /// Lowest successful throughput per generated comparison group, shared so an
+    /// interface-comparison latency row is paced off the slowest available path.
+    comparison_ceilings: HashMap<String, f64>,
+    /// A working gateway binary, probed once if any scenario needs the SCG.
+    gateway_binary: Option<PathBuf>,
+    progress: crate::progress::Progress,
+    /// Total enabled scenarios across all configs (for the `[i/total]` display).
+    total: usize,
+    /// Scenarios started so far.
+    index: usize,
+    /// Scenarios skipped so far.
+    skipped: usize,
+}
+
+/// Prepare the shared context: create the result tree, collect the host
+/// fingerprint and emit preflight warnings, probe a gateway binary once, and
+/// size the progress bar to the total enabled scenarios across `configs`.
+fn prepare_context(
+    base: &Path,
+    configs: &[&Config],
+) -> Result<RunContext, Box<dyn std::error::Error>> {
+    let rdir = ResultDir::create(base)?;
     let host = crate::sysinfo::SysInfo::collect();
     // Reproducibility preflight: warn (don't block) when the host is not in a
     // controlled state, so results are interpreted with that caveat in mind.
@@ -123,18 +146,18 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
              (the effective_protocol column records the actual protocol per scenario)"
         );
     }
-    if cfg.defaults.collect_system_metrics
-        && cfg.defaults.metrics_backend == MetricsBackend::Perf
-        && !system::PerfSampler::available()
-    {
+    let wants_perf = configs.iter().any(|c| {
+        c.defaults.collect_system_metrics && c.defaults.metrics_backend == MetricsBackend::Perf
+    });
+    if wants_perf && !system::PerfSampler::available() {
         log::warn!(
             "perf backend requested but `perf` is unavailable; perf_* result fields will be empty"
         );
     }
-    if cfg.defaults.collect_system_metrics
-        && cfg.defaults.metrics_backend == MetricsBackend::Ebpf
-        && !system::MemCopySampler::available()
-    {
+    let wants_ebpf = configs.iter().any(|c| {
+        c.defaults.collect_system_metrics && c.defaults.metrics_backend == MetricsBackend::Ebpf
+    });
+    if wants_ebpf && !system::MemCopySampler::available() {
         log::warn!(
             "ebpf backend requested but bpftrace is unavailable or unprivileged (needs root); \
              mem_* result fields will be empty"
@@ -142,28 +165,12 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
     }
     rdir.write_sysinfo(&host)?;
 
-    // Resolve sender/receiver/gateway CPU pools once for the whole suite.
-    let cores = resolve_core_plan(&cfg.defaults);
-
-    // Cache harness ceilings by (transport, on-wire size, connections) so the
-    // NFR-PERF headroom probe runs at most once per distinct scenario shape.
-    let mut ceilings: HashMap<(String, u32, usize), f64> = HashMap::new();
-    // Interface-latency rows use a shared fraction of the lowest successful
-    // throughput in their preceding comparison group.  This prevents one
-    // interface from being measured in queueing saturation while another is
-    // mostly idle.
-    let mut comparison_ceilings: HashMap<String, f64> = HashMap::new();
-    let mut skipped = 0usize;
-
-    // Per-SCG-PID `/proc` sampling rate (F-13b), or None when disabled.
-    let sys_rate = system_metrics_rate(&cfg.defaults);
-
-    // Probe a working gateway binary once, if any scenario needs the SCG.
-    let needs_gateway = cfg
-        .scenarios
-        .iter()
-        .filter(|s| s.enabled)
-        .any(|s| gateway_plan(s).is_some());
+    let needs_gateway = configs.iter().any(|c| {
+        c.scenarios
+            .iter()
+            .filter(|s| s.enabled)
+            .any(|s| gateway_plan(s).is_some())
+    });
     let gateway_binary = if needs_gateway {
         let probe_dir = base.join("gateway");
         let found = gateway::locate_working_binary(&probe_dir);
@@ -179,16 +186,52 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
         None
     };
 
+    let total = configs
+        .iter()
+        .map(|c| c.scenarios.iter().filter(|s| s.enabled).count())
+        .sum();
+
+    Ok(RunContext {
+        rdir,
+        host,
+        ceilings: HashMap::new(),
+        comparison_ceilings: HashMap::new(),
+        gateway_binary,
+        progress: crate::progress::Progress::start(total),
+        total,
+        index: 0,
+        skipped: 0,
+    })
+}
+
+/// Execute every enabled scenario in `cfg` into the shared context's result
+/// tree, driving the live progress view and (in verbose mode) the detailed
+/// per-run/calibration/result renderers.
+fn run_config(ctx: &mut RunContext, cfg: &Config) -> CmdResult {
+    let cores = resolve_core_plan(&cfg.defaults);
+    let sys_rate = system_metrics_rate(&cfg.defaults);
+    let loss = cfg.defaults.loss_threshold_pct;
+    // Clone the probed binary path so the gateway branch can borrow it while the
+    // context's other fields (rdir, ceilings, …) are mutably borrowed.
+    let gateway_binary = ctx.gateway_binary.clone();
+
     for scenario in cfg.scenarios.iter().filter(|s| s.enabled) {
-        if let Some(reason) = unmet_requirements(scenario, &host) {
+        let idx = ctx.index;
+        ctx.index += 1;
+        ctx.progress.start_scenario(idx, ctx.total, scenario);
+
+        if let Some(reason) = unmet_requirements(scenario, &ctx.host) {
             log::warn!("scenario '{}': {reason}; skipping", scenario.name);
-            rdir.record_skipped(scenario, &reason)?;
-            skipped += 1;
+            ctx.rdir.record_skipped(scenario, &reason)?;
+            ctx.skipped += 1;
+            ctx.progress
+                .finish_scenario(&compact_skip_line(&scenario.name, &reason));
             continue;
         }
         if let Some(transport) = loopback_transport(scenario) {
+            let before = ctx.rdir.outcomes().len();
             let mut params = build_run_params(scenario, &cfg.defaults, &cores);
-            apply_comparison_rate(scenario, &mut params, &comparison_ceilings);
+            apply_comparison_rate(scenario, &mut params, &ctx.comparison_ceilings);
             render_scenario_header(scenario, &params, &scenario_interface(scenario));
             if params.mode == RunMode::PingPong {
                 // Closed-loop RTT: no calibration/saturation (those measure
@@ -197,21 +240,22 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                     render_pingpong_run_line(i, params.runs, s);
                 })?;
                 render_pingpong_result(&stats);
-                rdir.record_scenario(
+                ctx.rdir.record_scenario(
                     scenario,
                     &params,
                     &stats,
                     &ScenarioArtifacts {
-                        loss_threshold_pct: cfg.defaults.loss_threshold_pct,
+                        loss_threshold_pct: loss,
                         ..Default::default()
                     },
                 )?;
                 capture_comparison_ceiling(
                     scenario,
-                    rdir.outcomes(),
-                    cfg.defaults.loss_threshold_pct,
-                    &mut comparison_ceilings,
+                    ctx.rdir.outcomes(),
+                    loss,
+                    &mut ctx.comparison_ceilings,
                 );
+                announce_result(ctx, scenario, before);
                 continue;
             }
             if params.mode == RunMode::Connrate {
@@ -221,21 +265,22 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                     render_connrate_run_line(i, params.runs, s);
                 })?;
                 render_connrate_result(&stats);
-                rdir.record_scenario(
+                ctx.rdir.record_scenario(
                     scenario,
                     &params,
                     &stats,
                     &ScenarioArtifacts {
-                        loss_threshold_pct: cfg.defaults.loss_threshold_pct,
+                        loss_threshold_pct: loss,
                         ..Default::default()
                     },
                 )?;
                 capture_comparison_ceiling(
                     scenario,
-                    rdir.outcomes(),
-                    cfg.defaults.loss_threshold_pct,
-                    &mut comparison_ceilings,
+                    ctx.rdir.outcomes(),
+                    loss,
+                    &mut ctx.comparison_ceilings,
                 );
+                announce_result(ctx, scenario, before);
                 continue;
             }
             let stats = engine::run_scenario(transport.as_ref(), &params, |i, s| {
@@ -247,46 +292,44 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                 transport.as_ref(),
                 &params,
                 stats.throughput_gbps.mean,
-                &mut ceilings,
+                &mut ctx.ceilings,
                 false,
                 None,
             )?;
             render_calibration(&cal);
 
-            let sweep = run_saturation_if_requested(
-                scenario,
-                transport.as_ref(),
-                &params,
-                cfg.defaults.loss_threshold_pct,
-            )?;
-            warn_if_overloaded(scenario, &stats, cfg.defaults.loss_threshold_pct);
-            rdir.record_scenario(
+            let sweep = run_saturation_if_requested(scenario, transport.as_ref(), &params, loss)?;
+            warn_if_overloaded(scenario, &stats, loss);
+            ctx.rdir.record_scenario(
                 scenario,
                 &params,
                 &stats,
                 &ScenarioArtifacts {
                     cal: Some(&cal),
                     sweep: sweep.as_ref(),
-                    loss_threshold_pct: cfg.defaults.loss_threshold_pct,
+                    loss_threshold_pct: loss,
                     ..Default::default()
                 },
             )?;
             capture_comparison_ceiling(
                 scenario,
-                rdir.outcomes(),
-                cfg.defaults.loss_threshold_pct,
-                &mut comparison_ceilings,
+                ctx.rdir.outcomes(),
+                loss,
+                &mut ctx.comparison_ceilings,
             );
+            announce_result(ctx, scenario, before);
         } else if let Some(plan) = gateway_plan(scenario) {
+            let before = ctx.rdir.outcomes().len();
             match gateway_binary.as_deref() {
                 Some(binary) => {
+                    let cmp_rate = comparison_rate(scenario, &ctx.comparison_ceilings);
                     let skip_reason = if !scenario.streams.is_empty() {
                         run_multistream_scenario(
                             scenario,
                             &cfg.defaults,
                             &plan,
                             binary,
-                            &mut rdir,
+                            &mut ctx.rdir,
                             sys_rate,
                             &cores,
                         )?
@@ -296,7 +339,7 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                             &cfg.defaults,
                             &plan,
                             binary,
-                            &mut rdir,
+                            &mut ctx.rdir,
                             sys_rate,
                             &cores,
                         )?
@@ -306,26 +349,29 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                             &cfg.defaults,
                             &plan,
                             binary,
-                            &mut rdir,
-                            &mut ceilings,
+                            &mut ctx.rdir,
+                            &mut ctx.ceilings,
                             sys_rate,
                             &cores,
-                            comparison_rate(scenario, &comparison_ceilings),
+                            cmp_rate,
                         )?
                     };
                     // `Some(reason)` means the scenario could not be measured and
                     // was recorded as skipped with that specific reason; `None`
                     // means it ran and a result row was written.
                     if let Some(reason) = skip_reason {
-                        rdir.record_skipped(scenario, &reason)?;
-                        skipped += 1;
+                        ctx.rdir.record_skipped(scenario, &reason)?;
+                        ctx.skipped += 1;
+                        ctx.progress
+                            .finish_scenario(&compact_skip_line(&scenario.name, &reason));
                     } else {
                         capture_comparison_ceiling(
                             scenario,
-                            rdir.outcomes(),
-                            cfg.defaults.loss_threshold_pct,
-                            &mut comparison_ceilings,
+                            ctx.rdir.outcomes(),
+                            loss,
+                            &mut ctx.comparison_ceilings,
                         );
+                        announce_result(ctx, scenario, before);
                     }
                 }
                 None => {
@@ -335,8 +381,11 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                         plan.transport_name,
                         scenario.protocol_label()
                     );
-                    rdir.record_skipped(scenario, "no compatible SCG gateway binary found")?;
-                    skipped += 1;
+                    let reason = "no compatible SCG gateway binary found";
+                    ctx.rdir.record_skipped(scenario, reason)?;
+                    ctx.skipped += 1;
+                    ctx.progress
+                        .finish_scenario(&compact_skip_line(&scenario.name, reason));
                 }
             }
         } else {
@@ -346,19 +395,250 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                 scenario_interface(scenario),
                 scenario.protocol_label()
             );
-            rdir.record_skipped(scenario, "scenario path is not implemented by this harness")?;
-            skipped += 1;
+            let reason = "scenario path is not implemented by this harness";
+            ctx.rdir.record_skipped(scenario, reason)?;
+            ctx.skipped += 1;
+            ctx.progress
+                .finish_scenario(&compact_skip_line(&scenario.name, reason));
         }
     }
+    Ok(())
+}
 
-    let executed = rdir.outcomes().len();
-    rdir.finish(cfg, &args.config, executed, skipped, &host)?;
-    render_suite_summary(rdir.outcomes(), skipped, rdir.root());
-
+/// Finish the shared context: clear the progress bar, write the result tree,
+/// then render the completion banner and the consolidated performance overview
+/// (printed and written to `PERFORMANCE_OVERVIEW.txt`). `meta_cfg`/`config_path`
+/// seed `meta.csv`; the top-level `summary.csv` already holds every scenario.
+fn finish_context(ctx: RunContext, meta_cfg: &Config, config_path: &Path) -> CmdResult {
+    let elapsed = ctx.progress.elapsed();
+    ctx.progress.finish();
+    let executed = ctx.rdir.outcomes().len();
+    let skipped = ctx.skipped;
+    ctx.rdir
+        .finish(meta_cfg, config_path, executed, skipped, &ctx.host)?;
+    render_suite_summary(executed, skipped, ctx.rdir.root(), elapsed);
+    crate::report::overview::render_and_write(ctx.rdir.root())?;
     if executed == 0 {
         log::warn!("no scenarios were executable");
     }
     Ok(())
+}
+
+/// Run every enabled scenario in a single config into a timestamped result
+/// directory under `--output-dir` (default `./results`).
+fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
+    let base = args
+        .output_dir
+        .clone()
+        .unwrap_or_else(|| PathBuf::from("results"));
+    let mut ctx = prepare_context(&base, &[cfg])?;
+    run_config(&mut ctx, cfg)?;
+    finish_context(ctx, cfg, &args.config)
+}
+
+/// `suite` — run a whole evaluation tier (many config files) in one pass,
+/// consolidating all scenarios into a single result tree and overview report.
+/// This is the in-binary replacement for the old `run_all.sh` wrapper.
+fn suite(args: SuiteArgs) -> CmdResult {
+    console::banner();
+
+    let config_paths = resolve_suite_configs(&args)?;
+    if config_paths.is_empty() {
+        return Err("no config files selected for this suite".into());
+    }
+
+    // Load + validate every config up front so a bad config fails before any
+    // benchmark runs.
+    let mut loaded: Vec<(PathBuf, Config)> = Vec::new();
+    for path in &config_paths {
+        let mut cfg = config::load(path)?;
+        apply_suite_overrides(&mut cfg, &args);
+        let report = config::validate(&cfg);
+        if !report.ok() {
+            render_validation(&path.display().to_string(), &cfg, &report);
+            return Err(format!("config invalid: {}", path.display()).into());
+        }
+        loaded.push((path.clone(), cfg));
+    }
+
+    // A single result tree keys scenarios by name, so names must be unique
+    // across the whole suite. Fail fast (this was run_all.sh's jq dedup check).
+    if let Some(dup) = duplicate_scenario_name(&loaded) {
+        return Err(format!(
+            "scenario name '{dup}' appears in more than one suite config; \
+             names must be unique across a suite run"
+        )
+        .into());
+    }
+
+    let total_scn: usize = loaded
+        .iter()
+        .map(|(_, c)| c.scenarios.iter().filter(|s| s.enabled).count())
+        .sum();
+    let est: u64 = loaded
+        .iter()
+        .map(|(_, c)| config::estimate_total_secs(c))
+        .sum();
+    log::info!(
+        "suite: {} config(s), {} enabled scenario(s); estimated wall time {}",
+        loaded.len(),
+        total_scn,
+        config::human_secs(est)
+    );
+
+    let base = args
+        .output_dir
+        .clone()
+        .unwrap_or_else(|| PathBuf::from("results"));
+    let cfg_refs: Vec<&Config> = loaded.iter().map(|(_, c)| c).collect();
+    let mut ctx = prepare_context(&base, &cfg_refs)?;
+    drop(cfg_refs);
+    for (path, cfg) in &loaded {
+        log::info!("suite config: {}", path.display());
+        run_config(&mut ctx, cfg)?;
+    }
+
+    // `meta.csv` records the first config as representative; the consolidated
+    // `summary.csv` already spans every config's scenarios.
+    match loaded.first() {
+        Some((first_path, first_cfg)) => finish_context(ctx, first_cfg, first_path),
+        None => Err("no config files selected for this suite".into()),
+    }
+}
+
+/// Resolve the list of config files for a `suite` run: explicit `--config`
+/// path(s) win; otherwise the tier's list from the `configs/suites.json`
+/// manifest. An optional `--scenario-filter` keeps only matching file names.
+fn resolve_suite_configs(args: &SuiteArgs) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    let mut paths = if args.config.is_empty() {
+        load_suite_manifest(args.tier)?
+    } else {
+        args.config.clone()
+    };
+    if let Some(filter) = &args.scenario_filter {
+        paths.retain(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .map(|n| n.contains(filter.as_str()))
+                .unwrap_or(false)
+        });
+    }
+    Ok(paths)
+}
+
+/// Directory holding the bundled config suites (and `suites.json`), overridable
+/// with `SESHAT_CONFIG_DIR`; defaults to `configs` relative to the CWD.
+fn suite_config_dir() -> PathBuf {
+    std::env::var_os("SESHAT_CONFIG_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("configs"))
+}
+
+/// Read the tier → config-file list from `configs/suites.json`.
+fn load_suite_manifest(tier: SuiteTier) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    let dir = suite_config_dir();
+    let manifest_path = dir.join("suites.json");
+    let text = std::fs::read_to_string(&manifest_path).map_err(|e| {
+        format!(
+            "cannot read suite manifest '{}': {e}",
+            manifest_path.display()
+        )
+    })?;
+    let names = parse_suite_manifest(&text, tier)
+        .map_err(|e| format!("invalid suite manifest '{}': {e}", manifest_path.display()))?;
+    Ok(names.into_iter().map(|n| dir.join(n)).collect())
+}
+
+/// Parse the tier → config-file list from suite-manifest JSON text.
+fn parse_suite_manifest(text: &str, tier: SuiteTier) -> Result<Vec<String>, String> {
+    let manifest: HashMap<String, Vec<String>> =
+        serde_json::from_str(text).map_err(|e| e.to_string())?;
+    manifest
+        .get(tier.key())
+        .cloned()
+        .ok_or_else(|| format!("no '{}' tier", tier.key()))
+}
+
+/// Apply the `suite` reproducibility overrides onto a loaded config. `--quick`
+/// is applied first so an explicit `--duration`/`--warmup`/`--runs` still wins.
+fn apply_suite_overrides(cfg: &mut Config, args: &SuiteArgs) {
+    if args.quick {
+        cfg.defaults.duration_secs = 2;
+        cfg.defaults.warmup_secs = 1;
+        cfg.defaults.runs = 1;
+    }
+    if let Some(r) = args.runs {
+        cfg.defaults.runs = r;
+    }
+    if let Some(d) = args.duration {
+        cfg.defaults.duration_secs = d.as_secs();
+    }
+    if let Some(w) = args.warmup {
+        cfg.defaults.warmup_secs = w.as_secs();
+    }
+    if let Some(c) = args.cooldown {
+        cfg.defaults.cooldown_secs = c.as_secs();
+    }
+    if let Some(backend) = args.metrics_backend {
+        cfg.defaults.metrics_backend = backend.into();
+        cfg.defaults.collect_system_metrics = cfg.defaults.metrics_backend != MetricsBackend::None;
+    }
+    if args.no_system_metrics {
+        cfg.defaults.collect_system_metrics = false;
+        cfg.defaults.metrics_backend = MetricsBackend::None;
+    }
+}
+
+/// First enabled scenario name shared by two or more loaded configs, if any.
+fn duplicate_scenario_name(loaded: &[(PathBuf, Config)]) -> Option<String> {
+    let mut seen = std::collections::HashSet::new();
+    for (_, cfg) in loaded {
+        for s in cfg.scenarios.iter().filter(|s| s.enabled) {
+            if !seen.insert(s.name.as_str()) {
+                return Some(s.name.clone());
+            }
+        }
+    }
+    None
+}
+
+/// Compact one-line result for the progress view (mode-aware via the recorded
+/// outcome's headline).
+fn compact_result_line(outcome: &ScenarioOutcome) -> String {
+    format!(
+        "  {} {:<34} {}",
+        console::check(),
+        outcome.name,
+        console::dim(&outcome.headline)
+    )
+}
+
+/// Compact one-line skip notice for the progress view.
+fn compact_skip_line(name: &str, reason: &str) -> String {
+    format!(
+        "  {} {:<34} {}",
+        console::yellow("\u{2298}"),
+        name,
+        console::dim(&format!("skipped: {reason}"))
+    )
+}
+
+/// Emit the compact result line for the just-finished scenario, advancing the
+/// progress bar. Falls back to a plain "done" line if no matching outcome was
+/// recorded (e.g. multi-stream / hot-reload artifacts that do not produce a
+/// throughput outcome row).
+fn announce_result(ctx: &RunContext, scenario: &Scenario, before: usize) {
+    let grew = ctx.rdir.outcomes().len() > before;
+    let line = match ctx.rdir.outcomes().last() {
+        Some(o) if grew && o.name == scenario.name => compact_result_line(o),
+        _ => format!(
+            "  {} {:<34} {}",
+            console::check(),
+            scenario.name,
+            console::dim("done")
+        ),
+    };
+    ctx.progress.finish_scenario(&line);
 }
 
 /// Return a common offered rate (Mbit/s) for a generated comparison latency
@@ -384,7 +664,7 @@ fn apply_comparison_rate(
         params.sender.pattern = config::Pattern::Sustained;
         params.sender.rate_limit_mbps = Some(rate_mbps);
         params.sender.interval_us = None;
-        log::info!(
+        log::debug!(
             "scenario '{}': interface comparison latency rate {:.3} Mbit/s",
             scenario.name,
             rate_mbps
@@ -1090,7 +1370,7 @@ fn run_gateway_scenario(
         params.sender.pattern = config::Pattern::Sustained;
         params.sender.rate_limit_mbps = Some(rate_mbps);
         params.sender.interval_us = None;
-        log::info!(
+        log::debug!(
             "scenario '{}': interface comparison latency rate {:.3} Mbit/s",
             scenario.name,
             rate_mbps
@@ -2128,7 +2408,7 @@ fn resolve_core_plan(d: &Defaults) -> CorePlan {
         if gateway.is_empty() {
             log::warn!("auto-affinity: only {total} logical core(s) available; running unpinned");
         } else {
-            log::info!(
+            log::debug!(
                 "auto-affinity: gateway={gateway:?} sender={sender:?} receiver={receiver:?}"
             );
         }
@@ -2245,6 +2525,9 @@ fn start_mem_copy_sampler(
 const DEFAULT_MESSAGE_BYTES: u32 = 1024;
 
 fn render_scenario_header(s: &Scenario, params: &RunParams, transport_label: &str) {
+    if !console::is_verbose() {
+        return;
+    }
     console::section(&format!("Scenario: {}", s.name));
     console::card(
         "",
@@ -2267,6 +2550,9 @@ fn render_scenario_header(s: &Scenario, params: &RunParams, transport_label: &st
 }
 
 fn render_run_line(index: usize, total: usize, s: &FlowSummary) {
+    if !console::is_verbose() {
+        return;
+    }
     let line = format!(
         "  run {:>2}/{:<2}  {:>9.3} Gbit/s    p99 {:>9.1} µs    loss {:>6.3} %",
         index + 1,
@@ -2279,6 +2565,9 @@ fn render_run_line(index: usize, total: usize, s: &FlowSummary) {
 }
 
 fn render_scenario_result(stats: &RunStats) {
+    if !console::is_verbose() {
+        return;
+    }
     let thr = &stats.throughput_gbps;
     let lat = &stats.latency_mean_us;
     let p99 = &stats.latency_p99_us;
@@ -2306,6 +2595,9 @@ fn render_scenario_result(stats: &RunStats) {
 
 /// Per-run progress line for a closed-loop ping-pong scenario: RTT, not Gbit/s.
 fn render_pingpong_run_line(index: usize, total: usize, s: &FlowSummary) {
+    if !console::is_verbose() {
+        return;
+    }
     let line = format!(
         "  run {:>2}/{:<2}  rtt mean {:>8.1} µs    p50 {:>8.1} µs    p99 {:>8.1} µs",
         index + 1,
@@ -2319,6 +2611,9 @@ fn render_pingpong_run_line(index: usize, total: usize, s: &FlowSummary) {
 
 /// Cross-run result block for a closed-loop ping-pong scenario.
 fn render_pingpong_result(stats: &RunStats) {
+    if !console::is_verbose() {
+        return;
+    }
     match stats.rtt {
         Some(rtt) => {
             console::card(
@@ -2341,6 +2636,9 @@ fn render_pingpong_result(stats: &RunStats) {
 
 /// Per-run progress line for a connection-rate scenario: conns/s and handshake.
 fn render_connrate_run_line(index: usize, total: usize, s: &FlowSummary) {
+    if !console::is_verbose() {
+        return;
+    }
     let line = format!(
         "  run {:>2}/{:<2}  {:>10.0} conn/s    hs p50 {:>7.1} µs    p99 {:>7.1} µs",
         index + 1,
@@ -2354,6 +2652,9 @@ fn render_connrate_run_line(index: usize, total: usize, s: &FlowSummary) {
 
 /// Cross-run result block for a connection-rate scenario.
 fn render_connrate_result(stats: &RunStats) {
+    if !console::is_verbose() {
+        return;
+    }
     match stats.conn {
         Some(conn) => {
             console::card(
@@ -2438,6 +2739,9 @@ fn warn_if_protocol_fallback(scenario: &Scenario, effective: &Effective) {
 }
 
 fn render_saturation_result(result: &SweepResult, loss_threshold_pct: f64) {
+    if !console::is_verbose() {
+        return;
+    }
     console::card(
         "Saturation Sweep",
         &[
@@ -2501,6 +2805,9 @@ fn calibrate_scenario(
 }
 
 fn render_calibration(cal: &Calibration) {
+    if !console::is_verbose() {
+        return;
+    }
     let mut value = format!(
         "ceiling {:.3} Gbit/s    headroom {:.1}×    dut: {}    bottleneck: {}",
         cal.ceiling_gbps, cal.headroom, cal.dut, cal.bottleneck
@@ -2513,63 +2820,17 @@ fn render_calibration(cal: &Calibration) {
     console::kv("Headroom", &value, 12);
 }
 
-fn render_suite_summary(outcomes: &[ScenarioOutcome], skipped: usize, root: &Path) {
+/// Concise completion banner: counts, elapsed wall time, and the result path.
+/// The detailed themed tables and leaderboard are rendered by
+/// [`crate::report::overview`] immediately after this.
+fn render_suite_summary(executed: usize, skipped: usize, root: &Path, elapsed: Duration) {
     console::section("SUITE COMPLETE");
     println!(
-        "  {} scenarios executed, {} skipped",
-        outcomes.len(),
-        skipped
+        "  {executed} executed   {skipped} skipped   \u{00b7}   elapsed {}",
+        config::human_secs(elapsed.as_secs())
     );
-    println!("  Results: {}\n", root.display());
-
-    // Build a table sorted by throughput descending
-    let mut sorted: Vec<&ScenarioOutcome> = outcomes.iter().collect();
-    sorted.sort_by(|a, b| b.throughput_gbps.total_cmp(&a.throughput_gbps));
-
-    let headers = &["#", "Scenario", "Throughput", "p99 Latency", "Loss"];
-    let rows: Vec<Vec<String>> = sorted
-        .iter()
-        .enumerate()
-        .map(|(i, o)| {
-            vec![
-                format!("{}", i + 1),
-                o.name.clone(),
-                format!("{:.3} Gbit/s", o.throughput_gbps),
-                format!("{:.1} µs", o.latency_p99_us),
-                format!("{:.3} %", o.loss_pct),
-            ]
-        })
-        .collect();
-
-    console::table(headers, &rows, b"rlrrr");
-
-    if let (Some(best), Some(worst)) = (best_by_throughput(outcomes), worst_by_throughput(outcomes))
-    {
-        println!();
-        console::kv(
-            "Best",
-            &format!("{} ({:.3} Gbit/s)", best.name, best.throughput_gbps),
-            10,
-        );
-        console::kv(
-            "Worst",
-            &format!("{} ({:.3} Gbit/s)", worst.name, worst.throughput_gbps),
-            10,
-        );
-    }
+    println!("  Results: {}", root.display());
     console::end_rule();
-}
-
-/// Scenario with the highest mean throughput.
-fn best_by_throughput(o: &[ScenarioOutcome]) -> Option<&ScenarioOutcome> {
-    o.iter()
-        .max_by(|a, b| a.throughput_gbps.total_cmp(&b.throughput_gbps))
-}
-
-/// Scenario with the lowest mean throughput.
-fn worst_by_throughput(o: &[ScenarioOutcome]) -> Option<&ScenarioOutcome> {
-    o.iter()
-        .min_by(|a, b| a.throughput_gbps.total_cmp(&b.throughput_gbps))
 }
 
 /// Apply CLI flag overrides onto the loaded config.
@@ -2809,58 +3070,21 @@ fn report(args: ReportArgs) -> CmdResult {
         return Err(format!("results directory not found: {}", args.input.display()).into());
     }
 
-    // Walk the result directory structure and regenerate the summary CSV.
-    let scenarios_dir = args.input.join("scenarios");
-    if !scenarios_dir.is_dir() {
-        return Err(format!("no scenarios/ subdirectory in {}", args.input.display()).into());
+    // The run/suite already wrote the consolidated top-level summary.csv; the
+    // `report` command re-renders the human overview from it (terminal +
+    // PERFORMANCE_OVERVIEW.txt) without re-running any benchmark.
+    let summary_path = args.input.join("summary.csv");
+    if !summary_path.is_file() {
+        return Err(format!(
+            "no summary.csv in {} — run `seshat run` or `seshat suite` first",
+            args.input.display()
+        )
+        .into());
     }
-
-    let mut summary_rows = Vec::new();
-    summary_rows.push(
-        "scenario,protocol,topology,messages,throughput_gbps,latency_p50_us,\
-         latency_p99_us,loss_pct,jitter_us"
-            .to_string(),
-    );
-
-    let mut entries: Vec<_> = std::fs::read_dir(&scenarios_dir)
-        .map_err(|e| format!("read scenarios/: {e}"))?
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().is_dir())
-        .collect();
-    entries.sort_by_key(|e| e.file_name());
-
-    for entry in entries {
-        let scenario_name = entry.file_name().to_string_lossy().to_string();
-        let summary_path = entry.path().join("summary.json");
-        if !summary_path.exists() {
-            log::warn!("skipping {scenario_name}: no summary.json");
-            continue;
-        }
-        let json = std::fs::read_to_string(&summary_path)
-            .map_err(|e| format!("read {}: {e}", summary_path.display()))?;
-        let val: serde_json::Value = serde_json::from_str(&json)
-            .map_err(|e| format!("parse {}: {e}", summary_path.display()))?;
-
-        let protocol = val["protocol"].as_str().unwrap_or("unknown");
-        let topology = val["topology"].as_str().unwrap_or("unknown");
-        let messages = val["messages"].as_u64().unwrap_or(0);
-        let throughput = val["throughput_gbps"].as_f64().unwrap_or(0.0);
-        let p50 = val["latency_us"]["p50"].as_f64().unwrap_or(0.0);
-        let p99 = val["latency_us"]["p99"].as_f64().unwrap_or(0.0);
-        let loss = val["loss_pct"].as_f64().unwrap_or(0.0);
-        let jitter = val["jitter_us"].as_f64().unwrap_or(0.0);
-
-        summary_rows.push(format!(
-            "{scenario_name},{protocol},{topology},{messages},{throughput:.4},{p50:.1},{p99:.1},{loss:.3},{jitter:.1}"
-        ));
-    }
-
-    // Write the regenerated summary.
-    let output_path = args.input.join("summary.csv");
-    std::fs::write(&output_path, summary_rows.join("\n") + "\n")
-        .map_err(|e| format!("write {}: {e}", output_path.display()))?;
-    log::info!("wrote {}", output_path.display());
-    println!("{}", output_path.display());
+    crate::report::overview::render_and_write(&args.input)?;
+    let overview_path = args.input.join("PERFORMANCE_OVERVIEW.txt");
+    log::info!("wrote {}", overview_path.display());
+    println!("{}", overview_path.display());
     Ok(())
 }
 
@@ -3006,16 +3230,7 @@ fn list(args: ListArgs) -> CmdResult {
 }
 
 fn scenario_interface(s: &Scenario) -> String {
-    if let Some(sender) = &s.sender {
-        sender.interface.label().to_string()
-    } else if !s.streams.is_empty() {
-        let mut labels: Vec<&str> = s.streams.iter().map(|st| st.interface.label()).collect();
-        labels.sort_unstable();
-        labels.dedup();
-        labels.join("+")
-    } else {
-        "-".to_string()
-    }
+    s.interface_summary().unwrap_or_else(|| "-".to_string())
 }
 
 fn scenario_conns(s: &Scenario) -> String {
@@ -3312,6 +3527,97 @@ mod tests {
         assert!(!cipher_requires_rsa_auth("ECDHE-ECDSA-AES128-GCM-SHA256"));
         assert!(!cipher_requires_rsa_auth("TLS_AES_128_GCM_SHA256"));
         assert!(!cipher_requires_rsa_auth("TLS_CHACHA20_POLY1305_SHA256"));
+    }
+
+    #[test]
+    fn parse_suite_manifest_resolves_known_tiers() {
+        let json = r#"{ "canonical": ["a.json", "b.json"], "nightly": ["c.json"] }"#;
+        assert_eq!(
+            parse_suite_manifest(json, SuiteTier::Canonical).expect("canonical"),
+            vec!["a.json".to_string(), "b.json".to_string()]
+        );
+        assert_eq!(
+            parse_suite_manifest(json, SuiteTier::Nightly).expect("nightly"),
+            vec!["c.json".to_string()]
+        );
+    }
+
+    #[test]
+    fn parse_suite_manifest_errors_on_missing_tier_or_bad_json() {
+        let no_tier = r#"{ "nightly": ["c.json"] }"#;
+        assert!(parse_suite_manifest(no_tier, SuiteTier::Canonical).is_err());
+        assert!(parse_suite_manifest("{ not json", SuiteTier::Canonical).is_err());
+    }
+
+    #[test]
+    fn duplicate_scenario_name_detects_cross_config_collisions() {
+        let mk = |name: &str| -> Config {
+            serde_json::from_str(&format!(
+                r#"{{"suite":{{"name":"t","version":"1.0.0"}},"scenarios":[{{"name":"{name}"}}]}}"#
+            ))
+            .expect("minimal config parses")
+        };
+        let clash = vec![
+            (PathBuf::from("a.json"), mk("shared")),
+            (PathBuf::from("b.json"), mk("shared")),
+        ];
+        assert_eq!(duplicate_scenario_name(&clash), Some("shared".to_string()));
+
+        let unique = vec![
+            (PathBuf::from("a.json"), mk("alpha")),
+            (PathBuf::from("b.json"), mk("beta")),
+        ];
+        assert_eq!(duplicate_scenario_name(&unique), None);
+    }
+
+    #[test]
+    fn apply_suite_overrides_quick_then_explicit_wins() {
+        let mut cfg: Config = serde_json::from_str(
+            r#"{"suite":{"name":"t","version":"1.0.0"},"scenarios":[{"name":"x"}]}"#,
+        )
+        .expect("config parses");
+        let mut args = SuiteArgs {
+            tier: SuiteTier::Canonical,
+            config: vec![],
+            scenario_filter: None,
+            output_dir: None,
+            quick: true,
+            runs: Some(5),
+            duration: None,
+            warmup: None,
+            cooldown: None,
+            tag: None,
+            cpu_affinity: vec![],
+            no_system_metrics: false,
+            metrics_backend: None,
+        };
+        apply_suite_overrides(&mut cfg, &args);
+        // --quick sets duration/warmup, but the explicit --runs 5 overrides the
+        // quick default of 1.
+        assert_eq!(cfg.defaults.duration_secs, 2);
+        assert_eq!(cfg.defaults.warmup_secs, 1);
+        assert_eq!(cfg.defaults.runs, 5);
+
+        args.no_system_metrics = true;
+        apply_suite_overrides(&mut cfg, &args);
+        assert!(!cfg.defaults.collect_system_metrics);
+    }
+
+    #[test]
+    fn compact_lines_carry_name_and_metric() {
+        let outcome = ScenarioOutcome {
+            name: "tcp_x".to_string(),
+            throughput_gbps: 9.0,
+            loss_pct: 0.0,
+            headline: "9.000 Gbit/s  p99 12.0 µs".to_string(),
+        };
+        let ok = compact_result_line(&outcome);
+        assert!(ok.contains("tcp_x"));
+        assert!(ok.contains("9.000 Gbit/s"));
+
+        let skip = compact_skip_line("conn_x", "needs root");
+        assert!(skip.contains("conn_x"));
+        assert!(skip.contains("skipped: needs root"));
     }
 
     #[test]

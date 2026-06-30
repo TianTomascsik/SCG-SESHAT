@@ -23,6 +23,7 @@
   "scenarios": [
     {
       "name": "lat_tcp_loopback_1KB",
+      "description": "Baseline one-way latency over direct TCP loopback (paced, sub-saturation).",
       "category": "latency",
       "message_size_bytes": 1024,
       "connections": 1,
@@ -35,6 +36,7 @@
     },
     {
       "name": "lat_udp_loopback_1KB",
+      "description": "Baseline one-way latency over direct UDP loopback (paced, sub-saturation).",
       "category": "latency",
       "message_size_bytes": 1024,
       "connections": 1,
@@ -47,6 +49,7 @@
     },
     {
       "name": "lat_scg_routing_tcp_1KB",
+      "description": "One-way latency added by the SCG in plaintext TCP routing mode.",
       "category": "latency",
       "message_size_bytes": 1024,
       "connections": 1,
@@ -61,6 +64,7 @@
     },
     {
       "name": "lat_scg_tls13_tcp_1KB",
+      "description": "One-way latency through the SCG with TLS 1.3 encryption.",
       "category": "latency",
       "message_size_bytes": 1024,
       "connections": 1,
@@ -75,6 +79,7 @@
     },
     {
       "name": "lat_scg_dtls12_udp_1KB",
+      "description": "One-way latency through the SCG with DTLS 1.2 over UDP.",
       "category": "latency",
       "message_size_bytes": 1024,
       "connections": 1,

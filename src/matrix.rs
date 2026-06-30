@@ -648,7 +648,79 @@ fn scenario(
     if let Some(comparison) = comparison {
         object.insert("comparison".to_string(), comparison);
     }
+    object.insert(
+        "description".to_string(),
+        Value::String(matrix_description(
+            category,
+            interface,
+            protocol,
+            gateway,
+            chain,
+            size,
+            connections,
+        )),
+    );
     row
+}
+
+/// Compose a one-line, explicit description for a generated scenario from its
+/// parameters so every generated suite row carries a human description.
+fn matrix_description(
+    category: &str,
+    interface: &str,
+    protocol: &Value,
+    gateway: bool,
+    chain: &str,
+    size: u32,
+    connections: u32,
+) -> String {
+    let path = if gateway {
+        format!("SCG {chain}")
+    } else {
+        "direct loopback".to_string()
+    };
+    format!(
+        "{category}: {path}, {interface}/{}, {}, {} conn{}",
+        protocol_summary(protocol),
+        size_label(size),
+        connections,
+        if connections == 1 { "" } else { "s" }
+    )
+}
+
+/// Short protocol label derived from a generated scenario's protocol JSON.
+fn protocol_summary(protocol: &Value) -> String {
+    match protocol
+        .get("type")
+        .and_then(Value::as_str)
+        .unwrap_or("none")
+    {
+        "none" => "plain".to_string(),
+        "tls" => {
+            let v = protocol
+                .get("version")
+                .and_then(Value::as_str)
+                .unwrap_or("1.3");
+            let base = if protocol
+                .get("kernel")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+            {
+                "ktls"
+            } else {
+                "tls"
+            };
+            format!("{base}{v}")
+        }
+        "dtls" => {
+            let v = protocol
+                .get("version")
+                .and_then(Value::as_str)
+                .unwrap_or("1.2");
+            format!("dtls{v}")
+        }
+        other => other.to_string(),
+    }
 }
 
 fn sender(interface: &str, ordinal: usize) -> Value {

@@ -1,0 +1,21 @@
+{
+  "canonical": [
+    "canonical_matrix.json",
+    "interface_comparison.json",
+    "profile_regression.json",
+    "latency.json",
+    "saturation.json",
+    "pingpong.json",
+    "connrate.json"
+  ],
+  "nightly": [
+    "full_matrix.json",
+    "interface_comparison.json",
+    "hotreload_matrix.json",
+    "profile_regression.json",
+    "latency.json",
+    "saturation.json",
+    "pingpong.json",
+    "connrate.json"
+  ]
+}

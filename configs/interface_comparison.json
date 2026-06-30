@@ -22,6 +22,7 @@
         "reference": "iface_tcp_loopback_throughput_64B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 64B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -47,6 +48,7 @@
         "reference": "iface_tcp_loopback_throughput_64B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 64B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -72,6 +74,7 @@
         "reference": "iface_tcp_loopback_throughput_64B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tproxy/plain, 64B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -99,6 +102,7 @@
         "reference": "iface_tcp_loopback_throughput_64B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, unix/plain, 64B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -124,6 +128,7 @@
         "reference": "iface_tcp_loopback_throughput_64B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, shm/plain, 64B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -149,6 +154,7 @@
         "reference": "iface_tcp_loopback_throughput_64B_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 64B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -174,6 +180,7 @@
         "reference": "iface_tcp_loopback_throughput_64B_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 64B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -199,6 +206,7 @@
         "reference": "iface_tcp_loopback_throughput_64B_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 64B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -224,6 +232,7 @@
         "reference": "iface_tcp_loopback_throughput_64B_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 64B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -249,6 +258,7 @@
         "reference": "iface_tcp_loopback_throughput_256B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 256B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -274,6 +284,7 @@
         "reference": "iface_tcp_loopback_throughput_256B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 256B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -299,6 +310,7 @@
         "reference": "iface_tcp_loopback_throughput_256B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tproxy/plain, 256B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -326,6 +338,7 @@
         "reference": "iface_tcp_loopback_throughput_256B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, unix/plain, 256B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -351,6 +364,7 @@
         "reference": "iface_tcp_loopback_throughput_256B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, shm/plain, 256B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -376,6 +390,7 @@
         "reference": "iface_tcp_loopback_throughput_256B_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 256B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -401,6 +416,7 @@
         "reference": "iface_tcp_loopback_throughput_256B_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 256B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -426,6 +442,7 @@
         "reference": "iface_tcp_loopback_throughput_256B_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 256B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -451,6 +468,7 @@
         "reference": "iface_tcp_loopback_throughput_256B_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 256B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -476,6 +494,7 @@
         "reference": "iface_tcp_loopback_throughput_1KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 1KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -501,6 +520,7 @@
         "reference": "iface_tcp_loopback_throughput_1KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 1KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -526,6 +546,7 @@
         "reference": "iface_tcp_loopback_throughput_1KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tproxy/plain, 1KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -553,6 +574,7 @@
         "reference": "iface_tcp_loopback_throughput_1KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, unix/plain, 1KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -578,6 +600,7 @@
         "reference": "iface_tcp_loopback_throughput_1KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, shm/plain, 1KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -603,6 +626,7 @@
         "reference": "iface_tcp_loopback_throughput_1KB_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 1KB, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -628,6 +652,7 @@
         "reference": "iface_tcp_loopback_throughput_1KB_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 1KB, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -653,6 +678,7 @@
         "reference": "iface_tcp_loopback_throughput_1KB_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 1KB, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -678,6 +704,7 @@
         "reference": "iface_tcp_loopback_throughput_1KB_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 1KB, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -703,6 +730,7 @@
         "reference": "iface_tcp_loopback_throughput_4096B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -728,6 +756,7 @@
         "reference": "iface_tcp_loopback_throughput_4096B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -753,6 +782,7 @@
         "reference": "iface_tcp_loopback_throughput_4096B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tproxy/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -780,6 +810,7 @@
         "reference": "iface_tcp_loopback_throughput_4096B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, unix/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -805,6 +836,7 @@
         "reference": "iface_tcp_loopback_throughput_4096B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, shm/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -830,6 +862,7 @@
         "reference": "iface_tcp_loopback_throughput_4096B_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -855,6 +888,7 @@
         "reference": "iface_tcp_loopback_throughput_4096B_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 4096B, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -880,6 +914,7 @@
         "reference": "iface_tcp_loopback_throughput_4096B_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -905,6 +940,7 @@
         "reference": "iface_tcp_loopback_throughput_4096B_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 4096B, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -930,6 +966,7 @@
         "reference": "iface_tcp_loopback_throughput_16KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 16KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -955,6 +992,7 @@
         "reference": "iface_tcp_loopback_throughput_16KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 16KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -980,6 +1018,7 @@
         "reference": "iface_tcp_loopback_throughput_16KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tproxy/plain, 16KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1007,6 +1046,7 @@
         "reference": "iface_tcp_loopback_throughput_16KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, unix/plain, 16KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1032,6 +1072,7 @@
         "reference": "iface_tcp_loopback_throughput_16KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, shm/plain, 16KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1057,6 +1098,7 @@
         "reference": "iface_tcp_loopback_throughput_16KB_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 16KB, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -1082,6 +1124,7 @@
         "reference": "iface_tcp_loopback_throughput_16KB_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 16KB, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1107,6 +1150,7 @@
         "reference": "iface_tcp_loopback_throughput_16KB_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 16KB, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -1132,6 +1176,7 @@
         "reference": "iface_tcp_loopback_throughput_16KB_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 16KB, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1157,6 +1202,7 @@
         "reference": "iface_tcp_loopback_throughput_64KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 64KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -1182,6 +1228,7 @@
         "reference": "iface_tcp_loopback_throughput_64KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 64KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1207,6 +1254,7 @@
         "reference": "iface_tcp_loopback_throughput_64KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, tproxy/plain, 64KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1234,6 +1282,7 @@
         "reference": "iface_tcp_loopback_throughput_64KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, unix/plain, 64KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1259,6 +1308,7 @@
         "reference": "iface_tcp_loopback_throughput_64KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-throughput: SCG scg-direct, shm/plain, 64KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1284,6 +1334,7 @@
         "reference": "iface_tcp_loopback_throughput_64KB_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 64KB, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -1309,6 +1360,7 @@
         "reference": "iface_tcp_loopback_throughput_64KB_4c"
       },
       "connections": 4,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 64KB, 4 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1334,6 +1386,7 @@
         "reference": "iface_tcp_loopback_throughput_64KB_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: direct loopback, tcp/plain, 64KB, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -1359,6 +1412,7 @@
         "reference": "iface_tcp_loopback_throughput_64KB_16c"
       },
       "connections": 16,
+      "description": "interface-comparison-throughput: SCG scg-direct, tcp/plain, 64KB, 16 conns",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1386,6 +1440,7 @@
         "reference": "iface_tcp_loopback_latency_64B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: direct loopback, tcp/plain, 64B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -1413,6 +1468,7 @@
         "reference": "iface_tcp_loopback_latency_64B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, tcp/plain, 64B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1440,6 +1496,7 @@
         "reference": "iface_tcp_loopback_latency_64B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, tproxy/plain, 64B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1469,6 +1526,7 @@
         "reference": "iface_tcp_loopback_latency_64B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, unix/plain, 64B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1496,6 +1554,7 @@
         "reference": "iface_tcp_loopback_latency_64B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, shm/plain, 64B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1523,6 +1582,7 @@
         "reference": "iface_tcp_loopback_latency_1KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: direct loopback, tcp/plain, 1KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -1550,6 +1610,7 @@
         "reference": "iface_tcp_loopback_latency_1KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, tcp/plain, 1KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1577,6 +1638,7 @@
         "reference": "iface_tcp_loopback_latency_1KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, tproxy/plain, 1KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1606,6 +1668,7 @@
         "reference": "iface_tcp_loopback_latency_1KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, unix/plain, 1KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1633,6 +1696,7 @@
         "reference": "iface_tcp_loopback_latency_1KB_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, shm/plain, 1KB, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1660,6 +1724,7 @@
         "reference": "iface_tcp_loopback_latency_4096B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: direct loopback, tcp/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": false
@@ -1687,6 +1752,7 @@
         "reference": "iface_tcp_loopback_latency_4096B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, tcp/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1714,6 +1780,7 @@
         "reference": "iface_tcp_loopback_latency_4096B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, tproxy/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1743,6 +1810,7 @@
         "reference": "iface_tcp_loopback_latency_4096B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, unix/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true
@@ -1770,6 +1838,7 @@
         "reference": "iface_tcp_loopback_latency_4096B_1c"
       },
       "connections": 1,
+      "description": "interface-comparison-latency: SCG scg-direct, shm/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
         "enabled": true

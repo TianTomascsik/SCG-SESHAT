@@ -13,6 +13,7 @@ mod logging;
 mod matrix;
 mod metrics;
 mod pki;
+mod progress;
 mod proto;
 mod report;
 mod run;
@@ -31,7 +32,7 @@ use cli::Cli;
 fn main() -> ExitCode {
     let cli = Cli::parse();
 
-    console::init(cli.quiet);
+    console::init(cli.quiet, cli.verbose, cli.describe);
     logging::init(cli.log_level.into(), cli.quiet);
 
     match commands::dispatch(cli.command) {

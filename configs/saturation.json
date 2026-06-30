@@ -24,6 +24,7 @@
   "scenarios": [
     {
       "name": "sat_tcp_loopback_1KB",
+      "description": "Offered-load sweep over direct TCP loopback to find the loss-free ceiling.",
       "category": "saturation",
       "message_size_bytes": 1024,
       "connections": 1,
@@ -36,6 +37,7 @@
     },
     {
       "name": "sat_udp_loopback_1KB",
+      "description": "Offered-load sweep over direct UDP loopback to find the loss-free ceiling.",
       "category": "saturation",
       "message_size_bytes": 1024,
       "connections": 1,
@@ -48,6 +50,7 @@
     },
     {
       "name": "sat_scg_routing_tcp_1KB",
+      "description": "Offered-load sweep through the SCG (plaintext TCP routing) to find the loss-free ceiling.",
       "category": "saturation",
       "message_size_bytes": 1024,
       "connections": 1,
@@ -62,6 +65,7 @@
     },
     {
       "name": "sat_scg_dtls12_udp_1KB",
+      "description": "Offered-load sweep through the SCG with DTLS 1.2 to find the loss-free ceiling.",
       "category": "saturation",
       "message_size_bytes": 1024,
       "connections": 1,

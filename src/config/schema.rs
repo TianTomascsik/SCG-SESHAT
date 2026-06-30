@@ -241,6 +241,12 @@ pub struct Scenario {
     /// for report consolidation; it does not alter the data-plane path.
     #[serde(default)]
     pub comparison: Option<Comparison>,
+    /// Optional one-line human description, shown in the live progress and the
+    /// per-scenario result line when `--describe` is set.  When absent,
+    /// [`Scenario::describe`] composes a compact fallback from the scenario's
+    /// own fields, so the description is never blank.
+    #[serde(default)]
+    pub description: Option<String>,
 }
 
 /// Runtime capabilities required by a scenario generated from the matrix.
@@ -807,6 +813,66 @@ impl Scenario {
             ProtocolType::Ipsec => "ipsec".to_string(),
         }
     }
+
+    /// Interface label(s) for this scenario: the single-stream sender's
+    /// interface, the sorted/deduped set of multi-stream interfaces, or `None`
+    /// when the scenario has no sender (e.g. a not-yet-implemented path).
+    pub fn interface_summary(&self) -> Option<String> {
+        if let Some(sender) = &self.sender {
+            Some(sender.interface.label().to_string())
+        } else if !self.streams.is_empty() {
+            let mut labels: Vec<&str> =
+                self.streams.iter().map(|st| st.interface.label()).collect();
+            labels.sort_unstable();
+            labels.dedup();
+            Some(labels.join("+"))
+        } else {
+            None
+        }
+    }
+
+    /// One-line human description for the progress UI. Returns the explicit
+    /// `description` when set; otherwise composes a compact summary from the
+    /// mode, interface, protocol, message size, and connection count so the
+    /// description is never blank.
+    pub fn describe(&self) -> String {
+        if let Some(desc) = &self.description {
+            let trimmed = desc.trim();
+            if !trimmed.is_empty() {
+                return trimmed.to_string();
+            }
+        }
+        let mode = match self.mode {
+            Mode::Throughput => "throughput",
+            Mode::Pingpong => "round-trip",
+            Mode::Connrate => "conn-rate",
+        };
+        let mut parts: Vec<String> = Vec::new();
+        match self.interface_summary() {
+            Some(iface) => parts.push(format!("{mode} · {iface} · {}", self.protocol_label())),
+            None => parts.push(format!("{mode} · {}", self.protocol_label())),
+        }
+        if let Some(size) = self.message_size_bytes {
+            parts.push(fmt_bytes(size));
+        }
+        parts.push(format!(
+            "{} conn{}",
+            self.connections,
+            if self.connections == 1 { "" } else { "s" }
+        ));
+        parts.join(" · ")
+    }
+}
+
+/// Compact byte size for scenario descriptions (`1 KB`, `1.4 KB`, `512 B`).
+fn fmt_bytes(n: u32) -> String {
+    if n >= 1024 && n.is_multiple_of(1024) {
+        format!("{} KB", n / 1024)
+    } else if n >= 1024 {
+        format!("{:.1} KB", n as f64 / 1024.0)
+    } else {
+        format!("{n} B")
+    }
 }
 
 impl TlsVersion {
@@ -817,5 +883,57 @@ impl TlsVersion {
             TlsVersion::V1_2 => "1.2",
             TlsVersion::V1_3 => "1.3",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn scenario(json: &str) -> Scenario {
+        serde_json::from_str(json).expect("scenario parses")
+    }
+
+    #[test]
+    fn describe_prefers_explicit_text_trimmed() {
+        let s = scenario(
+            r#"{"name":"x","description":"  hand written  ",
+                "sender":{"interface":"tcp","target_addr":"127.0.0.1:1"}}"#,
+        );
+        assert_eq!(s.describe(), "hand written");
+    }
+
+    #[test]
+    fn describe_falls_back_to_composed_summary() {
+        let s = scenario(
+            r#"{"name":"x","message_size_bytes":1024,"connections":4,
+                "sender":{"interface":"tcp","target_addr":"127.0.0.1:1"}}"#,
+        );
+        let d = s.describe();
+        assert!(d.contains("throughput"), "got {d}");
+        assert!(d.contains("tcp"), "got {d}");
+        assert!(d.contains("1 KB"), "got {d}");
+        assert!(d.contains("4 conns"), "got {d}");
+    }
+
+    #[test]
+    fn describe_singular_connection_and_small_size() {
+        let s = scenario(
+            r#"{"name":"x","message_size_bytes":64,"connections":1,
+                "sender":{"interface":"udp","target_addr":"127.0.0.1:1"}}"#,
+        );
+        let d = s.describe();
+        assert!(d.contains("64 B"), "got {d}");
+        assert!(d.ends_with("1 conn"), "got {d}");
+        assert!(d.contains("udp"), "got {d}");
+    }
+
+    #[test]
+    fn blank_explicit_description_uses_fallback() {
+        let s = scenario(
+            r#"{"name":"x","description":"   ","connections":2,
+                "sender":{"interface":"tcp","target_addr":"127.0.0.1:1"}}"#,
+        );
+        assert!(s.describe().contains("2 conns"));
     }
 }
