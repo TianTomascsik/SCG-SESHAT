@@ -15,6 +15,20 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
+/// Extra connection-pool workers beyond the measured connection count, covering
+/// the gateway's own probe/management connections that may briefly overlap a run.
+const CONN_POOL_HEADROOM: usize = 8;
+
+/// Floor for an auto-sized connection pool: a sane baseline that keeps
+/// low-connection scenarios comparable to the gateway's `2×CPU` default while
+/// still guaranteeing enough workers.
+const MIN_POOL_SIZE: usize = 32;
+
+/// Upper bound for an auto-sized connection pool. Must not exceed the gateway's
+/// own `MAX_CONN_POOL_SIZE` (`management/config.rs`), or the emitted config would
+/// be rejected by the gateway's validation.
+const MAX_CONN_POOL_SIZE: usize = 4096;
+
 /// Top-level gateway configuration document.
 #[derive(Debug, Clone, Serialize)]
 pub struct GatewayConfig {
@@ -31,6 +45,14 @@ pub struct GatewayConfig {
     pub policy: Option<PolicyConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api: Option<ApiConfig>,
+    /// Base connection-pool worker count for every rule. The gateway relay holds
+    /// a pool worker for a connection's whole lifetime and `Normal` pools don't
+    /// overflow, so its default (`2×CPU`) caps how many connections forward
+    /// concurrently. Benchmarks driving more connections than that must size the
+    /// pool to the connection count or the surplus queues forever and the run
+    /// times out. Serialized only when set; the gateway range-checks it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conn_pool_size: Option<usize>,
 }
 
 impl GatewayConfig {
@@ -44,7 +66,28 @@ impl GatewayConfig {
             rules,
             policy: None,
             api: None,
+            conn_pool_size: None,
         }
+    }
+
+    /// Size the gateway's per-rule connection pool for a run of `connections`
+    /// concurrent connections, so every relay gets a dedicated worker regardless
+    /// of the host's CPU count (the gateway default is `2×CPU`, which starves
+    /// once `connections` exceeds it — e.g. every ≥64-connection scenario).
+    ///
+    /// The value is `connections + headroom`, floored at [`MIN_POOL_SIZE`] (a sane
+    /// baseline that keeps low-connection scenarios comparable to the default) and
+    /// clamped to [`MAX_CONN_POOL_SIZE`] (the gateway's accepted maximum, so a
+    /// large scenario can never emit a config the gateway rejects). It never
+    /// undersizes: the result is always `≥ connections`, so relays never queue.
+    pub fn pool_for_connections(mut self, connections: usize) -> Self {
+        // Headroom covers the gateway's own probe/management connections that may
+        // briefly overlap the measured ones.
+        let want = connections
+            .saturating_add(CONN_POOL_HEADROOM)
+            .clamp(MIN_POOL_SIZE, MAX_CONN_POOL_SIZE);
+        self.conn_pool_size = Some(want);
+        self
     }
 
     /// Set the gateway log level (`error|warn|info|debug|trace`).
@@ -330,6 +373,45 @@ mod tests {
         assert!(v.get("app_protocol").is_none());
         assert!(v.get("protocol_version").is_none());
         assert!(v.get("allowed_uids").is_none());
+    }
+
+    #[test]
+    fn pool_for_connections_sizes_and_clamps() {
+        let cfg_for = |conns: usize| -> serde_json::Value {
+            let cfg = GatewayConfig::new(vec![RuleConfig::new(
+                "r",
+                "encrypt",
+                "127.0.0.1:9000",
+                "127.0.0.1:9001",
+            )])
+            .pool_for_connections(conns);
+            serde_json::to_value(&cfg).unwrap()
+        };
+
+        // Low connection counts floor at MIN_POOL_SIZE (keeps the default-ish
+        // baseline) — never undersized.
+        assert_eq!(cfg_for(1)["conn_pool_size"], MIN_POOL_SIZE);
+        assert_eq!(cfg_for(16)["conn_pool_size"], MIN_POOL_SIZE);
+
+        // High counts size to connections + headroom (the fix for ≥64c).
+        assert_eq!(cfg_for(64)["conn_pool_size"], 64 + CONN_POOL_HEADROOM);
+        assert_eq!(cfg_for(256)["conn_pool_size"], 256 + CONN_POOL_HEADROOM);
+
+        // Always at least the connection count, so relays never queue.
+        assert!(cfg_for(64)["conn_pool_size"].as_u64().unwrap() >= 64);
+
+        // Clamped to the gateway's accepted maximum (never emits a rejectable config).
+        assert_eq!(cfg_for(100_000)["conn_pool_size"], MAX_CONN_POOL_SIZE);
+
+        // Unset by default — keeps the gateway default (2×CPU).
+        let plain = serde_json::to_value(GatewayConfig::new(vec![RuleConfig::new(
+            "r",
+            "encrypt",
+            "127.0.0.1:9000",
+            "127.0.0.1:9001",
+        )]))
+        .unwrap();
+        assert!(plain.get("conn_pool_size").is_none());
     }
 
     #[test]

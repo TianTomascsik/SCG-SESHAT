@@ -81,13 +81,24 @@ impl GatewayTcpTransport {
         binary: &Path,
         work_dir: &Path,
         gateway_cores: &[usize],
+        connections: usize,
     ) -> io::Result<Self> {
-        Self::start_inner(name, spec, topology, binary, work_dir, gateway_cores, None)
+        Self::start_inner(
+            name,
+            spec,
+            topology,
+            binary,
+            work_dir,
+            gateway_cores,
+            None,
+            connections,
+        )
     }
 
     /// Start a TCP data path with the management API and a UDS endpoint
     /// template enabled. This is used by hot-reload scenarios that must
     /// exercise a real add/remove endpoint control-plane action.
+    #[allow(clippy::too_many_arguments)] // cohesive gateway-path constructor.
     pub fn start_with_management_endpoint(
         name: &'static str,
         spec: &SecuritySpec,
@@ -96,6 +107,7 @@ impl GatewayTcpTransport {
         work_dir: &Path,
         gateway_cores: &[usize],
         app_id: &str,
+        connections: usize,
     ) -> io::Result<Self> {
         Self::start_inner(
             name,
@@ -105,9 +117,11 @@ impl GatewayTcpTransport {
             work_dir,
             gateway_cores,
             Some(app_id),
+            connections,
         )
     }
 
+    #[allow(clippy::too_many_arguments)] // cohesive gateway-path constructor.
     fn start_inner(
         name: &'static str,
         spec: &SecuritySpec,
@@ -116,13 +130,14 @@ impl GatewayTcpTransport {
         work_dir: &Path,
         gateway_cores: &[usize],
         management_endpoint_app_id: Option<&str>,
+        connections: usize,
     ) -> io::Result<Self> {
         std::fs::create_dir_all(work_dir)?;
 
         // Reserve the backend port, point the decrypt rule at it, then bind the
         // real listener before launching the gateway.
         let backend_addr = format!("127.0.0.1:{}", reserve_local_port()?);
-        let mut plan = build_path(spec, topology, &backend_addr)?;
+        let mut plan = build_path(spec, topology, &backend_addr, connections)?;
         if let Some(app_id) = management_endpoint_app_id {
             add_management_uds_template(&mut plan, app_id)?;
         }
@@ -394,11 +409,12 @@ impl GatewayUdpTransport {
         binary: &Path,
         work_dir: &Path,
         gateway_cores: &[usize],
+        connections: usize,
     ) -> io::Result<Self> {
         std::fs::create_dir_all(work_dir)?;
 
         let backend_addr = format!("127.0.0.1:{}", reserve_local_port()?);
-        let plan = build_path(spec, topology, &backend_addr)?;
+        let plan = build_path(spec, topology, &backend_addr, connections)?;
         let ingress_addr = plan.ingress_addr.clone();
 
         // Bind the backend datagram socket before launching the gateway so no
@@ -619,7 +635,7 @@ mod tests {
 
         let spec = SecuritySpec::routing_tcp();
         let transport =
-            GatewayTcpTransport::start("tcp", &spec, topology, &binary, &work_dir, &[]).unwrap();
+            GatewayTcpTransport::start("tcp", &spec, topology, &binary, &work_dir, &[], 1).unwrap();
         assert!(!transport.pids().is_empty(), "gateway pids should be known");
 
         let stats = run_scenario(&transport, &quick_params(), |_, _| {}).unwrap();
@@ -663,6 +679,7 @@ mod tests {
             &binary,
             &work_dir,
             &[],
+            1,
         )
         .unwrap();
         let mut params = quick_params();
@@ -702,7 +719,8 @@ mod tests {
         let id = crate::pki::generate_self_signed(&work_dir, 2).unwrap();
         let spec = SecuritySpec::dtls_server("dtls1.2", &id.cert, &id.key);
         let transport =
-            GatewayUdpTransport::start("dtls", &spec, topology, &binary, &work_dir, &[]).unwrap();
+            GatewayUdpTransport::start("dtls", &spec, topology, &binary, &work_dir, &[], 1)
+                .unwrap();
         assert!(!transport.pids().is_empty(), "gateway pids should be known");
 
         let stats = run_scenario(&transport, &quick_params(), |_, _| {}).unwrap();

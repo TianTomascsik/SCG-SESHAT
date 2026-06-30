@@ -194,6 +194,7 @@ impl GatewayUdsTransport {
 
     /// Start a gateway with UDS endpoint templates for the requested traffic
     /// classes.
+    #[allow(clippy::too_many_arguments)] // cohesive constructor; mirrors `shm.rs::start_with_classes`.
     pub fn start_with_classes(
         name: &'static str,
         spec: &SecuritySpec,

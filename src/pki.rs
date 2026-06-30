@@ -17,6 +17,31 @@ pub struct Identity {
     pub key: PathBuf,
 }
 
+/// Server-certificate key algorithm.
+///
+/// The cert's key type must match the cipher suite's authentication algorithm:
+/// an `ECDHE-RSA` (TLS 1.2) suite needs an RSA cert, while `ECDHE-ECDSA` and the
+/// auth-agnostic TLS 1.3 suites use an EC cert. Mismatches surface as OpenSSL
+/// `no shared cipher` handshake failures.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyType {
+    /// NIST P-256 elliptic curve (ECDSA auth). The default for TLS 1.3 and
+    /// `ECDHE-ECDSA` suites.
+    EcP256,
+    /// RSA 2048-bit (RSA auth). Required by `ECDHE-RSA` TLS 1.2 suites.
+    Rsa2048,
+}
+
+impl KeyType {
+    /// The `openssl req`/`genpkey` `-newkey` arguments that select this key type.
+    fn newkey_args(self) -> &'static [&'static str] {
+        match self {
+            KeyType::EcP256 => &["-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1"],
+            KeyType::Rsa2048 => &["-newkey", "rsa:2048"],
+        }
+    }
+}
+
 /// A CA plus the server/client leaf identities it signs (for mutual-TLS paths).
 #[derive(Debug, Clone)]
 pub struct CaBundle {
@@ -38,31 +63,40 @@ pub fn openssl_available() -> bool {
 /// `DNS:localhost, IP:127.0.0.1`, valid for `days`, written under `dir`.
 ///
 /// Suitable for one-way TLS where the client uses `verify=none` or trusts this
-/// certificate directly.
+/// certificate directly. Use [`generate_self_signed_with`] to select an RSA key
+/// for `ECDHE-RSA` cipher scenarios.
 pub fn generate_self_signed(dir: &Path, days: u32) -> io::Result<Identity> {
+    generate_self_signed_with(dir, days, KeyType::EcP256)
+}
+
+/// Generate a self-signed server certificate with the given key algorithm and
+/// SAN `DNS:localhost, IP:127.0.0.1`, valid for `days`, written under `dir`.
+///
+/// The key type must match the negotiated cipher suite's authentication: RSA
+/// for `ECDHE-RSA` (TLS 1.2) suites, EC for `ECDHE-ECDSA` and TLS 1.3.
+pub fn generate_self_signed_with(dir: &Path, days: u32, key_type: KeyType) -> io::Result<Identity> {
     std::fs::create_dir_all(dir)?;
     let cert = dir.join("server.crt");
     let key = dir.join("server.key");
     let days = days.to_string();
-    run_openssl(&[
-        "req",
-        "-x509",
-        "-newkey",
-        "ec",
-        "-pkeyopt",
-        "ec_paramgen_curve:prime256v1",
+    let key_path = path_arg(&key)?;
+    let cert_path = path_arg(&cert)?;
+    let mut args: Vec<&str> = vec!["req", "-x509"];
+    args.extend_from_slice(key_type.newkey_args());
+    args.extend_from_slice(&[
         "-nodes",
         "-keyout",
-        path_arg(&key)?,
+        key_path,
         "-out",
-        path_arg(&cert)?,
+        cert_path,
         "-days",
         &days,
         "-subj",
         "/CN=localhost",
         "-addext",
         "subjectAltName=DNS:localhost,IP:127.0.0.1",
-    ])?;
+    ]);
+    run_openssl(&args)?;
     Ok(Identity { cert, key })
 }
 
@@ -224,6 +258,36 @@ mod tests {
         let key = std::fs::read_to_string(&id.key).unwrap();
         assert!(key.contains("PRIVATE KEY"));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The `Public Key Algorithm` line of a PEM certificate, via the openssl CLI.
+    fn cert_pubkey_algorithm(cert: &Path) -> String {
+        let out = Command::new("openssl")
+            .args(["x509", "-in", cert.to_str().unwrap(), "-noout", "-text"])
+            .output()
+            .unwrap();
+        assert!(out.status.success());
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .find_map(|l| l.trim().strip_prefix("Public Key Algorithm:"))
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn self_signed_key_type_matches_request() {
+        if !openssl_available() {
+            eprintln!("skip: openssl CLI not available");
+            return;
+        }
+        let base = std::env::temp_dir().join(format!("seshat-pki-kt-{}", std::process::id()));
+        let ec_dir = base.join("ec");
+        let rsa_dir = base.join("rsa");
+        let ec = generate_self_signed_with(&ec_dir, 2, KeyType::EcP256).unwrap();
+        let rsa = generate_self_signed_with(&rsa_dir, 2, KeyType::Rsa2048).unwrap();
+        assert_eq!(cert_pubkey_algorithm(&ec.cert), "id-ecPublicKey");
+        assert_eq!(cert_pubkey_algorithm(&rsa.cert), "rsaEncryption");
+        let _ = std::fs::remove_dir_all(&base);
     }
 
     #[test]

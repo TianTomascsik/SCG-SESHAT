@@ -280,7 +280,7 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
         } else if let Some(plan) = gateway_plan(scenario) {
             match gateway_binary.as_deref() {
                 Some(binary) => {
-                    let ran = if !scenario.streams.is_empty() {
+                    let skip_reason = if !scenario.streams.is_empty() {
                         run_multistream_scenario(
                             scenario,
                             &cfg.defaults,
@@ -313,11 +313,11 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
                             comparison_rate(scenario, &comparison_ceilings),
                         )?
                     };
-                    if !ran {
-                        rdir.record_skipped(
-                            scenario,
-                            "gateway path could not be provisioned or completed on this host",
-                        )?;
+                    // `Some(reason)` means the scenario could not be measured and
+                    // was recorded as skipped with that specific reason; `None`
+                    // means it ran and a result row was written.
+                    if let Some(reason) = skip_reason {
+                        rdir.record_skipped(scenario, &reason)?;
                         skipped += 1;
                     } else {
                         capture_comparison_ceiling(
@@ -650,7 +650,32 @@ fn server_identity_for_scenario(
         )
         .into());
     }
-    Ok(crate::pki::generate_self_signed(work_dir, 2)?)
+    let key_type = server_key_type_for_scenario(scenario);
+    Ok(crate::pki::generate_self_signed_with(
+        work_dir, 2, key_type,
+    )?)
+}
+
+/// Pick the generated server cert's key algorithm so it satisfies the scenario's
+/// cipher-suite authentication: `ECDHE-RSA` (TLS 1.2) suites require an RSA cert,
+/// everything else (ECDHE-ECDSA, auth-agnostic TLS 1.3) uses EC P-256.
+fn server_key_type_for_scenario(scenario: &Scenario) -> crate::pki::KeyType {
+    match scenario.protocol.cipher_suite.as_deref() {
+        Some(cipher) if cipher_requires_rsa_auth(cipher) => crate::pki::KeyType::Rsa2048,
+        _ => crate::pki::KeyType::EcP256,
+    }
+}
+
+/// Whether a cipher suite authenticates the server with an RSA key (so the cert
+/// must be RSA). TLS 1.3 suites (`TLS_*`) are auth-agnostic; among TLS 1.2 names
+/// the auth follows the key exchange (e.g. `ECDHE-RSA-...`, `DHE-RSA-...`), and
+/// `ECDSA` suites authenticate with an EC key.
+fn cipher_requires_rsa_auth(cipher: &str) -> bool {
+    let c = cipher.to_ascii_uppercase();
+    if c.starts_with("TLS_") || c.starts_with("TLS13") {
+        return false;
+    }
+    c.contains("RSA") && !c.contains("ECDSA")
 }
 
 fn mtls_bundle_for_scenario(
@@ -906,9 +931,12 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
     }
 }
 
-/// Run one scenario through the SCG. Returns `Ok(true)` when the scenario was
-/// measured and recorded, `Ok(false)` when it had to be skipped (e.g. missing
-/// certificate tooling or a gateway that failed to start).
+/// Run one scenario through the SCG. Returns `Ok(None)` when the scenario was
+/// measured and recorded, and `Ok(Some(reason))` when it had to be skipped — the
+/// `reason` is the specific cause (missing tooling, a gateway that failed to
+/// start, a run that could not complete, …) and is recorded verbatim in
+/// `skipped.csv` so distinct failure modes are no longer masked behind one
+/// generic message.
 #[allow(clippy::too_many_arguments)] // cohesive per-scenario driver: suite caches + core plan.
 fn run_gateway_scenario(
     scenario: &Scenario,
@@ -920,7 +948,7 @@ fn run_gateway_scenario(
     sys_rate: Option<u32>,
     cores: &CorePlan,
     comparison_rate_mbps: Option<f64>,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<Option<String>, Box<dyn std::error::Error>> {
     // Ping-pong RTT needs a duplex echo path. The DTLS/UDP gateway converges
     // every flow onto one backend over a single one-way rule pair, so it cannot
     // bounce datagrams back to the client; skip those scenarios with a notice.
@@ -929,7 +957,9 @@ fn run_gateway_scenario(
             "scenario '{}': ping-pong RTT over the DTLS/UDP gateway path is not supported; skipping",
             scenario.name
         );
-        return Ok(false);
+        return Ok(Some(
+            "ping-pong RTT over the DTLS/UDP gateway path is not supported".to_string(),
+        ));
     }
     let work_dir = rdir.root().join("gateway").join(sanitize(&scenario.name));
     std::fs::create_dir_all(&work_dir)?;
@@ -949,7 +979,7 @@ fn run_gateway_scenario(
                         "scenario '{}': veth topology setup failed ({e}); skipping",
                         scenario.name
                     );
-                    return Ok(false);
+                    return Ok(Some(format!("veth topology setup failed: {e}")));
                 }
             }
         }
@@ -967,7 +997,7 @@ fn run_gateway_scenario(
                         "scenario '{}': netns topology setup failed ({e}); skipping",
                         scenario.name
                     );
-                    return Ok(false);
+                    return Ok(Some(format!("netns topology setup failed: {e}")));
                 }
             }
         }
@@ -977,7 +1007,10 @@ fn run_gateway_scenario(
                 scenario.name,
                 scenario.topology.mode
             );
-            return Ok(false);
+            return Ok(Some(format!(
+                "topology mode {:?} is not supported by this harness",
+                scenario.topology.mode
+            )));
         }
     };
 
@@ -1024,7 +1057,7 @@ fn run_gateway_scenario(
                         "scenario '{}': network impairment setup failed ({e}); skipping",
                         scenario.name
                     );
-                    return Ok(false);
+                    return Ok(Some(format!("network impairment setup failed: {e}")));
                 }
             }
         } else {
@@ -1038,7 +1071,7 @@ fn run_gateway_scenario(
         Ok(spec) => spec,
         Err(e) => {
             log::warn!("scenario '{}': {e}; skipping", scenario.name);
-            return Ok(false);
+            return Ok(Some(format!("security spec build failed: {e}")));
         }
     };
 
@@ -1092,7 +1125,9 @@ fn run_gateway_scenario(
                     "scenario '{}': UDS gateway failed to start ({e}); skipping",
                     scenario.name
                 );
-                return Ok(false);
+                return Ok(Some(format!(
+                    "UDS endpoint provisioning unavailable on this host: {e}"
+                )));
             }
         }
     } else if is_shm {
@@ -1127,7 +1162,9 @@ fn run_gateway_scenario(
                     "scenario '{}': SHM gateway failed to start ({e}); skipping",
                     scenario.name
                 );
-                return Ok(false);
+                return Ok(Some(format!(
+                    "SHM endpoint provisioning unavailable on this host: {e}"
+                )));
             }
         }
     } else if is_tproxy {
@@ -1140,13 +1177,15 @@ fn run_gateway_scenario(
                         "scenario '{}': TPROXY requires CAP_NET_ADMIN; skipping",
                         scenario.name
                     );
-                } else {
-                    log::warn!(
-                        "scenario '{}': TPROXY gateway failed to start ({e}); skipping",
-                        scenario.name
-                    );
+                    return Ok(Some(
+                        "TPROXY requires CAP_NET_ADMIN + iptables/routing setup".to_string(),
+                    ));
                 }
-                return Ok(false);
+                log::warn!(
+                    "scenario '{}': TPROXY gateway failed to start ({e}); skipping",
+                    scenario.name
+                );
+                return Ok(Some(format!("TPROXY gateway failed to start: {e}")));
             }
         }
     } else if is_udp || is_ale_raw {
@@ -1157,6 +1196,7 @@ fn run_gateway_scenario(
             binary,
             &work_dir,
             &cores.gateway,
+            params.connections,
         ) {
             Ok(t) => GatewayDut::Udp(t),
             Err(e) => {
@@ -1164,7 +1204,7 @@ fn run_gateway_scenario(
                     "scenario '{}': gateway failed to start ({e}); skipping",
                     scenario.name
                 );
-                return Ok(false);
+                return Ok(Some(format!("gateway failed to start: {e}")));
             }
         }
     } else {
@@ -1175,6 +1215,7 @@ fn run_gateway_scenario(
             binary,
             &work_dir,
             &cores.gateway,
+            params.connections,
         ) {
             Ok(t) => GatewayDut::Tcp(t),
             Err(e) => {
@@ -1182,7 +1223,7 @@ fn run_gateway_scenario(
                     "scenario '{}': gateway failed to start ({e}); skipping",
                     scenario.name
                 );
-                return Ok(false);
+                return Ok(Some(format!("gateway failed to start: {e}")));
             }
         }
     };
@@ -1222,7 +1263,13 @@ fn run_gateway_scenario(
         Err(e) => {
             log::warn!("scenario '{}': run failed ({e}); skipping", scenario.name);
             let _ = dut.shutdown();
-            return Ok(false);
+            // The dominant cause at high connection counts: the gateway could not
+            // forward every connection within the harness accept window. Surface
+            // the connection count so this is distinguishable from a setup failure.
+            return Ok(Some(format!(
+                "gateway run did not complete at {} connection(s): {e}",
+                params.connections
+            )));
         }
     };
     if !has_measurements(&stats) {
@@ -1231,7 +1278,9 @@ fn run_gateway_scenario(
             scenario.name
         );
         let _ = dut.shutdown();
-        return Ok(false);
+        return Ok(Some(
+            "no messages reached the receiver (zero-metric result)".to_string(),
+        ));
     }
 
     if scenario.mode == Mode::Connrate {
@@ -1260,7 +1309,7 @@ fn run_gateway_scenario(
                 ..Default::default()
             },
         )?;
-        return Ok(true);
+        return Ok(None);
     }
 
     // Closed-loop RTT path: report round-trip time and record the effective
@@ -1292,7 +1341,7 @@ fn run_gateway_scenario(
                 ..Default::default()
             },
         )?;
-        return Ok(true);
+        return Ok(None);
     }
 
     render_scenario_result(&stats);
@@ -1366,7 +1415,7 @@ fn run_gateway_scenario(
             loss_threshold_pct: defaults.loss_threshold_pct,
         },
     )?;
-    Ok(true)
+    Ok(None)
 }
 
 // ─── F-10: Multi-Stream Execution ───────────────────────────────────────────
@@ -1385,7 +1434,7 @@ fn run_multistream_scenario(
     rdir: &mut ResultDir,
     sys_rate: Option<u32>,
     cores: &CorePlan,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<Option<String>, Box<dyn std::error::Error>> {
     use crate::workload::streams::{self, MultiStreamResult, StreamConfig};
 
     let work_dir = rdir.root().join("gateway").join(sanitize(&scenario.name));
@@ -1401,6 +1450,7 @@ fn run_multistream_scenario(
         binary,
         &work_dir,
         &cores.gateway,
+        scenario.streams.len(),
     ) {
         Ok(t) => GatewayDut::Tcp(t),
         Err(e) => {
@@ -1408,7 +1458,7 @@ fn run_multistream_scenario(
                 "scenario '{}': gateway failed to start ({e}); skipping",
                 scenario.name
             );
-            return Ok(false);
+            return Ok(Some(format!("gateway failed to start: {e}")));
         }
     };
 
@@ -1527,7 +1577,9 @@ fn run_multistream_scenario(
                 scenario.name
             );
             dut.shutdown()?;
-            return Ok(false);
+            return Ok(Some(
+                "no multi-stream messages reached a receiver (zero-metric result)".to_string(),
+            ));
         }
         use crate::metrics::stats::summarize;
         RunStats {
@@ -1551,7 +1603,7 @@ fn run_multistream_scenario(
     } else {
         log::warn!("scenario '{}': no stream results; skipping", scenario.name);
         dut.shutdown()?;
-        return Ok(false);
+        return Ok(Some("no multi-stream results were produced".to_string()));
     };
 
     let log_paths = dut.log_paths();
@@ -1601,10 +1653,43 @@ fn run_multistream_scenario(
             ..Default::default()
         },
     )?;
-    Ok(true)
+    Ok(None)
 }
 
 // ─── F-11: Hot-Reload Execution ─────────────────────────────────────────────
+
+/// App-id of the UDS template the hot-reload path registers at gateway startup
+/// (`start_with_management_endpoint`). Every gRPC reload action that creates a
+/// UDS endpoint mid-run must address this same id, or the gateway has no matching
+/// template and the create fails — silently discarding an otherwise-valid run.
+/// Defined once so the registration and the reload call sites cannot drift.
+const HOTRELOAD_APP_ID: &str = "hotreload-probe";
+
+/// Compute the reload trigger offset (from engine-thread start) and the total
+/// measurement-window duration for a hot-reload run.
+///
+/// The engine establishes every connection *serially* before warmup/measure
+/// begin. A fixed trigger offset can therefore elapse while that setup is still
+/// running at high connection counts, injecting the reload mid-setup. We add a
+/// setup allowance proportional to the connection count (capped) so the reload
+/// always fires after all connections are up, and widen the measurement window
+/// by the same allowance so the post-reload observation window still fits.
+fn reload_timing(
+    trigger_secs: u64,
+    warmup: Duration,
+    post_window_secs: u64,
+    connections: usize,
+) -> (Duration, Duration) {
+    // ~20 ms/connection of serial-setup headroom, capped at 10 s so 1024c does
+    // not balloon the run. `saturating_mul` keeps the arithmetic explicit.
+    let allowance_ms = 20u64.saturating_mul(connections as u64).min(10_000);
+    let setup_allowance = Duration::from_millis(allowance_ms);
+    let trigger = warmup + setup_allowance + Duration::from_secs(trigger_secs);
+    // Original window (`trigger + post + 2s buffer`) plus the allowance, so even
+    // if setup finishes early the post-reload window cannot run short.
+    let measure = setup_allowance + Duration::from_secs(trigger_secs + post_window_secs + 2);
+    (trigger, measure)
+}
 
 /// Whether a reload action is a no-op *as currently driven by this harness*.
 ///
@@ -1637,7 +1722,7 @@ fn run_hotreload_scenario(
     rdir: &mut ResultDir,
     sys_rate: Option<u32>,
     cores: &CorePlan,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<Option<String>, Box<dyn std::error::Error>> {
     let reload_event = scenario.reload_event.as_ref().unwrap();
     let work_dir = rdir.root().join("gateway").join(sanitize(&scenario.name));
     std::fs::create_dir_all(&work_dir)?;
@@ -1647,7 +1732,7 @@ fn run_hotreload_scenario(
         Ok(spec) => spec,
         Err(e) => {
             log::warn!("scenario '{}': {e}; skipping", scenario.name);
-            return Ok(false);
+            return Ok(Some(format!("security spec build failed: {e}")));
         }
     };
 
@@ -1668,7 +1753,8 @@ fn run_hotreload_scenario(
             binary,
             &work_dir,
             &cores.gateway,
-            "hotreload-probe",
+            HOTRELOAD_APP_ID,
+            params.connections,
         )
     } else {
         GatewayTcpTransport::start(
@@ -1678,6 +1764,7 @@ fn run_hotreload_scenario(
             binary,
             &work_dir,
             &cores.gateway,
+            params.connections,
         )
     };
     let dut = match start_transport {
@@ -1687,7 +1774,7 @@ fn run_hotreload_scenario(
                 "scenario '{}': gateway failed to start ({e}); skipping",
                 scenario.name
             );
-            return Ok(false);
+            return Ok(Some(format!("gateway failed to start: {e}")));
         }
     };
 
@@ -1705,20 +1792,25 @@ fn run_hotreload_scenario(
         .map(|hz| SystemSampler::start(dut.pids(), hz));
     let perf_sampler = start_perf_sampler(defaults, scenario, &dut, &work_dir);
 
-    // Run the measurement with a reload injected mid-flight.
-    // We extend the measurement window to include both pre- and post-reload windows.
+    // Run the measurement with a reload injected mid-flight. The engine
+    // establishes every connection *serially* before warmup/measure begin, so at
+    // high connection counts that setup phase can still be running when a fixed
+    // trigger offset elapses — injecting the reload mid-setup, which stalls one
+    // connection's accept past the harness timeout and aborts the whole run.
+    // `reload_timing` scales the trigger past the setup phase and widens the
+    // measurement window to keep the post-reload window inside it.
     let trigger_secs = reload_event.trigger_at_secs;
     let post_window = reload_event.measure_window_after_secs.max(5);
-    let total_measure_secs = trigger_secs + post_window + 2; // extra buffer
+    let (reload_trigger_dur, measure_window) =
+        reload_timing(trigger_secs, params.warmup, post_window, params.connections);
 
     let extended_params = RunParams {
-        measure: Duration::from_secs(total_measure_secs),
+        measure: measure_window,
         ..params.clone()
     };
 
     // Spawn the run engine in a thread so we can inject the reload at the right time.
     let transport: &dyn Transport = dut.as_transport();
-    let reload_trigger_dur = Duration::from_secs(trigger_secs) + extended_params.warmup; // trigger offset from thread start
 
     // Get process info for reload injection before entering the run.
     let process_ref = dut.first_process();
@@ -1752,7 +1844,7 @@ fn run_hotreload_scenario(
                     match action {
                         ReloadAction::AddConnection => {
                             match mgmt.create_uds(
-                                "hotreload-probe",
+                                HOTRELOAD_APP_ID,
                                 TrafficClass::Normal,
                                 Direction::Encrypt,
                             ) {
@@ -1781,8 +1873,11 @@ fn run_hotreload_scenario(
                         }
                         ReloadAction::RemoveConnection => {
                             // Create then immediately remove — exercises the close path.
+                            // Must address the template registered at startup
+                            // (`HOTRELOAD_APP_ID`); a mismatched app_id makes the
+                            // gRPC create fail and silently discards a valid run.
                             match mgmt.create_uds(
-                                "hotreload-remove",
+                                HOTRELOAD_APP_ID,
                                 TrafficClass::Normal,
                                 Direction::Encrypt,
                             ) {
@@ -1885,7 +1980,10 @@ fn run_hotreload_scenario(
         Err(e) => {
             log::warn!("scenario '{}': run failed ({e}); skipping", scenario.name);
             dut.shutdown()?;
-            return Ok(false);
+            return Ok(Some(format!(
+                "hot-reload run did not complete at {} connection(s): {e}",
+                params.connections
+            )));
         }
     };
     // The expanded measurement duration always extends beyond the trigger;
@@ -1897,7 +1995,9 @@ fn run_hotreload_scenario(
             scenario.name
         );
         dut.shutdown()?;
-        return Ok(false);
+        return Ok(Some(
+            "no messages reached the receiver (zero-metric result)".to_string(),
+        ));
     }
 
     // Report hot-reload specific metrics.
@@ -1910,7 +2010,10 @@ fn run_hotreload_scenario(
             scenario.name
         );
         dut.shutdown()?;
-        return Ok(false);
+        return Ok(Some(format!(
+            "hot-reload action {:?} did not complete",
+            reload_event.action
+        )));
     }
     console::line("");
     console::kv(
@@ -1994,7 +2097,7 @@ fn run_hotreload_scenario(
             change_applied,
         },
     )?;
-    Ok(true)
+    Ok(None)
 }
 
 /// Resolved CPU core pools for the sender, receiver, and gateway.
@@ -3196,6 +3299,59 @@ mod tests {
     use super::*;
     use crate::cli::MetricsBackendArg;
     use crate::config::Suite;
+
+    #[test]
+    fn rsa_auth_ciphers_select_an_rsa_server_cert() {
+        // ECDHE-RSA (TLS 1.2) suites authenticate with RSA and need an RSA cert;
+        // an EC cert makes OpenSSL report "no shared cipher". TLS 1.3 and ECDSA
+        // suites stay on EC. Guards the cert/cipher key-type pairing.
+        assert!(cipher_requires_rsa_auth("ECDHE-RSA-AES128-GCM-SHA256"));
+        assert!(cipher_requires_rsa_auth("ECDHE-RSA-AES256-GCM-SHA384"));
+        assert!(cipher_requires_rsa_auth("ECDHE-RSA-CHACHA20-POLY1305"));
+        assert!(cipher_requires_rsa_auth("DHE-RSA-AES128-GCM-SHA256"));
+        assert!(!cipher_requires_rsa_auth("ECDHE-ECDSA-AES128-GCM-SHA256"));
+        assert!(!cipher_requires_rsa_auth("TLS_AES_128_GCM_SHA256"));
+        assert!(!cipher_requires_rsa_auth("TLS_CHACHA20_POLY1305_SHA256"));
+    }
+
+    #[test]
+    fn hotreload_uses_single_app_id_for_template_and_reload_actions() {
+        // Regression guard for the bug where the RemoveConnection arm created a
+        // UDS endpoint under "hotreload-remove" while startup registered only
+        // "hotreload-probe", so the gRPC create failed and every
+        // remove_connection scenario was silently discarded. Both the template
+        // registration and the Add/Remove reload arms now reference this one
+        // const; if it changes, it changes for all of them together.
+        assert_eq!(HOTRELOAD_APP_ID, "hotreload-probe");
+    }
+
+    #[test]
+    fn reload_timing_delays_trigger_past_serial_setup_and_keeps_window() {
+        use std::time::Duration;
+        let warmup = Duration::from_secs(2);
+        let trigger_secs = 3;
+        let post_window = 5;
+
+        // 1 connection: allowance is tiny but the window still covers the run.
+        let (trigger_1c, measure_1c) = reload_timing(trigger_secs, warmup, post_window, 1);
+        assert!(measure_1c >= Duration::from_secs(trigger_secs + post_window + 2));
+
+        // 64 connections: the trigger must be pushed past the plain
+        // warmup+trigger offset (so it cannot fire mid-setup) and later than the
+        // 1c trigger (the allowance scales with connection count), and the
+        // post-reload window must still be at least `post_window` even in the
+        // worst case where setup finishes instantly (reload lands earliest at
+        // `trigger - warmup` into the measure phase).
+        let (trigger_64c, measure_64c) = reload_timing(trigger_secs, warmup, post_window, 64);
+        assert!(trigger_64c > warmup + Duration::from_secs(trigger_secs));
+        assert!(trigger_64c > trigger_1c);
+        let earliest_into_measure = trigger_64c - warmup;
+        assert!(measure_64c - earliest_into_measure >= Duration::from_secs(post_window));
+
+        // The allowance is capped: 1024c does not blow up the window unbounded.
+        let (_, measure_1024c) = reload_timing(trigger_secs, warmup, post_window, 1024);
+        assert!(measure_1024c <= Duration::from_secs(10 + trigger_secs + post_window + 2));
+    }
 
     #[test]
     fn reload_noop_classification_matches_scg_name_keyed_diff() {

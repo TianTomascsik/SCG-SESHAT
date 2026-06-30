@@ -64,47 +64,24 @@ struct TproxyRules {
 }
 
 impl TproxyRules {
-    /// Set up iptables TPROXY + ip rule + ip route for intercepting traffic to
-    /// `listen_port` and redirecting it to `gateway_port`.
+    /// Set up the full TPROXY recipe — policy route, the `DIVERT` chain for
+    /// established flows, and the new-connection redirect — for intercepting
+    /// traffic to `listen_port` and steering it to `gateway_port`.
     fn setup(listen_port: u16, gateway_port: u16) -> io::Result<Self> {
-        // ip rule add fwmark 1 lookup 100
-        run_cmd("ip", &["rule", "add", "fwmark", "1", "lookup", "100"])?;
-
-        // ip route add local 0/0 dev lo table 100
-        run_cmd(
-            "ip",
-            &["route", "add", "local", "0/0", "dev", "lo", "table", "100"],
-        )?;
-
-        // iptables -t mangle -A PREROUTING -p tcp --dport <listen_port>
-        //   -j TPROXY --on-port <gateway_port> --tproxy-mark 0x1/0x1
-        run_cmd(
-            "iptables",
-            &[
-                "-t",
-                "mangle",
-                "-A",
-                "PREROUTING",
-                "-p",
-                "tcp",
-                "--dport",
-                &listen_port.to_string(),
-                "-j",
-                "TPROXY",
-                "--on-port",
-                &gateway_port.to_string(),
-                "--tproxy-mark",
-                "0x1/0x1",
-            ],
-        )?;
-
+        // Creating the DIVERT chain is best-effort: a leftover from a crashed
+        // run means it already exists (the strict commands below re-flush it).
+        let _ = run_cmd("iptables", &["-t", "mangle", "-N", "DIVERT"]);
+        for cmd in setup_commands(listen_port, gateway_port) {
+            let args: Vec<&str> = cmd.iter().map(String::as_str).collect();
+            run_cmd(args[0], &args[1..])?;
+        }
         Ok(TproxyRules {
             listen_port,
             gateway_port,
         })
     }
 
-    /// Remove the iptables/routing rules.
+    /// Remove the iptables/routing rules (reverse order of `setup`).
     fn teardown(&self) {
         let _ = run_cmd(
             "iptables",
@@ -126,6 +103,23 @@ impl TproxyRules {
             ],
         );
         let _ = run_cmd(
+            "iptables",
+            &[
+                "-t",
+                "mangle",
+                "-D",
+                "PREROUTING",
+                "-p",
+                "tcp",
+                "-m",
+                "socket",
+                "-j",
+                "DIVERT",
+            ],
+        );
+        let _ = run_cmd("iptables", &["-t", "mangle", "-F", "DIVERT"]);
+        let _ = run_cmd("iptables", &["-t", "mangle", "-X", "DIVERT"]);
+        let _ = run_cmd(
             "ip",
             &["route", "del", "local", "0/0", "dev", "lo", "table", "100"],
         );
@@ -137,6 +131,74 @@ impl Drop for TproxyRules {
     fn drop(&mut self) {
         self.teardown();
     }
+}
+
+/// The ordered list of `(program, args…)` commands that install the TPROXY
+/// recipe for `listen_port → gateway_port`. Excludes the best-effort
+/// `iptables -N DIVERT` chain creation (handled separately in [`TproxyRules::setup`]).
+/// Returned as data so the rule set can be asserted without `CAP_NET_ADMIN`.
+fn setup_commands(listen_port: u16, gateway_port: u16) -> Vec<Vec<String>> {
+    let s = |parts: &[&str]| parts.iter().map(|p| p.to_string()).collect::<Vec<String>>();
+    let lp = listen_port.to_string();
+    let gp = gateway_port.to_string();
+    vec![
+        // Policy route: fwmark-1 packets are delivered to the local transparent
+        // sockets via a dedicated table.
+        s(&["ip", "rule", "add", "fwmark", "1", "lookup", "100"]),
+        s(&[
+            "ip", "route", "add", "local", "0/0", "dev", "lo", "table", "100",
+        ]),
+        // DIVERT chain: packets that already belong to an established transparent
+        // socket (`-m socket`) are marked and accepted so they reach that socket
+        // directly. Without it the redirect intercepts the SYN but the data
+        // packets of the established flow are not steered to the gateway socket,
+        // so the connection establishes yet zero bytes ever arrive.
+        s(&["iptables", "-t", "mangle", "-F", "DIVERT"]),
+        s(&[
+            "iptables",
+            "-t",
+            "mangle",
+            "-A",
+            "DIVERT",
+            "-j",
+            "MARK",
+            "--set-mark",
+            "0x1",
+        ]),
+        s(&["iptables", "-t", "mangle", "-A", "DIVERT", "-j", "ACCEPT"]),
+        s(&[
+            "iptables",
+            "-t",
+            "mangle",
+            "-A",
+            "PREROUTING",
+            "-p",
+            "tcp",
+            "-m",
+            "socket",
+            "-j",
+            "DIVERT",
+        ]),
+        // New connections to <listen_port> are redirected to the gateway's
+        // transparent listener on <gateway_port>.
+        s(&[
+            "iptables",
+            "-t",
+            "mangle",
+            "-A",
+            "PREROUTING",
+            "-p",
+            "tcp",
+            "--dport",
+            &lp,
+            "-j",
+            "TPROXY",
+            "--on-port",
+            &gp,
+            "--tproxy-mark",
+            "0x1/0x1",
+        ]),
+    ]
 }
 
 fn run_cmd(program: &str, args: &[&str]) -> io::Result<()> {
@@ -195,12 +257,20 @@ impl TproxyTransport {
         let backend = TcpListener::bind(&backend_addr)?;
         backend.set_nonblocking(true)?;
 
-        // Build gateway config: one transparent encrypt rule.
+        // Build gateway config: one transparent encrypt rule. The upstream is the
+        // explicit loopback backend, not the `"auto"` original-destination
+        // placeholder: the gateway recovers the TPROXY original destination via
+        // `SO_ORIGINAL_DST`, which only works for conntrack REDIRECT/DNAT and
+        // always fails for a TPROXY socket (`getsockname` would be required), so
+        // `"auto"` is unparseable and nothing forwards (SCG-TRA #59). Forwarding
+        // to the backend still exercises the full TPROXY data path — client →
+        // iptables `TPROXY` redirect → gateway `IP_TRANSPARENT` listener → relay →
+        // backend — which is what the throughput benchmark measures.
         let rule = RuleConfig::new(
             "tproxy-encrypt",
             "encrypt",
             &format!("127.0.0.1:{gw_port}"),
-            "auto", // TPROXY recovers original destination
+            &backend_addr,
         )
         .security("routing")
         .param("transparent", true);
@@ -249,7 +319,17 @@ impl TproxyTransport {
         Ok(())
     }
 
-    /// Accept a forwarded connection from the gateway.
+    /// Accept the real forwarded connection from the gateway, skipping dead
+    /// readiness-probe leftovers.
+    ///
+    /// `GatewayProcess::wait_ready` confirms the transparent listener is up by
+    /// opening a throwaway TCP connection to it; the gateway forwards that probe
+    /// to the backend and the probe is closed immediately, leaving an EOF
+    /// connection queued ahead of the real sender's. Accepting it would make the
+    /// receiver read EOF while the sender's bytes pile up on an unaccepted
+    /// connection (the original "did not forward" timeout). A probe connection
+    /// reads EOF straight away; the real one blocks until the sender starts — so
+    /// discard any connection that is already at EOF.
     fn accept_forwarded(&self) -> io::Result<TcpStream> {
         let deadline = std::time::Instant::now() + Duration::from_secs(5);
         loop {
@@ -261,8 +341,21 @@ impl TproxyTransport {
             }
             match self.backend.accept() {
                 Ok((stream, _)) => {
-                    stream.set_nonblocking(false)?;
-                    return Ok(stream);
+                    // Probe leftovers are already closed (EOF); the real connection
+                    // blocks waiting for the sender's first bytes. `peek` lets us
+                    // tell them apart without consuming the payload.
+                    stream.set_read_timeout(Some(Duration::from_millis(250)))?;
+                    let mut probe = [0u8; 1];
+                    match stream.peek(&mut probe) {
+                        Ok(0) => continue, // EOF: readiness-probe leftover — discard
+                        _ => {
+                            // Has data, or live-but-idle (timeout/would-block): the
+                            // real forwarded connection.
+                            stream.set_read_timeout(None)?;
+                            stream.set_nonblocking(false)?;
+                            return Ok(stream);
+                        }
+                    }
                 }
                 Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
                     std::thread::sleep(Duration::from_millis(5));
@@ -312,5 +405,61 @@ impl Transport for TproxyTransport {
             tcp::duplex_from_stream(client, message_bytes),
             tcp::duplex_from_stream(server, message_bytes),
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn setup_installs_divert_chain_and_redirect() {
+        let cmds = setup_commands(18001, 18002);
+        let flat: Vec<String> = cmds.iter().map(|c| c.join(" ")).collect();
+
+        // Policy route for fwmark-1 (transparent local delivery).
+        assert!(
+            flat.iter().any(|c| c == "ip rule add fwmark 1 lookup 100"),
+            "missing fwmark policy rule: {flat:?}"
+        );
+        assert!(
+            flat.iter()
+                .any(|c| c.starts_with("ip route add local") && c.ends_with("table 100")),
+            "missing local route in table 100: {flat:?}"
+        );
+
+        // DIVERT chain for established flows (`-m socket`) — the rule whose absence
+        // let the SYN through but dropped the connection's data packets.
+        assert!(
+            flat.iter()
+                .any(|c| c.contains("-A DIVERT") && c.contains("MARK --set-mark 0x1")),
+            "DIVERT chain must mark established packets: {flat:?}"
+        );
+        assert!(
+            flat.iter()
+                .any(|c| c.contains("-A PREROUTING") && c.contains("-m socket -j DIVERT")),
+            "missing `-m socket -j DIVERT` rule for established flows: {flat:?}"
+        );
+
+        // New-connection redirect with the correct listen/gateway ports.
+        assert!(
+            flat.iter().any(|c| c.contains("-j TPROXY")
+                && c.contains("--dport 18001")
+                && c.contains("--on-port 18002")
+                && c.contains("--tproxy-mark 0x1/0x1")),
+            "missing TPROXY redirect 18001->18002: {flat:?}"
+        );
+
+        // The `-m socket` divert rule must precede the new-connection TPROXY rule
+        // so established packets are diverted before being re-redirected.
+        let socket_idx = flat
+            .iter()
+            .position(|c| c.contains("-m socket -j DIVERT"))
+            .unwrap();
+        let tproxy_idx = flat.iter().position(|c| c.contains("-j TPROXY")).unwrap();
+        assert!(
+            socket_idx < tproxy_idx,
+            "`-m socket` DIVERT must be installed before the TPROXY redirect"
+        );
     }
 }

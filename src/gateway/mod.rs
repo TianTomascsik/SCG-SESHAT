@@ -676,11 +676,14 @@ pub struct PathPlan {
 }
 
 /// Wire ports and rules for `topology`, forwarding plaintext to `backend_addr`
-/// (where the SESHAT receiver must already be listening).
+/// (where the SESHAT receiver must already be listening). `connections` is the
+/// number of concurrent connections the run will open; it sizes each gateway's
+/// connection pool so none of them queue behind the default `2×CPU` workers.
 pub fn build_path(
     spec: &SecuritySpec,
     topology: Topology,
     backend_addr: &str,
+    connections: usize,
 ) -> io::Result<PathPlan> {
     let ingress = format!("127.0.0.1:{}", reserve_local_port()?);
     let mid = format!("127.0.0.1:{}", reserve_local_port()?);
@@ -713,20 +716,23 @@ pub fn build_path(
             label: "scg".to_string(),
             config: GatewayConfig::new(vec![encrypt, decrypt])
                 .log_level("info")
-                .allow_all(),
+                .allow_all()
+                .pool_for_connections(connections),
         }],
         Topology::ScgToScg => vec![
             NamedGateway {
                 label: "scg-a".to_string(),
                 config: GatewayConfig::new(vec![encrypt])
                     .log_level("info")
-                    .allow_all(),
+                    .allow_all()
+                    .pool_for_connections(connections),
             },
             NamedGateway {
                 label: "scg-b".to_string(),
                 config: GatewayConfig::new(vec![decrypt])
                     .log_level("info")
-                    .allow_all(),
+                    .allow_all()
+                    .pool_for_connections(connections),
             },
         ],
     };
@@ -1016,7 +1022,7 @@ mod tests {
     #[test]
     fn build_path_single_gateway_has_two_rules() {
         let spec = SecuritySpec::routing_tcp();
-        let plan = build_path(&spec, Topology::SingleGateway, "127.0.0.1:65000").unwrap();
+        let plan = build_path(&spec, Topology::SingleGateway, "127.0.0.1:65000", 1).unwrap();
         assert_eq!(plan.gateways.len(), 1);
         assert_eq!(plan.gateways[0].config.rules.len(), 2);
         assert_eq!(plan.backend_addr, "127.0.0.1:65000");
@@ -1032,7 +1038,7 @@ mod tests {
     #[test]
     fn build_path_scg_to_scg_splits_processes() {
         let spec = SecuritySpec::routing_tcp();
-        let plan = build_path(&spec, Topology::ScgToScg, "127.0.0.1:65001").unwrap();
+        let plan = build_path(&spec, Topology::ScgToScg, "127.0.0.1:65001", 1).unwrap();
         assert_eq!(plan.gateways.len(), 2);
         assert_eq!(plan.gateways[0].config.rules.len(), 1);
         assert_eq!(plan.gateways[1].config.rules.len(), 1);
@@ -1063,7 +1069,7 @@ mod tests {
         };
         let spec =
             SecuritySpec::tls_mutual("tls1.3", &generated).with_certificate_selection(&certs);
-        let plan = build_path(&spec, Topology::SingleGateway, "127.0.0.1:65002").unwrap();
+        let plan = build_path(&spec, Topology::SingleGateway, "127.0.0.1:65002", 1).unwrap();
         let enc = &plan.gateways[0].config.rules[0];
         let dec = &plan.gateways[0].config.rules[1];
 
@@ -1113,7 +1119,7 @@ mod tests {
         )
         .provider("ktls")
         .with_certificate_selection(&certs);
-        let plan = build_path(&spec, Topology::SingleGateway, "127.0.0.1:65003").unwrap();
+        let plan = build_path(&spec, Topology::SingleGateway, "127.0.0.1:65003", 1).unwrap();
         let enc = &plan.gateways[0].config.rules[0];
         let dec = &plan.gateways[0].config.rules[1];
 
@@ -1176,7 +1182,7 @@ mod tests {
         let backend_addr = backend.local_addr().unwrap().to_string();
         let server = thread::spawn(move || echo_backend(backend));
 
-        let plan = build_path(spec, topology, &backend_addr).unwrap();
+        let plan = build_path(spec, topology, &backend_addr, 1).unwrap();
         let ingress = plan.ingress_addr.clone();
         let running = start_path(&plan, binary, work_dir, Duration::from_secs(10), &[]).unwrap();
 
