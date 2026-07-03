@@ -55,6 +55,9 @@ fn traffic_class_from_label(label: &str) -> io::Result<TrafficClass> {
 struct ShmSink {
     client: ScgClient,
     traffic_id: u32,
+    /// Byte count from the last [`DataSink::reserve`], consumed by the next
+    /// [`DataSink::commit_reserved`] (the zero-copy build-in-ring path).
+    pending_len: Option<usize>,
 }
 
 impl DataSink for ShmSink {
@@ -76,6 +79,61 @@ impl DataSink for ShmSink {
         self.client
             .try_send_batch(self.traffic_id, msgs)
             .map_err(|e| io::Error::other(format!("SHM send: {e}")))
+    }
+
+    fn reserve(&mut self, len: usize) -> Option<&mut [u8]> {
+        // Slot-ring only: hand the workload generator a writable view straight
+        // into the shared-memory ring slot so it builds the message in place,
+        // with no staging buffer and no buffer→ring copy. `None` on a full ring,
+        // the byte-stream ring, or too-large a message → caller falls back to
+        // `send_msg`.
+        match self.client.reserve_raw() {
+            Ok(Some((ptr, cap))) if len <= cap => {
+                self.pending_len = Some(len);
+                // SAFETY: `ptr` points at `cap` writable bytes of the reserved
+                // (not-yet-published) ring slot, valid until the matching
+                // `commit_raw` (single-producer discipline). We expose `len`
+                // (≤ cap) of them, tied to `&mut self`, so the caller cannot hold
+                // the slice across `commit_reserved`.
+                Some(unsafe { std::slice::from_raw_parts_mut(ptr, len) })
+            }
+            _ => None,
+        }
+    }
+
+    fn commit_reserved(&mut self) -> io::Result<()> {
+        let len = self
+            .pending_len
+            .take()
+            .ok_or_else(|| io::Error::other("SHM commit_reserved without a reserve"))?;
+        match self.client.commit_raw(self.traffic_id, len) {
+            Ok(true) => Ok(()),
+            // The slot was free at reserve and a single producer cannot fill it
+            // in between, so this is unreachable in practice; treat defensively
+            // as backpressure so the caller retries rather than losing the frame.
+            Ok(false) => Err(io::Error::from(io::ErrorKind::WouldBlock)),
+            Err(e) => Err(io::Error::other(format!("SHM commit: {e}"))),
+        }
+    }
+
+    fn supports_inplace(&self) -> bool {
+        self.client.supports_inplace()
+    }
+
+    fn commit_batched(&mut self) -> io::Result<bool> {
+        let len = self
+            .pending_len
+            .take()
+            .ok_or_else(|| io::Error::other("SHM commit_batched without a reserve"))?;
+        self.client
+            .commit_raw_nosignal(self.traffic_id, len)
+            .map_err(|e| io::Error::other(format!("SHM commit: {e}")))
+    }
+
+    fn flush_batch(&mut self) -> io::Result<()> {
+        self.client
+            .flush_c2g()
+            .map_err(|e| io::Error::other(format!("SHM flush: {e}")))
     }
 
     fn close(&mut self) {
@@ -156,6 +214,54 @@ impl DataSource for ShmSource {
             }
         }
         Ok(BatchOutcome::Messages(count))
+    }
+
+    fn supports_inplace_recv(&self) -> bool {
+        self.client.supports_inplace_recv()
+    }
+
+    fn recv_inplace(
+        &mut self,
+        max: usize,
+        f: &mut dyn FnMut(&[u8]),
+    ) -> io::Result<crate::transport::BatchOutcome> {
+        use crate::transport::BatchOutcome;
+        // Block once for the first message; then drain whatever else is queued,
+        // handing each payload to `f` straight from the ring (no copy).
+        match self.client.wait_readable(Some(self.timeout)) {
+            Ok(true) => {}
+            Ok(false) => return Ok(BatchOutcome::Timeout),
+            Err(e) => {
+                let msg = format!("{e}");
+                return if msg.contains("closed") || msg.contains("EOF") {
+                    Ok(BatchOutcome::Closed)
+                } else {
+                    Err(io::Error::other(format!("SHM recv: {e}")))
+                };
+            }
+        }
+        let mut count = 0;
+        while count < max {
+            // The peeked payload borrows the client; confine that borrow to this
+            // block so `advance_recv` can re-borrow after `f` runs.
+            let got = match self.client.peek_payload() {
+                Some((_tid, payload)) => {
+                    f(payload);
+                    true
+                }
+                None => false,
+            };
+            if !got {
+                break;
+            }
+            self.client.advance_recv();
+            count += 1;
+        }
+        if count == 0 {
+            Ok(BatchOutcome::Timeout)
+        } else {
+            Ok(BatchOutcome::Messages(count))
+        }
     }
 
     fn close(&mut self) {
@@ -399,6 +505,7 @@ impl GatewayShmTransport {
         let sink = Box::new(ShmSink {
             client: encrypt_ep.client,
             traffic_id: 1,
+            pending_len: None,
         });
         let source = Box::new(ShmSource {
             client: decrypt_ep.client,

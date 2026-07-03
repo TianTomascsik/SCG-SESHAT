@@ -1434,10 +1434,43 @@ fn run_gateway_scenario(
             .optimization_flags
             .shm_ring_capacity
             .unwrap_or(1024 * 1024) as u64;
+        // Auto-size the slot ring from the message size when the scenario gives
+        // no explicit geometry, so a `shm_ring_kind: "slot"` scenario "just
+        // works" without hand-computing sizes: an undersized segment silently
+        // drops every message (a 0-metric skip). `segment_size` fits one framed
+        // message (8-byte scg header + payload, rounded up to a 64-byte cache
+        // line); `num_segments` fills roughly the `ring_capacity` budget at a
+        // sane depth (≥8 in-flight, ≤1024). Explicit overrides still win.
+        let is_slot = scenario.optimization_flags.shm_ring_kind.as_deref() == Some("slot");
+        // Use the RESOLVED run size (`params.message_bytes`), not the raw
+        // `scenario.message_size_bytes` (which is defaulted elsewhere and may be
+        // None here) — sizing a slot for the wrong length silently drops messages.
+        let msg_bytes = params.message_bytes as usize;
+        let segment_size = scenario
+            .optimization_flags
+            .shm_segment_size
+            .or_else(|| is_slot.then(|| (msg_bytes + 8 + 63) & !63));
+        let num_segments = scenario.optimization_flags.shm_num_segments.or_else(|| {
+            is_slot.then(|| {
+                let seg = segment_size.unwrap_or(1).max(1);
+                // Target a ~4 MiB ring: deep enough for throughput (a shallow
+                // ring backpressures the producer and halves throughput), floored
+                // at 8 in-flight messages and capped at 256 so large payloads
+                // don't over-allocate. The gateway rounds this up to a power of two.
+                (4 * 1024 * 1024 / seg).clamp(8, 256)
+            })
+        });
+        log::debug!(
+            "[{}] SHM slot auto-geometry: msg_bytes={} segment_size={:?} num_segments={:?}",
+            scenario.name,
+            msg_bytes,
+            segment_size,
+            num_segments
+        );
         let shm_tuning = crate::gateway::config::ShmTuning {
             ring_kind: scenario.optimization_flags.shm_ring_kind.clone(),
-            segment_size: scenario.optimization_flags.shm_segment_size,
-            num_segments: scenario.optimization_flags.shm_num_segments,
+            segment_size,
+            num_segments,
             g2c_notify: scenario.optimization_flags.shm_g2c_notify.clone(),
         };
         match GatewayShmTransport::start(

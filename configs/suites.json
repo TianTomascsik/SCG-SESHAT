@@ -6,7 +6,8 @@
     "latency.json",
     "saturation.json",
     "pingpong.json",
-    "connrate.json"
+    "connrate.json",
+    "shm_zerocopy.json"
   ],
   "nightly": [
     "full_matrix.json",
@@ -16,6 +17,7 @@
     "latency.json",
     "saturation.json",
     "pingpong.json",
-    "connrate.json"
+    "connrate.json",
+    "shm_zerocopy.json"
   ]
 }

@@ -204,6 +204,15 @@ impl MessageBuilder {
         &self.buf[..total]
     }
 
+    /// Encode the message for `seq` at `ts_ns` **directly into** `dst` (e.g. a
+    /// shared-memory ring slot), avoiding the builder's internal buffer and the
+    /// buffer→ring copy `send_msg` makes. `dst` must be at least
+    /// [`message_len`](Self::message_len) bytes. Returns the on-wire size.
+    #[inline]
+    pub fn build_into(&self, seq: u64, ts_ns: u64, dst: &mut [u8]) -> usize {
+        encode_message_at(seq, self.payload_len, ts_ns, dst)
+    }
+
     /// Total on-wire size of each message.
     pub fn message_len(&self) -> usize {
         self.message_bytes as usize

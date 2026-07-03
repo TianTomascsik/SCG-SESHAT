@@ -114,6 +114,43 @@ pub trait DataSink: Send {
     fn preferred_batch(&self, _message_bytes: u32) -> usize {
         BATCH_MAX
     }
+    /// Reserve `len` bytes for **in-place** production, returning a writable
+    /// region the caller fills directly (the workload generator writes straight
+    /// into it), avoiding a staging buffer and the buffer→ring copy `send_msg`
+    /// makes. Returns `None` if the sink has no in-place path (the caller then
+    /// builds a buffer and uses [`send_msg`](Self::send_msg)) or the ring is
+    /// momentarily full. On `Some`, fill the slice then call
+    /// [`commit_reserved`](Self::commit_reserved) exactly once. Default:
+    /// unsupported.
+    fn reserve(&mut self, _len: usize) -> Option<&mut [u8]> {
+        None
+    }
+    /// Publish the region from the last successful [`reserve`](Self::reserve) and
+    /// wake the peer. Valid only immediately after a `reserve` that returned
+    /// `Some`. Default: no-op (paired with the `None`-returning default).
+    fn commit_reserved(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+    /// Whether this sink supports in-place **batched** production
+    /// ([`reserve`](Self::reserve) + [`commit_batched`](Self::commit_batched) +
+    /// [`flush_batch`](Self::flush_batch)) — the blast-path zero-copy generator.
+    /// Default: no.
+    fn supports_inplace(&self) -> bool {
+        false
+    }
+    /// Publish the region from the last [`reserve`](Self::reserve) **without**
+    /// waking the peer, so a whole batch of in-place sends costs one
+    /// [`flush_batch`](Self::flush_batch) wakeup (matching the copy-based
+    /// [`send_batch`](Self::send_batch)'s one-signal-per-batch). Returns whether a
+    /// frame was published (false = ring filled). Default: unsupported.
+    fn commit_batched(&mut self) -> io::Result<bool> {
+        Ok(false)
+    }
+    /// Wake the peer once after a run of [`commit_batched`](Self::commit_batched).
+    /// Default: no-op.
+    fn flush_batch(&mut self) -> io::Result<()> {
+        Ok(())
+    }
     /// Release the underlying resource.
     fn close(&mut self);
 }
@@ -157,6 +194,21 @@ pub trait DataSource: Send {
     /// syscall can be carved into many messages.
     fn preferred_batch(&self, _message_bytes: u32) -> usize {
         BATCH_MAX
+    }
+    /// Whether this source supports **in-place** (zero-copy) receive via
+    /// [`recv_inplace`](Self::recv_inplace) — the SHM slot ring. Default: no.
+    fn supports_inplace_recv(&self) -> bool {
+        false
+    }
+    /// Zero-copy receive: wait for data, then hand each ready message's payload
+    /// to `f` **in place** — borrowed straight from the ring, never copied into a
+    /// batch buffer — consuming it after `f` returns. Drains up to `max` messages
+    /// this call. Returns `Messages(n)` / `Timeout` / `Closed`. Only the SHM slot
+    /// ring implements this; the engine gates on
+    /// [`supports_inplace_recv`](Self::supports_inplace_recv), so the default is
+    /// unreachable.
+    fn recv_inplace(&mut self, _max: usize, _f: &mut dyn FnMut(&[u8])) -> io::Result<BatchOutcome> {
+        Ok(BatchOutcome::Timeout)
     }
     /// Release the underlying resource.
     fn close(&mut self);

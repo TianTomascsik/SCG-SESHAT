@@ -229,19 +229,22 @@ fn receiver_loop(
     let batch = source
         .preferred_batch(message_bytes)
         .clamp(1, BATCH_ABS_MAX);
-    let mut buf = vec![0u8; stride * batch];
-    let mut lens = vec![0usize; batch];
-    loop {
-        match source.recv_batch(&mut buf, stride, batch, &mut lens) {
-            Ok(BatchOutcome::Messages(count)) => {
-                // Timestamp as close to the read as possible (NFR-PERF). A whole
-                // batch shares one arrival time; that only blurs latency under
-                // blast, where per-message latency is queueing-dominated anyway.
-                let recv_ns = monotonic_ns();
-                let measuring = phase.load(Ordering::Relaxed) == PHASE_MEASURE;
-                for i in 0..count {
-                    let msg = &buf[i * stride..i * stride + lens[i]];
-                    if measuring {
+    // Zero-copy receive only pays off for LARGE messages: the per-message
+    // peek/validate cadence is slower than a batched copy-then-validate until the
+    // avoided copy is big enough to matter (measured: it regresses ~16 KB by ~2×
+    // but wins from ~1 MiB). Gate it to ≥512 KiB (the same cache-busting threshold
+    // the gateway c2g direct-write uses); smaller messages keep the batched copy.
+    const ZC_RECV_MIN: usize = 512 * 1024;
+    if source.supports_inplace_recv() && message_bytes as usize >= ZC_RECV_MIN {
+        // Zero-copy receive: validate each message's payload STRAIGHT FROM the
+        // ring (no copy into a batch buffer — cuts receive-side memory traffic).
+        loop {
+            // The closure borrows `metrics` mutably; it is rebuilt each iteration
+            // so `metrics` is free between calls (and for the final return).
+            let outcome = {
+                let mut ingest_one = |msg: &[u8]| {
+                    let recv_ns = monotonic_ns();
+                    if phase.load(Ordering::Relaxed) == PHASE_MEASURE {
                         if msg.len() != stride {
                             metrics.record_boundary_violation();
                         }
@@ -252,15 +255,54 @@ fn receiver_loop(
                         // Keep the stream validated during warmup/cooldown.
                         let _ = decode_message(msg);
                     }
+                };
+                source.recv_inplace(batch, &mut ingest_one)
+            };
+            match outcome {
+                Ok(BatchOutcome::Messages(_)) => {}
+                Ok(BatchOutcome::Timeout) => {
+                    if phase.load(Ordering::Relaxed) == PHASE_DONE {
+                        break;
+                    }
                 }
+                Ok(BatchOutcome::Closed) => break,
+                Err(_) => break,
             }
-            Ok(BatchOutcome::Timeout) => {
-                if phase.load(Ordering::Relaxed) == PHASE_DONE {
-                    break;
+        }
+    } else {
+        let mut buf = vec![0u8; stride * batch];
+        let mut lens = vec![0usize; batch];
+        loop {
+            match source.recv_batch(&mut buf, stride, batch, &mut lens) {
+                Ok(BatchOutcome::Messages(count)) => {
+                    // Timestamp as close to the read as possible (NFR-PERF). A
+                    // whole batch shares one arrival time; that only blurs latency
+                    // under blast, where per-message latency is queueing-dominated.
+                    let recv_ns = monotonic_ns();
+                    let measuring = phase.load(Ordering::Relaxed) == PHASE_MEASURE;
+                    for i in 0..count {
+                        let msg = &buf[i * stride..i * stride + lens[i]];
+                        if measuring {
+                            if msg.len() != stride {
+                                metrics.record_boundary_violation();
+                            }
+                            if receiver::ingest(&mut metrics, msg, recv_ns).is_err() {
+                                metrics.record_integrity_failure();
+                            }
+                        } else {
+                            // Keep the stream validated during warmup/cooldown.
+                            let _ = decode_message(msg);
+                        }
+                    }
                 }
+                Ok(BatchOutcome::Timeout) => {
+                    if phase.load(Ordering::Relaxed) == PHASE_DONE {
+                        break;
+                    }
+                }
+                Ok(BatchOutcome::Closed) => break,
+                Err(_) => break,
             }
-            Ok(BatchOutcome::Closed) => break,
-            Err(_) => break,
         }
     }
     source.close();
@@ -288,24 +330,64 @@ fn sender_loop(
         // rather than per-message syscalls. There is no schedule here, so
         // coordinated omission does not apply.
         let batch_size = sink.preferred_batch(message_bytes).clamp(1, BATCH_ABS_MAX);
-        let mut batch = BatchBuilder::new(message_bytes, batch_size);
         let mut seq = 0u64;
-        loop {
-            if phase.load(Ordering::Relaxed) == PHASE_DONE {
-                break;
+        if sink.supports_inplace() {
+            // Zero-copy blast: the generator stamps each message STRAIGHT INTO a
+            // ring slot (no staging buffer, no buffer→ring copy — half the
+            // client-side payload memory traffic), and one `flush_batch` wakes the
+            // gateway per batch (same wakeup amortisation as the copy path).
+            let builder = MessageBuilder::new(message_bytes);
+            let n = builder.message_len();
+            loop {
+                if phase.load(Ordering::Relaxed) == PHASE_DONE {
+                    break;
+                }
+                let mut sent = 0u64;
+                for i in 0..batch_size {
+                    // Reserve a slot and build in place; the slot borrow is
+                    // confined to this `if let` so `commit_batched` can re-borrow.
+                    let filled = if let Some(slot) = sink.reserve(n) {
+                        builder.build_into(seq.wrapping_add(i as u64), monotonic_ns(), slot);
+                        true
+                    } else {
+                        false // ring full — send what we have, then retry
+                    };
+                    if !filled {
+                        break;
+                    }
+                    match sink.commit_batched() {
+                        Ok(true) => sent += 1,
+                        _ => break,
+                    }
+                }
+                if sent > 0 {
+                    if sink.flush_batch().is_err() {
+                        break;
+                    }
+                    seq = seq.wrapping_add(sent);
+                } else {
+                    std::thread::yield_now();
+                }
             }
-            let built = batch.build(seq, batch_size);
-            // Borrow each staged message into a stack array (no per-iteration
-            // heap allocation for the slice vector).
-            let mut slices: [&[u8]; BATCH_ABS_MAX] = [&[][..]; BATCH_ABS_MAX];
-            for (i, v) in built.iter().enumerate() {
-                slices[i] = v.as_slice();
-            }
-            match sink.send_batch(&slices[..built.len()]) {
-                // Socket buffer momentarily full: back off without losing seq.
-                Ok(0) => std::thread::yield_now(),
-                Ok(n) => seq = seq.wrapping_add(n as u64),
-                Err(_) => break,
+        } else {
+            let mut batch = BatchBuilder::new(message_bytes, batch_size);
+            loop {
+                if phase.load(Ordering::Relaxed) == PHASE_DONE {
+                    break;
+                }
+                let built = batch.build(seq, batch_size);
+                // Borrow each staged message into a stack array (no per-iteration
+                // heap allocation for the slice vector).
+                let mut slices: [&[u8]; BATCH_ABS_MAX] = [&[][..]; BATCH_ABS_MAX];
+                for (i, v) in built.iter().enumerate() {
+                    slices[i] = v.as_slice();
+                }
+                match sink.send_batch(&slices[..built.len()]) {
+                    // Socket buffer momentarily full: back off without losing seq.
+                    Ok(0) => std::thread::yield_now(),
+                    Ok(n) => seq = seq.wrapping_add(n as u64),
+                    Err(_) => break,
+                }
             }
         }
     } else {
@@ -326,8 +408,27 @@ fn sender_loop(
             // Stamp the *scheduled* send time, not "now": if the pacer woke late
             // the queueing it absorbed stays visible in receiver-side latency
             // (coordinated-omission correction, wrk2/HdrHistogram style).
-            let msg = builder.build_at(seq, deadline);
-            match sink.send_msg(msg) {
+            // Zero-copy fast path: when the sink lends an in-place ring slot
+            // (SHM slot ring), the generator stamps the message straight into
+            // shared memory — no builder buffer, no buffer→ring copy. Otherwise
+            // build into the local buffer and copy it in via `send_msg`. The
+            // scheduled `deadline` is stamped either way (coordinated-omission
+            // correction). The slot borrow is confined to the `if let` so
+            // `commit_reserved` can re-borrow the sink.
+            let n = builder.message_len();
+            let zero_copy = if let Some(slot) = sink.reserve(n) {
+                builder.build_into(seq, deadline, slot);
+                true
+            } else {
+                false
+            };
+            let result = if zero_copy {
+                sink.commit_reserved()
+            } else {
+                let msg = builder.build_at(seq, deadline);
+                sink.send_msg(msg)
+            };
+            match result {
                 Ok(()) => {
                     if measuring {
                         lag.record(woke.saturating_sub(deadline));

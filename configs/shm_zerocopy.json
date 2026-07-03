@@ -1,0 +1,187 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG Local-IPC Latency & SHM Honest-Latency Suite",
+    "description": "Answers 'why is SHM latency so bad / shouldn't it be sub-us?' by measuring the honest closed-loop RTT (mode=pingpong, one message in flight) of the shared-memory, Unix-socket and TCP data paths through one SCG (scg-direct), alongside the sustained-throughput blast p99 for SHM. The RTT rows show SHM's real turnaround is microseconds (comparable to UDS and loopback TCP on this NIC-less host — a socket-like copy-in/out + syscall-per-wakeup, not a NIC-bypass win), while the throughput rows show the multi-millisecond p99 is open-loop queue backlog (coordinated omission), not the transport. This is the RC2/RC4 story made measurable and the F16 SHM/UDS RTT data. Empirical note: the fixed-slot ring (shm_ring_kind=slot) + futex was measured SLOWER for RTT (~55 us vs ~17 us byte-stream) and needs shm_segment_size >= payload for throughput, so the default byte-stream + eventfd config is used here; the slot-ring underperformance is a separate finding. Plaintext routing (protocol none), no certificates.",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 3,
+    "duration_secs": 2,
+    "warmup_secs": 1,
+    "cooldown_secs": 0,
+    "cpu_affinity_sender": [],
+    "cpu_affinity_receiver": [],
+    "auto_affinity": true,
+    "scg_process_name": "gateway",
+    "collect_system_metrics": true,
+    "metrics_sample_rate_hz": 5,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "shmzc_shm_rtt_64B",
+      "description": "SHM closed-loop RTT through one SCG (byte-stream ring + eventfd). 64 B.",
+      "category": "shmzc-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-zc-shm-64", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_shm_rtt_1KB",
+      "description": "SHM closed-loop RTT through one SCG (byte-stream ring + eventfd). 1 KB.",
+      "category": "shmzc-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-zc-shm-1k", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_uds_rtt_64B",
+      "description": "UDS (unix) closed-loop RTT through one SCG (local-IPC comparator). 64 B.",
+      "category": "shmzc-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "unix", "target_addr": "/tmp/seshat-zc-uds-64.sock", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_uds_rtt_1KB",
+      "description": "UDS (unix) closed-loop RTT through one SCG (local-IPC comparator). 1 KB.",
+      "category": "shmzc-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "unix", "target_addr": "/tmp/seshat-zc-uds-1k.sock", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_tcp_rtt_64B",
+      "description": "TCP closed-loop RTT through one SCG (network-transport comparator). 64 B.",
+      "category": "shmzc-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14520", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_tcp_rtt_1KB",
+      "description": "TCP closed-loop RTT through one SCG (network-transport comparator). 1 KB.",
+      "category": "shmzc-rtt",
+      "mode": "pingpong",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14521", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_shm_tput_4KB",
+      "description": "SHM sustained throughput through one SCG (byte-stream ring); p99 here is open-loop blast queue backlog, NOT turnaround. 4 KB.",
+      "category": "shmzc-throughput",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-zc-tp-4k", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_shm_tput_64KB",
+      "description": "SHM sustained throughput through one SCG (byte-stream ring); p99 here is open-loop blast queue backlog, NOT turnaround. 64 KB.",
+      "category": "shmzc-throughput",
+      "message_size_bytes": 65536,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-zc-tp-64k", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_shm_slot_tput_64KB",
+      "description": "SHM sustained throughput, fixed-slot ring sized to the payload (shm_segment_size >= message). Reaches TCP-loopback line rate (~45-47 Gbps) where the default 4 MiB byte-stream ring backpressures to ~30. Routing slot ring, so the gateway relays it with the zero-copy c2g path. 64 KB.",
+      "category": "shmzc-throughput",
+      "message_size_bytes": 65536,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "shm_ring_kind": "slot", "shm_segment_size": 65600, "shm_num_segments": 128 },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-zc-slot-64k", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_shm_slot_tput_1MB",
+      "description": "SHM sustained throughput, fixed-slot ring, 1 MB messages. Above the 512 KiB threshold the gateway writes each frame straight from shared memory to the upstream (zero-copy c2g direct-write): same throughput at lower gateway CPU vs the staging-copy path (cache-busting payload). 1 MB.",
+      "category": "shmzc-throughput",
+      "message_size_bytes": 1048576,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "shm_ring_kind": "slot", "shm_segment_size": 1048640, "shm_num_segments": 32 },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-zc-slot-1m", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_shm_paced_bs_4KB",
+      "description": "SHM paced latency, byte-stream ring: the sender builds each message in a buffer and copies it into the ring via send_msg (baseline for the generator-into-ring comparison). 4 KB @ 2 Gbps offered.",
+      "category": "shmzc-paced",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-zc-paced-bs", "pattern": "sustained", "rate_limit_mbps": 2000.0 }
+    },
+    {
+      "name": "shmzc_shm_paced_slot_4KB",
+      "description": "SHM paced latency, slot ring: the workload generator stamps each message STRAIGHT INTO the ring slot (reserve + build_into + commit) — zero staging buffer, no buffer->ring copy on the client side. 4 KB @ 2 Gbps offered.",
+      "category": "shmzc-paced",
+      "message_size_bytes": 4096,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "shm_ring_kind": "slot", "shm_segment_size": 4160, "shm_num_segments": 256 },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-zc-paced-slot", "pattern": "sustained", "rate_limit_mbps": 2000.0 }
+    },
+    {
+      "name": "shmzc_shm_scale_16KB_1c",
+      "description": "SHM slot-ring throughput scaling, 1 connection. Slot geometry is AUTO-SIZED from the message size (only shm_ring_kind=slot given) — no hand-computed segment_size. Baseline for the connection sweep.",
+      "category": "shmzc-scaling",
+      "message_size_bytes": 16384,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "shm_ring_kind": "slot" },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-zc-scale-1c", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_shm_scale_16KB_4c",
+      "description": "SHM slot-ring throughput scaling, 4 connections (auto-sized slot ring). Compare to 1c: SHM currently does not scale with connections (a per-message-rate wall, not memory bandwidth) — this row tracks that in the nightly.",
+      "category": "shmzc-scaling",
+      "message_size_bytes": 16384,
+      "connections": 4,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "shm_ring_kind": "slot" },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-zc-scale-4c", "pattern": "sustained" }
+    },
+    {
+      "name": "shmzc_shm_scale_16KB_16c",
+      "description": "SHM slot-ring throughput scaling, 16 connections (auto-sized slot ring). Tracks the SHM connection-scaling ceiling in the nightly alongside the 1c/4c rows.",
+      "category": "shmzc-scaling",
+      "message_size_bytes": 16384,
+      "connections": 16,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "shm_ring_kind": "slot" },
+      "sender": { "interface": "shm", "target_addr": "shm:///seshat-zc-scale-16c", "pattern": "sustained" }
+    }
+  ]
+}
