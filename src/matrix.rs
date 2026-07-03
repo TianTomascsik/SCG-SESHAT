@@ -320,6 +320,26 @@ fn append_cipher_scenarios(
     spec: &MatrixSpec,
     tier: Tier,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    // Canonical: one representative cipher per version at the canonical size (cheap smoke).
+    // Nightly/Catalog: every cipher across a small stream-size grid so the AEAD choice can be
+    // compared at more than one payload (F20 — cipher cost vs message size, not a single cell).
+    let canonical_size = spec.dimensions.canonical_stream_message_size;
+    let sizes: Vec<u32> = if tier == Tier::Canonical {
+        vec![canonical_size]
+    } else {
+        let grid: Vec<u32> = spec
+            .dimensions
+            .stream_message_sizes
+            .iter()
+            .copied()
+            .filter(|&b| b == 1024 || b == canonical_size || b == 16384)
+            .collect();
+        if grid.is_empty() {
+            vec![canonical_size]
+        } else {
+            grid
+        }
+    };
     for (version, suites) in [
         ("1.2", &spec.cipher_matrix.tls12),
         ("1.3", &spec.cipher_matrix.tls13),
@@ -330,30 +350,39 @@ fn append_cipher_scenarios(
             suites.len()
         };
         for suite in suites.iter().take(count) {
-            let name = format!(
-                "cipher_tls{}_{}",
-                version.replace('.', ""),
-                sanitize_name(suite)
-            );
-            let ordinal = scenarios.len();
-            push_unique(
-                scenarios,
-                names,
-                name,
-                scenario(
-                    "cipher",
-                    "cipher-matrix",
-                    "tcp",
-                    &json!({ "type": "tls", "version": version, "cipher_suite": suite }),
-                    true,
-                    "scg-direct",
-                    spec.dimensions.canonical_stream_message_size,
-                    1,
-                    &["openssl".to_string()],
-                    None,
-                    ordinal,
-                ),
-            )?;
+            for &size in &sizes {
+                let base = format!(
+                    "cipher_tls{}_{}",
+                    version.replace('.', ""),
+                    sanitize_name(suite)
+                );
+                // Keep the canonical-size name suffix-free so existing references are stable;
+                // other sizes carry a `_<n>B` token (the loader strips it back to the suite).
+                let name = if size == canonical_size {
+                    base
+                } else {
+                    format!("{base}_{size}B")
+                };
+                let ordinal = scenarios.len();
+                push_unique(
+                    scenarios,
+                    names,
+                    name,
+                    scenario(
+                        "cipher",
+                        "cipher-matrix",
+                        "tcp",
+                        &json!({ "type": "tls", "version": version, "cipher_suite": suite }),
+                        true,
+                        "scg-direct",
+                        size,
+                        1,
+                        &["openssl".to_string()],
+                        None,
+                        ordinal,
+                    ),
+                )?;
+            }
         }
     }
     Ok(())
@@ -876,9 +905,22 @@ mod tests {
                 assert_eq!(interface, Some("udp"));
                 assert_eq!(row["connections"].as_u64(), Some(1));
             }
-            if interface == Some("unix") || interface == Some("shm") || interface == Some("tproxy")
-            {
+            // Datagram (udp) and transparent (tproxy) transports stay single-connection
+            // by design: a UDP "connection" is a flow, and TPROXY interception has no
+            // per-connection fan-out here.
+            if interface == Some("udp") || interface == Some("tproxy") {
                 assert_eq!(row["connections"].as_u64(), Some(1));
+            }
+            // Stream IPC transports (unix/shm) now sweep the nightly connection ladder —
+            // each connection provisions its own endpoint (gRPC + SCM_RIGHTS) — so they can
+            // be compared with TCP at matched concurrency, but they do not opt into the
+            // scalability tier's 256/1024 fan-out.
+            if interface == Some("unix") || interface == Some("shm") {
+                let conns = row["connections"].as_u64().unwrap();
+                assert!(
+                    [1, 4, 16, 64].contains(&conns),
+                    "unix/shm connections must stay within the nightly ladder, got {conns}"
+                );
             }
         }
     }

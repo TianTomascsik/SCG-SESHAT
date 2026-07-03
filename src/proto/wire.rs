@@ -144,11 +144,33 @@ pub fn fill_byte(seq: u64, i: usize) -> u8 {
     (seq.wrapping_add(i as u64) & 0xff) as u8
 }
 
+/// The ramp is cyclic with period 256, so a doubled static table serves any
+/// 256-byte window contiguously: `RAMP[k] == (k & 0xff) as u8` for `k < 512`.
+/// Filling and verifying in 256-byte blocks against this table is
+/// memcpy/memcmp-class work instead of a per-byte function call — the payload
+/// integrity path must never become the harness's own hot-path ceiling
+/// (NFR-PERF).
+static RAMP: [u8; 512] = {
+    let mut t = [0u8; 512];
+    let mut k = 0;
+    while k < 512 {
+        t[k] = (k & 0xff) as u8;
+        k += 1;
+    }
+    t
+};
+
 /// Fill `payload` with the deterministic pattern for `seq`.
 #[inline]
 pub fn fill_payload(seq: u64, payload: &mut [u8]) {
-    for (i, b) in payload.iter_mut().enumerate() {
-        *b = fill_byte(seq, i);
+    // `(seq + i) & 0xff` repeats every 256 bytes, so every block is the same
+    // window of the doubled ramp table.
+    let off = (seq & 0xff) as usize;
+    let mut pos = 0;
+    while pos < payload.len() {
+        let n = (payload.len() - pos).min(256);
+        payload[pos..pos + n].copy_from_slice(&RAMP[off..off + n]);
+        pos += n;
     }
 }
 
@@ -157,10 +179,19 @@ pub fn fill_payload(seq: u64, payload: &mut [u8]) {
 /// Returns `Ok(())` on match, or the offset of the first mismatching byte.
 #[inline]
 pub fn verify_payload(seq: u64, payload: &[u8]) -> Result<(), WireError> {
-    for (i, &b) in payload.iter().enumerate() {
-        if b != fill_byte(seq, i) {
-            return Err(WireError::CorruptPayload { offset: i });
+    let off = (seq & 0xff) as usize;
+    let mut pos = 0;
+    while pos < payload.len() {
+        let n = (payload.len() - pos).min(256);
+        if payload[pos..pos + n] != RAMP[off..off + n] {
+            // Slow path only on an actual mismatch: locate the exact byte.
+            for (i, &b) in payload[pos..pos + n].iter().enumerate() {
+                if b != RAMP[off + i] {
+                    return Err(WireError::CorruptPayload { offset: pos + i });
+                }
+            }
         }
+        pos += n;
     }
     Ok(())
 }

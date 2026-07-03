@@ -500,7 +500,10 @@ Additional columns surface the later improvements:
 | `integrity_failures`, `boundary_violations` | Rejected deterministic payload/header frames and unexpected message/datagram sizes |
 | `encapsulation_overhead_bytes_analytical`, `encapsulation_overhead_capture_verified` | Protocol-header estimate; always labelled unverified unless a future packet-capture backend supplies observed bytes |
 | `perf_cycles`, `perf_instructions`, `perf_ipc`, `perf_cache_*`, `perf_context_switches`, `perf_task_clock_ms`, `perf_duration_s` | Scenario-wide `perf stat` hardware/software counters when the `perf` backend is enabled |
-| `bottleneck` | Calibration verdict: `harness-io`, `scg`, … (who limited the result) |
+| `bottleneck` | Calibration verdict: `scg-cpu` (gateway pool **or** hottest gateway thread saturated — trusted), `scg` (≥3× headroom — trusted), `host-saturated` (whole host ≥90 % busy — a lower bound, still harness-limited), `harness-io` (residual: suspect), `n/a` (baseline) |
+| `ceiling_transport` | Which null-loopback transport measured the ceiling: `tcp`, `udp`, `uds-null`, `shm-null` (interface-true; a failed null probe falls back to `tcp` and says so) |
+| `cpu_hot_thread_pct_p95` | p95 CPU% of the hottest single gateway thread (100 = one core) — the serial-data-plane saturation signal |
+| `host_busy_frac_p95` | p95 whole-host busy fraction (0..1) — the loopback co-saturation signal |
 | `rtt_us_mean/ci95/p50/p99` | Closed-loop round-trip time (populated only for `pingpong` scenarios) |
 | `conns_per_sec`, `conns_per_sec_ci95`, `conn_handshake_p50_us`, `conn_handshake_p99_us` | Connection rate + handshake latency (populated only for `connrate` scenarios) |
 | `perf_syscalls` | System calls during the scenario (from `raw_syscalls:sys_enter` tracepoint via `perf stat`) |
@@ -517,14 +520,71 @@ rows they carry the per-connection handshake distribution.
 The hard requirement is that SESHAT always saturates *after* the SCG, so every
 number reflects the gateway's limit. This is enforced two ways:
 
-1. **Engineering** — batched/vectored I/O, pre-allocated reusable buffers,
-   immediate receive-side timestamping, statistics computed off the hot path,
-   and harness threads pinnable to cores *separate* from the SCG.
+1. **Engineering** — batched/vectored I/O on *every* path (UDP `sendmmsg`/
+   `recvmmsg`; TCP/UDS `writev` batches of up to 1024 messages with a
+   cursor-based frame reassembler that memmoves once per buffer-full, not once
+   per message; SHM ring batches), block-wise payload fill/verify against a
+   static ramp table (memcpy/memcmp-class, never per-byte), pre-allocated
+   reusable buffers, immediate receive-side timestamping, statistics computed
+   off the hot path, and harness threads pinnable to cores *separate* from the
+   SCG.
 2. **A calibration gate** — before trusting a gateway result, the harness
-   measures its own loopback ceiling for that exact message shape. The console
-   and CSV surface the `headroom` (ceiling ÷ measured) and flag any scenario
-   `[HARNESS-LIMITED]` when the margin is insufficient, so questionable numbers
-   are never reported silently. Run it standalone with `seshat calibrate`.
+   measures its own null-loopback ceiling for that exact message shape **under
+   the scenario's own conditions**: same access interface (`tcp`/`udp`/
+   `uds-null`/`shm-null`, recorded in `ceiling_transport`), same sender/receiver
+   core pools, 500 ms warmup, 1 s measure, best of 2 probes. The console and CSV
+   surface the `headroom` (ceiling ÷ measured) and flag any scenario
+   `[HARNESS-LIMITED]` when the margin is under 3× — unless the gateway's core
+   pool or its hottest single thread is saturated (`scg-cpu`, trusted), or the
+   whole host is ≥90 % busy (`host-saturated`: kept harness-limited as an honest
+   lower bound, but labeled so figures can distinguish single-host physics from
+   harness slowness). A measured throughput far above the ceiling (headroom
+   < 0.85) logs a `suspect ceiling` warning; a *slight* overshoot on
+   passthrough paths is expected — a sender→gateway→receiver relay pipelines
+   across more cores than the two-thread probe. Run the probe standalone with
+   `seshat calibrate` (`--warmup`, `--probes` match the in-suite gate).
+
+### Harness fast-path engineering (2026-07)
+
+Before this pass, half the nightly matrix was flagged `harness_limited`
+because the harness itself was syscall- and validation-bound. What changed:
+
+| Improvement | Before | After |
+| --- | --- | --- |
+| **Stream batch send** — TCP/UDS (and the gateway/TPROXY paths built on them) push whole batches with one size-adaptive `writev` (up to 1024 messages / 256 KiB per call); stream `send_batch` returns only at message boundaries so a short write can never desynchronise the stream | 1 `write()` syscall per message | 1 syscall per ≤1024 messages |
+| **Cursor-based frame reassembly** — `FramedReader` keeps read/write cursors over one fixed buffer and compacts with a single memmove per buffer-full; `recv_batch` carves every complete message one `read` yielded | `Vec::drain` memmove **per message** (O(n²) per read burst), 1 message per `recv_batch` | 1 memmove per buffer-full, one syscall drained into up to 1024 messages |
+| **Block-wise payload integrity** — the deterministic fill/verify pattern is cyclic with period 256, so both run as 256-byte block copies/compares against a static ramp table | per-byte function call on **every** payload byte | memcpy/memcmp-class |
+| **UDS client batching** (`scg-client`) — vectored `writev` of ≤512 frames (header+payload iovec pairs) and a buffered `FrameDecoder` receive | 2 `write` syscalls + 1 heap allocation per frame | 1 syscall per ≤512 frames, allocation-free receive |
+
+Measured effect on the harness's own single-connection loopback ceiling
+(the NFR-PERF reference, this host): **64 B: 0.14 → ~9 Gbit/s (~62×) ·
+1 KiB: 2.0 → ~41 Gbit/s · 4 KiB: 12 → ~49 Gbit/s · 16 KiB: 13 → ~51 Gbit/s.**
+Consequently, previously harness-throttled gateway rows roughly doubled to
+sextupled (e.g. routing 4 KiB single-connection 6.5 → ~42 Gbit/s), and all
+TLS/kTLS/mTLS/integrity/cipher rows now clear the 3× headroom gate.
+
+**Is a batched load generator still representative?** Yes — for what each
+mode claims to measure:
+
+* **Blast/throughput rows are capacity measurements.** Like `iperf3`/`pktgen`,
+  the generator's job is to offer *more* than the DUT can handle so the number
+  reflects the gateway's limit; batching is how every serious load generator
+  achieves that. What the SCG sees is unchanged in kind: the same byte stream
+  on TCP/UDS (frame layout byte-identical), the same discrete datagrams on
+  UDP/DTLS (`sendmmsg` preserves PDU boundaries, and was already in use). The
+  batched single connection stands in for the aggregate of many clients — the
+  load a gateway is actually sized for.
+* **Application-representative modes are deliberately NOT batched.** Paced /
+  periodic senders (the ETCS-like low-rate traffic model) still send exactly
+  one message per schedule tick through `send_msg`, preserving per-message
+  timing and coordinated-omission correction; ping-pong RTT keeps one message
+  in flight; connection-rate churns real handshakes. Latency figures come from
+  these modes, not from blast rows.
+* **Stated caveat:** on blast rows the gateway's ingress sees fewer, larger
+  reads than a naïve one-`write()`-per-message application would produce, so
+  per-wakeup gateway overheads are amortised — the correct condition for a
+  capacity ceiling, but a single unbatched legacy client would offer less load
+  (documented in `docs/methodology.md`).
 
 ---
 

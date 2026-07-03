@@ -380,6 +380,15 @@ pub struct CalibrateArgs {
     #[arg(long, value_parser = parse_duration, default_value = "1s")]
     pub duration: Duration,
 
+    /// Warmup before each probe's measurement window (matches the in-suite
+    /// headroom probe methodology).
+    #[arg(long, value_parser = parse_duration, default_value = "500ms")]
+    pub warmup: Duration,
+
+    /// Probes per shape; the best (max) is reported as the ceiling.
+    #[arg(long, default_value_t = 2)]
+    pub probes: u32,
+
     /// Probe TCP loopback.
     #[arg(long, default_value_t = true)]
     pub tcp: bool,

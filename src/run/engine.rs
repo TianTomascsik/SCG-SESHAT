@@ -30,7 +30,7 @@ use crate::metrics::stats::{self, Summary};
 use crate::proto::wire::decode_message;
 use crate::time::{monotonic_ns, sleep_until_ns};
 use crate::transport::{
-    BatchOutcome, ConnFactory, DataSource, DuplexEnd, RecvOutcome, Transport, BATCH_MAX,
+    BatchOutcome, ConnFactory, DataSource, DuplexEnd, RecvOutcome, Transport, BATCH_ABS_MAX,
 };
 use crate::workload::receiver;
 use crate::workload::sender::{BatchBuilder, MessageBuilder, Pacer};
@@ -223,12 +223,16 @@ fn receiver_loop(
     }
     let mut metrics = FlowMetrics::with_capacity(expected);
     let stride = message_bytes as usize;
-    // One contiguous buffer of BATCH_MAX message slots drained per recv_batch;
-    // datagram transports fill several at once (recvmmsg), stream transports one.
-    let mut buf = vec![0u8; stride * BATCH_MAX];
-    let mut lens = vec![0usize; BATCH_MAX];
+    // One contiguous buffer of transport-preferred message slots drained per
+    // recv_batch; datagram transports fill several at once (recvmmsg), stream
+    // transports carve everything one read syscall yielded.
+    let batch = source
+        .preferred_batch(message_bytes)
+        .clamp(1, BATCH_ABS_MAX);
+    let mut buf = vec![0u8; stride * batch];
+    let mut lens = vec![0usize; batch];
     loop {
-        match source.recv_batch(&mut buf, stride, BATCH_MAX, &mut lens) {
+        match source.recv_batch(&mut buf, stride, batch, &mut lens) {
             Ok(BatchOutcome::Messages(count)) => {
                 // Timestamp as close to the read as possible (NFR-PERF). A whole
                 // batch shares one arrival time; that only blurs latency under
@@ -278,20 +282,22 @@ fn sender_loop(
     let mut pacer = Pacer::from_sender(&sender_spec, message_bytes);
     let mut lag = SendLag::default();
     if pacer.is_blast() {
-        // Unthrottled blast: stage BATCH_MAX messages and push them with one
-        // batched send (sendmmsg on UDP) per iteration, so the harness ceiling
-        // is bounded by the socket/NIC rather than per-message syscalls. There
-        // is no schedule here, so coordinated omission does not apply.
-        let mut batch = BatchBuilder::new(message_bytes, BATCH_MAX);
+        // Unthrottled blast: stage a transport-preferred number of messages and
+        // push them with one batched send (sendmmsg on UDP, writev on streams)
+        // per iteration, so the harness ceiling is bounded by the socket/NIC
+        // rather than per-message syscalls. There is no schedule here, so
+        // coordinated omission does not apply.
+        let batch_size = sink.preferred_batch(message_bytes).clamp(1, BATCH_ABS_MAX);
+        let mut batch = BatchBuilder::new(message_bytes, batch_size);
         let mut seq = 0u64;
         loop {
             if phase.load(Ordering::Relaxed) == PHASE_DONE {
                 break;
             }
-            let built = batch.build(seq, BATCH_MAX);
+            let built = batch.build(seq, batch_size);
             // Borrow each staged message into a stack array (no per-iteration
             // heap allocation for the slice vector).
-            let mut slices: [&[u8]; BATCH_MAX] = [&[][..]; BATCH_MAX];
+            let mut slices: [&[u8]; BATCH_ABS_MAX] = [&[][..]; BATCH_ABS_MAX];
             for (i, v) in built.iter().enumerate() {
                 slices[i] = v.as_slice();
             }
@@ -960,6 +966,24 @@ mod tests {
         assert!(!stats.co_corrected);
         assert_eq!(stats.send_lag_mean_us, 0.0);
         assert_eq!(stats.send_lag_max_us, 0.0);
+    }
+
+    #[test]
+    fn tcp_blast_stream_batching_is_lossless() {
+        // Drives the writev send_batch + multi-message recv_batch stream path
+        // end-to-end at a small message size (largest batch factor) over
+        // multiple connections: TCP is reliable, so any seq gap would be a
+        // framing/batching bug, not network loss.
+        let mut params = quick_params(blast_sender());
+        params.message_bytes = 64;
+        params.connections = 2;
+        let stats = run_scenario(&TcpTransport, &params, |_, _| {}).unwrap();
+        assert_eq!(
+            stats.total_lost, 0,
+            "stream batching must not lose or desync"
+        );
+        assert!(stats.runs.iter().all(|r| r.messages > 0));
+        assert!(stats.throughput_gbps.mean > 0.0);
     }
 
     #[test]

@@ -94,6 +94,40 @@ delivered — directly demonstrating that the splice/kTLS zero-copy paths approa
 ~0 user copies per message while userspace TLS copies each payload in and out.
 Degrades to empty (`[SKIPPED]`) when unprivileged or `bpftrace` is absent.
 
+**Fair cross-transport comparison & new modes (2026-07).** To let figures compare transports
+and protocols like-for-like rather than apples-to-oranges, the matrix and suites gained:
+
+- **Multi-connection stream IPC.** The UDS (`unix`) and SHM profiles in
+  `configs/matrix_spec.json` no longer pin `connections: [1]`; they follow the tier like TCP
+  (canonical `1`, nightly `[1,4,16,64]`). Each connection provisions its own endpoint
+  (gRPC + `SCM_RIGHTS`), so this is a real concurrency sweep, letting concurrency-scaling and
+  cross-transport figures cover more than TCP. UDP/DTLS stay single-connection by design (a
+  datagram "connection" is a flow) and TPROXY stays `1` (no per-connection fan-out here).
+  Regenerate the derived configs after editing the spec: `seshat matrix generate --spec
+  configs/matrix_spec.json --out-dir configs`.
+- **Paced latency-at-target.** `configs/latency.json` adds a `rate_limit_mbps` sweep
+  (sustained, sub-saturation) per (transport, protocol) so latency is measured at a real
+  offered load below saturation — `co_corrected=true`, not open-loop blast bufferbloat. This
+  is the honest counterpart to the matrix's blast p99 (which is queue depth, ranking-only).
+- **Cipher × size grid.** `append_cipher_scenarios` (`src/matrix.rs`) now sweeps each AEAD
+  suite across a small stream-size grid in nightly (`1024/4096/16384 B`), not a single
+  `4096 B` cell, so AES-128/256-GCM vs ChaCha20 cost is comparable across payloads.
+- **Resumption / PSK / more handshake coverage.** `configs/connrate.json` adds TLS 1.3 session
+  resumption (`resumption: true`, so `resumed_fraction > 0`), a subset146-PSK handshake, TLS 1.2
+  and kTLS 1.3 variants, and an 8-thread point — so full-handshake vs resumed vs PSK vs
+  cert(mTLS, already in the matrix) are comparable beyond the old routing-vs-TLS-1.3 / {1,4}-thread pair.
+- **Perf pass (efficiency panels).** The cycles/byte, cache-miss, IPC and ctxsw figures need
+  hardware counters: run a second pass with `seshat suite --tier nightly --metrics-backend perf`
+  (or `scripts/collect_perf_data.sh`), keeping the default `procfs` pass for the headline
+  throughput/latency numbers so perf sampling overhead never contaminates them.
+- **Statistical rigor knobs.** Tighter CIs for comparison-critical or degenerate-CI rows come
+  from existing overrides, e.g. `seshat suite --tier nightly --runs 5 --duration 10s`
+  (optionally scoped with `--scenario-filter`); cost is linear in `runs × duration`.
+
+**Figure-numbering note.** The visualization's resource-cost figure (F9) consolidates what were
+once three separate figures (old F9 + F10 + F14); the gaps at F10/F14 are intentional, not
+missing figures.
+
 **Session resumption ground truth.** The SCG logs `resumed=<bool>` per TLS accept
 (`SSL_session_reused`) on the decrypt side, for both the userspace-TLS and kTLS
 paths (the kTLS handshake still runs through OpenSSL).
@@ -106,11 +140,59 @@ fraction.)
 
 **NFR-PERF (the harness is never the bottleneck).** Before trusting an SCG
 throughput figure, the calibrator (`src/run/calibrate.rs`) measures the harness's
-own loopback ceiling for the same message shape and computes headroom
-(`ceiling / measured`). A result is flagged `harness_limited` when headroom is
-below the threshold *unless* the gateway's pinned cores are saturated — in which
-case the SCG genuinely is the bottleneck and the figure is trusted. `perf_gate.sh
---strict` refuses to publish `harness_limited=true` throughput rows.
+own null-loopback ceiling for the same message shape and computes headroom
+(`ceiling / measured`), flagging `harness_limited` when headroom falls below 3×.
+As of 2026-07 this gate was overhauled end to end:
+
+- **The harness itself is batched.** Stream transports (TCP, and the gateway/
+  TPROXY paths built on it) send whole batches with one vectored `writev`
+  (size-adaptive, up to 1024 messages / 256 KiB per call) and carve every
+  message one `read` yields out of a cursor-based reassembly buffer (one
+  compaction memmove per buffer-full instead of one per message). The UDS
+  client (`scg-client`) batches identically (one `writev` per ≤512 frames; a
+  buffered `FrameDecoder` receive with no per-frame allocation). The
+  deterministic payload fill/verify runs in 256-byte blocks against a static
+  ramp table (memcpy/memcmp-class) instead of a per-byte function call, so the
+  integrity check can never become the harness's own hot-path ceiling. Net
+  effect on the single-connection TCP loopback ceiling: ~0.14 → ~9 Gbit/s at
+  64 B (~62×), ~2 → ~41 Gbit/s at 1 KiB, ~13 → ~51 Gbit/s at 16 KiB — the
+  harness ceiling is now transport-bound, not syscall- or validation-bound.
+- **The probe runs under the scenario's own conditions.** The ceiling probe is
+  pinned to the same sender/receiver core pools as the scenario, warmed for
+  500 ms, measured for 1 s, and taken as the **best of 2** probes (probe noise
+  is one-sided — it can only depress a probe — so max-of-N estimates the true
+  ceiling from below and can never overstate the harness). The earlier probe
+  (unpinned, unwarmed, 500 ms, single-shot) systematically under-measured,
+  producing rows as absurd as `headroom = 0.32`; a measured value far above the
+  ceiling (headroom < 0.85) now triggers a loud `suspect ceiling` warning.
+  One caveat is expected and benign: a *near-transparent* gateway path
+  (routing/passthrough) is a three-stage sender→gateway→receiver pipeline whose
+  kernel work spreads over more cores than the two-thread null probe, so it can
+  legitimately measure a few percent **above** the ceiling (headroom 0.9–1.0);
+  such rows stay conservatively flagged `harness-io`.
+- **Ceilings are interface-true.** The probe uses the scenario's *access*
+  interface: UDP for DTLS **and ALE/RAW**, a Unix-stream pair (`uds-null`) for
+  UDS, a shared-memory ring sized like the scenario's (`shm-null`) for SHM, and
+  TCP otherwise (TPROXY's client side is plain TCP). Every row records its
+  `ceiling_transport` (a failed null-transport probe falls back to TCP and says
+  so). Ceilings are cached per (interface, size, connections, core pools).
+- **The bottleneck classifier uses three CPU signals** (all p95 over the
+  sampler's ticks — a single 200 ms burst cannot flip a label and cooldown
+  ticks cannot dilute one): (1) gateway pool ≥ 85 % of its pinned cores →
+  `scg-cpu` (trusted); (2) hottest single gateway thread ≥ 90 % of one core →
+  `scg-cpu` (the per-connection data plane is serial, so a pegged relay thread
+  is the gateway's limit even when its pool looks idle — this fixes the
+  1-connection misclassification); (3) whole host ≥ 90 % busy →
+  `host-saturated`: sender, receiver, and gateway together exhaust the machine,
+  so no harness improvement could add headroom. `host-saturated` rows **keep**
+  `harness_limited=true` — the figure is a trustworthy *lower bound*, not a
+  demonstrated gateway limit — but the distinct label lets figures separate
+  single-host physics from harness slowness. Only the residual (low headroom,
+  no explaining CPU signal) is labeled `harness-io`.
+
+`perf_gate.sh --strict` still refuses to publish `harness_limited=true`
+throughput rows, including `host-saturated` ones (by design: a lower bound is
+not a publishable gateway limit).
 
 ---
 
@@ -186,11 +268,35 @@ are deterministic; CSV-only, per-run output enables independent re-analysis.
    and a UDP distributed engine (future work).
 7. **Loopback dominance.** Most scenarios run on loopback; the physical-NIC and
    veth/netns topologies are supported but a loopback ceiling can mask real-NIC
-   effects. Use the netem-impaired and veth topologies for path realism.
+   effects. Use the netem-impaired and veth topologies for path realism. A
+   related single-host limit is surfaced explicitly since 2026-07: rows where
+   the whole host is ≥90 % busy are labeled `bottleneck=host-saturated` (still
+   `harness_limited=true`) — loopback co-saturation means the measurement is a
+   lower bound that no harness improvement could raise. Note also that the SHM
+   null ceiling measures the harness's ring push/pop ability (memcpy-bound) and
+   is therefore generous; SHM rows lean on the CPU signals for honest
+   classification. Per-thread CPU deltas only diff tids present in consecutive
+   sampler ticks, so thread churn between 200 ms ticks cannot fabricate a
+   hot-thread signal (it can only briefly under-report one).
 8. **`perf`/eBPF are optional.** When unavailable the corresponding columns are
    empty (graceful), so a result without them is incomplete, not wrong.
 9. **Jitter is PDV, throughput is wire-bytes.** Both are valid but must be stated;
    readers expecting latency-stddev or payload-goodput should convert.
+10. **Blast rows measure capacity under an efficient (batched) load generator,
+    not a naïve application.** Since the 2026-07 fast-path work, the blast
+    sender coalesces up to 1024 messages per vectored syscall — standard load-
+    generator practice (`iperf3`, `pktgen`) and required by NFR-PERF, and the
+    wire contents are unchanged in kind (byte-identical stream framing on
+    TCP/UDS; identical discrete datagrams on UDP/DTLS). The batched connection
+    stands in for the *aggregate* of many clients. Two consequences must be
+    stated: (a) the gateway's ingress sees fewer, larger reads than a legacy
+    application issuing one `write()` per message, so per-wakeup gateway
+    overheads are amortised — throughput ceilings are upper-bound capacity
+    figures, and a single unbatched client would offer less; (b) application-
+    representative behavior lives in the paced/periodic, ping-pong, and
+    connection-rate modes, which intentionally remain one-message-per-event
+    (`send_msg` per schedule tick, one in-flight round trip) so latency and
+    ETCS-like low-rate results are unaffected by batching.
 
 ---
 

@@ -29,6 +29,7 @@ const MAX_SLEEP: Duration = Duration::from_millis(100);
 const HEADERS: &[&str] = &[
     "elapsed_ms",
     "cpu_pct",
+    "hot_thread_cpu_pct",
     "rss_kib",
     "pss_kib",
     "threads",
@@ -66,6 +67,16 @@ pub struct SystemSample {
     pub read_bytes: u64,
     /// Cumulative bytes written to the block layer (`io`, 0 if unreadable).
     pub write_bytes: u64,
+    /// Cumulative per-thread CPU ticks (`utime+stime` from
+    /// `/proc/<pid>/task/<tid>/stat`), keyed by tid. Lets the aggregator find
+    /// the hottest single thread — the signal that a serial data plane is
+    /// pegged even when the process-wide total looks idle.
+    pub thread_ticks: Vec<(u32, u64)>,
+    /// Whole-host busy CPU ticks at this instant (`/proc/stat` aggregate `cpu`
+    /// line, total − idle − iowait). Zero if unreadable.
+    pub host_busy_ticks: u64,
+    /// Whole-host total CPU ticks at this instant. Zero if unreadable.
+    pub host_total_ticks: u64,
 }
 
 /// A running background sampler. Started before a scenario's runs and consumed
@@ -471,8 +482,11 @@ fn sample_loop(pids: &[i32], rate_hz: u32, stop: &AtomicBool) -> Vec<SystemSampl
         let now = Instant::now();
         if now >= next {
             let elapsed_ms = now.duration_since(start).as_millis() as u64;
+            // One host-wide reading per tick, stamped into every PID's sample
+            // of that tick (the aggregator dedupes by `elapsed_ms`).
+            let (host_busy, host_total) = read_host_stat();
             for &pid in pids {
-                if let Some(sample) = sample_pid(pid, elapsed_ms) {
+                if let Some(sample) = sample_pid(pid, elapsed_ms, host_busy, host_total) {
                     out.push(sample);
                 }
             }
@@ -494,7 +508,12 @@ fn sample_loop(pids: &[i32], rate_hz: u32, stop: &AtomicBool) -> Vec<SystemSampl
 
 /// Read and parse one PID's counters. Returns `None` if the process is gone
 /// (its `stat` file vanished), so a mid-run exit just truncates the series.
-fn sample_pid(pid: i32, elapsed_ms: u64) -> Option<SystemSample> {
+fn sample_pid(
+    pid: i32,
+    elapsed_ms: u64,
+    host_busy_ticks: u64,
+    host_total_ticks: u64,
+) -> Option<SystemSample> {
     let stat = fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
     let (utime_ticks, stime_ticks, threads) = parse_stat(&stat)?;
     let rss_kib = parse_rss(pid);
@@ -505,6 +524,7 @@ fn sample_pid(pid: i32, elapsed_ms: u64) -> Option<SystemSample> {
     let (voluntary_ctxt, nonvoluntary_ctxt) = sum_thread_ctxt_switches(pid);
     let (read_bytes, write_bytes) = parse_io(pid);
     let pss_kib = parse_pss(pid);
+    let thread_ticks = read_thread_ticks(pid);
     Some(SystemSample {
         elapsed_ms,
         pid: pid as u32,
@@ -517,7 +537,64 @@ fn sample_pid(pid: i32, elapsed_ms: u64) -> Option<SystemSample> {
         nonvoluntary_ctxt,
         read_bytes,
         write_bytes,
+        thread_ticks,
+        host_busy_ticks,
+        host_total_ticks,
     })
+}
+
+/// Cumulative CPU ticks (`utime+stime`) per thread of `pid`, from
+/// `/proc/<pid>/task/<tid>/stat`. Threads that exit between ticks simply drop
+/// out of later samples; the aggregator only diffs tids present in consecutive
+/// samples. Empty if the `task` dir is unreadable.
+fn read_thread_ticks(pid: i32) -> Vec<(u32, u64)> {
+    let mut out = Vec::new();
+    if let Ok(entries) = fs::read_dir(format!("/proc/{pid}/task")) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let Ok(tid) = name.to_string_lossy().parse::<u32>() else {
+                continue;
+            };
+            let path = format!("/proc/{pid}/task/{tid}/stat");
+            if let Some((utime, stime, _threads)) = fs::read_to_string(&path)
+                .ok()
+                .as_deref()
+                .and_then(parse_stat)
+            {
+                out.push((tid, utime + stime));
+            }
+        }
+    }
+    out
+}
+
+/// Whole-host `(busy, total)` CPU ticks from the aggregate `cpu ` line of
+/// `/proc/stat` (busy = total − idle − iowait). `(0, 0)` if unreadable.
+fn read_host_stat() -> (u64, u64) {
+    let Ok(s) = fs::read_to_string("/proc/stat") else {
+        return (0, 0);
+    };
+    parse_host_cpu_line(&s)
+}
+
+/// Parse the aggregate `cpu ` line of a `/proc/stat` body.
+fn parse_host_cpu_line(body: &str) -> (u64, u64) {
+    for line in body.lines() {
+        if let Some(rest) = line.strip_prefix("cpu ") {
+            let fields: Vec<u64> = rest
+                .split_whitespace()
+                .filter_map(|f| f.parse().ok())
+                .collect();
+            if fields.len() < 5 {
+                return (0, 0);
+            }
+            let total: u64 = fields.iter().sum();
+            // fields: user nice system idle iowait irq softirq steal ...
+            let idle = fields[3] + fields[4];
+            return (total.saturating_sub(idle), total);
+        }
+    }
+    (0, 0)
 }
 
 /// Parse `Pss:` from `/proc/<pid>/smaps_rollup`; a kernel may hide it from an
@@ -666,6 +743,21 @@ pub struct SysAgg {
     /// Derived from the **exact** cumulative CPU-tick delta over the span, so it
     /// is independent of the sample rate (no per-tick averaging error).
     pub cpu_pct_mean: f64,
+    /// p95 of the per-tick summed CPU% series. The classification input: unlike
+    /// `cpu_pct_peak` it ignores a single-tick burst, and unlike `cpu_pct_mean`
+    /// it is not diluted by warmup/cooldown ticks inside the sampler window.
+    pub cpu_pct_p95: f64,
+    /// Peak CPU% of the hottest single thread across all sampled PIDs
+    /// (100% == one core). Report-only.
+    pub cpu_hot_thread_pct_peak: f64,
+    /// p95 of the per-tick hottest-thread CPU%. A value near 100 means one
+    /// thread is pegged — a serial data plane at its limit even when the
+    /// process-wide pool looks idle. Classification input.
+    pub cpu_hot_thread_pct_p95: f64,
+    /// p95 of the per-tick whole-host busy fraction (0..1). Near 1.0 means the
+    /// host itself is saturated (loopback co-saturation): the measurement is a
+    /// lower bound imposed by single-host physics. Classification input.
+    pub host_busy_frac_p95: f64,
     /// Peak summed resident set size across PIDs (kiB).
     pub rss_peak_kib: u64,
     /// Peak summed proportional set size across PIDs (kiB), when readable.
@@ -703,6 +795,11 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
     let mut cpu_by_time: BTreeMap<u64, f64> = BTreeMap::new();
     let mut rss_by_time: BTreeMap<u64, u64> = BTreeMap::new();
     let mut pss_by_time: BTreeMap<u64, u64> = BTreeMap::new();
+    // Hottest single thread across all PIDs per tick (100% == one core).
+    let mut hot_by_time: BTreeMap<u64, f64> = BTreeMap::new();
+    // Whole-host (busy, total) tick counters per tick — every PID's sample in a
+    // tick carries the same host reading, so first-write wins.
+    let mut host_by_time: BTreeMap<u64, (u64, u64)> = BTreeMap::new();
     // Exact, rate-independent totals: the `/proc` counters are cumulative, so a
     // first→last delta is the true count over the sampled span no matter how
     // many ticks fell in between. The per-tick series is used only for the peak.
@@ -717,9 +814,18 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
                 Some(p) => cpu_percent(p, s, tck),
                 None => 0.0,
             };
+            let hot = match prev {
+                Some(p) => hot_thread_percent(p, s, tck),
+                None => 0.0,
+            };
             *cpu_by_time.entry(s.elapsed_ms).or_insert(0.0) += cpu;
             *rss_by_time.entry(s.elapsed_ms).or_insert(0) += s.rss_kib;
             *pss_by_time.entry(s.elapsed_ms).or_insert(0) += s.pss_kib;
+            let slot = hot_by_time.entry(s.elapsed_ms).or_insert(0.0);
+            *slot = slot.max(hot);
+            host_by_time
+                .entry(s.elapsed_ms)
+                .or_insert((s.host_busy_ticks, s.host_total_ticks));
             prev = Some(s);
         }
         if let (Some(first), Some(last)) = (series.first(), series.last()) {
@@ -743,8 +849,28 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
         &times[..]
     };
     let mut peak = 0.0_f64;
+    let mut hot_peak = 0.0_f64;
+    let mut cpu_series: Vec<f64> = Vec::with_capacity(measured.len());
+    let mut hot_series: Vec<f64> = Vec::with_capacity(measured.len());
     for t in measured {
         peak = peak.max(cpu_by_time[t]);
+        cpu_series.push(cpu_by_time[t]);
+        if let Some(h) = hot_by_time.get(t) {
+            hot_peak = hot_peak.max(*h);
+            hot_series.push(*h);
+        }
+    }
+    // Whole-host busy fraction between consecutive ticks.
+    let mut host_series: Vec<f64> = Vec::new();
+    let mut prev_host: Option<(u64, u64)> = None;
+    for (_, &(busy, total)) in host_by_time.iter() {
+        if let Some((pb, pt)) = prev_host {
+            let dtotal = total.saturating_sub(pt);
+            if dtotal > 0 {
+                host_series.push(busy.saturating_sub(pb) as f64 / dtotal as f64);
+            }
+        }
+        prev_host = Some((busy, total));
     }
 
     let cpu_seconds_total = cpu_ticks_total as f64 / tck;
@@ -765,6 +891,10 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
         n_pids: pids.len(),
         cpu_pct_peak: peak,
         cpu_pct_mean,
+        cpu_pct_p95: percentile(&mut cpu_series, 0.95),
+        cpu_hot_thread_pct_peak: hot_peak,
+        cpu_hot_thread_pct_p95: percentile(&mut hot_series, 0.95),
+        host_busy_frac_p95: percentile(&mut host_series, 0.95),
         rss_peak_kib,
         pss_peak_kib,
         ctx_switches_per_s,
@@ -772,6 +902,34 @@ pub fn aggregate(samples: &[SystemSample]) -> Option<SysAgg> {
         ctx_switches_total: ctx_total,
         window_s: span_s,
     })
+}
+
+/// CPU% of the hottest single thread between two consecutive samples of the
+/// same PID (100% == one core). Only tids present in both samples are diffed,
+/// so thread churn between ticks cannot manufacture a spike.
+fn hot_thread_percent(prev: &SystemSample, cur: &SystemSample, tck: f64) -> f64 {
+    let dt = cur.elapsed_ms.saturating_sub(prev.elapsed_ms) as f64 / 1000.0;
+    if dt <= 0.0 {
+        return 0.0;
+    }
+    let mut hottest_delta = 0u64;
+    for &(tid, cur_ticks) in &cur.thread_ticks {
+        if let Some(&(_, prev_ticks)) = prev.thread_ticks.iter().find(|&&(t, _)| t == tid) {
+            hottest_delta = hottest_delta.max(cur_ticks.saturating_sub(prev_ticks));
+        }
+    }
+    hottest_delta as f64 / tck / dt * 100.0
+}
+
+/// In-place p95-style percentile of an unsorted series (0.0 if empty). Uses
+/// the nearest-rank method: small series simply yield their maximum.
+fn percentile(values: &mut [f64], p: f64) -> f64 {
+    if values.is_empty() {
+        return 0.0;
+    }
+    values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let rank = ((values.len() as f64) * p.clamp(0.0, 1.0)).ceil() as usize;
+    values[rank.saturating_sub(1).min(values.len() - 1)]
 }
 
 /// Write one `gateway_pid_<pid>.csv` timeseries per sampled PID into `dir`.
@@ -798,9 +956,14 @@ pub fn write_csv(dir: &Path, samples: &[SystemSample]) -> io::Result<()> {
                 Some(p) => cpu_percent(p, s, tck),
                 None => 0.0,
             };
+            let hot = match prev {
+                Some(p) => hot_thread_percent(p, s, tck),
+                None => 0.0,
+            };
             csv.row(vec![
                 s.elapsed_ms.to_string(),
                 num(cpu, 2),
+                num(hot, 2),
                 s.rss_kib.to_string(),
                 s.pss_kib.to_string(),
                 s.threads.to_string(),
@@ -855,6 +1018,9 @@ mod tests {
             nonvoluntary_ctxt: 0,
             read_bytes: 0,
             write_bytes: 0,
+            thread_ticks: Vec::new(),
+            host_busy_ticks: 0,
+            host_total_ticks: 0,
         };
         let mut b = a.clone();
         b.elapsed_ms = 1000; // 1s wall
@@ -877,6 +1043,9 @@ mod tests {
             nonvoluntary_ctxt: nonvol,
             read_bytes: 0,
             write_bytes: 0,
+            thread_ticks: Vec::new(),
+            host_busy_ticks: 0,
+            host_total_ticks: 0,
         };
         // Over a 1 s span, CPU ticks grow by exactly `_SC_CLK_TCK` (= 1 CPU-second
         // = one fully-busy core), and 8 context switches occur. The exact totals
@@ -894,10 +1063,73 @@ mod tests {
     #[test]
     fn samples_self_process() {
         let pid = std::process::id() as i32;
-        let s = sample_pid(pid, 0).expect("self /proc/<pid>/stat readable");
+        let (busy, total) = read_host_stat();
+        let s = sample_pid(pid, 0, busy, total).expect("self /proc/<pid>/stat readable");
         assert_eq!(s.pid, pid as u32);
         assert!(s.threads >= 1);
         assert!(s.rss_kib > 0);
+        // The per-thread walker must at least see this thread, with ticks that
+        // never exceed the process-wide total.
+        assert!(!s.thread_ticks.is_empty());
+        let process_ticks = s.utime_ticks + s.stime_ticks;
+        let thread_sum: u64 = s.thread_ticks.iter().map(|&(_, t)| t).sum();
+        assert!(
+            thread_sum <= process_ticks + 2,
+            "threads {thread_sum} vs process {process_ticks}"
+        );
+        // Host counters are readable and monotone-consistent.
+        assert!(s.host_total_ticks >= s.host_busy_ticks);
+        assert!(s.host_total_ticks > 0);
+    }
+
+    #[test]
+    fn host_cpu_line_parses_busy_and_total() {
+        // user nice system idle iowait irq softirq steal
+        let body = "cpu  100 0 50 800 50 0 0 0\ncpu0 25 0 12 200 12 0 0 0\n";
+        let (busy, total) = parse_host_cpu_line(body);
+        assert_eq!(total, 1000);
+        assert_eq!(busy, 150); // total − idle(800) − iowait(50)
+        assert_eq!(parse_host_cpu_line("intr 1 2 3"), (0, 0));
+        assert_eq!(parse_host_cpu_line("cpu  1 2"), (0, 0));
+    }
+
+    #[test]
+    fn hot_thread_and_host_percentiles_aggregate() {
+        let tck = clk_tck();
+        let ticks_1s = tck as u64; // one fully-busy core for one second
+        let mk =
+            |elapsed_ms: u64, total: u64, hot_tid_ticks: u64, host_busy: u64, host_total: u64| {
+                SystemSample {
+                    elapsed_ms,
+                    pid: 1,
+                    rss_kib: 0,
+                    pss_kib: 0,
+                    threads: 2,
+                    utime_ticks: total,
+                    stime_ticks: 0,
+                    voluntary_ctxt: 0,
+                    nonvoluntary_ctxt: 0,
+                    read_bytes: 0,
+                    write_bytes: 0,
+                    // tid 10 is the hot relay thread; tid 11 idles. tid 12 exists
+                    // only in later samples (thread churn must not fabricate load).
+                    thread_ticks: vec![(10, hot_tid_ticks), (11, 1), (12, 999)],
+                    host_busy_ticks: host_busy,
+                    host_total_ticks: host_total,
+                }
+            };
+        // Three ticks, 1 s apart: the hot thread burns a full core each second,
+        // and the host is 95% busy in each interval.
+        let samples = vec![
+            mk(0, 0, 0, 0, 0),
+            mk(1000, ticks_1s, ticks_1s, 950, 1000),
+            mk(2000, 2 * ticks_1s, 2 * ticks_1s, 1900, 2000),
+        ];
+        let agg = aggregate(&samples).unwrap();
+        assert!((agg.cpu_hot_thread_pct_peak - 100.0).abs() < 1.0);
+        assert!((agg.cpu_hot_thread_pct_p95 - 100.0).abs() < 1.0);
+        assert!((agg.host_busy_frac_p95 - 0.95).abs() < 1e-6);
+        assert!(agg.cpu_pct_p95 > 0.0);
     }
 
     #[test]
@@ -1000,7 +1232,7 @@ mod tests {
         write_csv(&dir, &samples).unwrap();
         let csv = dir.join(format!("gateway_pid_{pid}.csv"));
         let body = fs::read_to_string(&csv).unwrap();
-        assert!(body.starts_with("elapsed_ms,cpu_pct,rss_kib"));
+        assert!(body.starts_with("elapsed_ms,cpu_pct,hot_thread_cpu_pct,rss_kib"));
         // header + at least two data rows.
         assert!(body.lines().count() >= 3);
         let _ = fs::remove_dir_all(&dir);

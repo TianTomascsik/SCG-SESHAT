@@ -21,10 +21,12 @@
 
 pub mod gateway;
 pub mod shm;
+pub mod shm_null;
 pub mod tcp;
 pub mod tproxy;
 pub mod udp;
 pub mod uds;
+pub mod uds_null;
 
 use std::io;
 use std::sync::atomic::AtomicBool;
@@ -37,10 +39,28 @@ use crate::proto::wire::{WireHeader, HEADER_LEN};
 /// run-phase flag and exit cleanly when the sender stops.
 pub const RECV_POLL_TIMEOUT: Duration = Duration::from_millis(100);
 
-/// Maximum messages a transport batches into a single vectored syscall
+/// Default messages a transport batches into a single vectored syscall
 /// (`sendmmsg`/`recvmmsg`). Sized to amortise per-syscall overhead on the
-/// datagram blast path without large stalls; stream transports ignore it.
+/// datagram blast path without large stalls. Stream transports report a
+/// larger, size-dependent batch via [`DataSink::preferred_batch`] /
+/// [`DataSource::preferred_batch`].
 pub const BATCH_MAX: usize = 32;
+
+/// Hard upper bound on a batch, matching the kernel's `UIO_MAXIOV` iovec limit
+/// for a single vectored write.
+pub const BATCH_ABS_MAX: usize = 1024;
+
+/// Soft byte budget for one stream batch: enough to amortise syscall cost at
+/// small message sizes without unbounded staging memory per connection.
+pub const BATCH_BYTES_BUDGET: usize = 256 * 1024;
+
+/// Batch size for stream transports: fill [`BATCH_BYTES_BUDGET`] with
+/// `message_bytes`-sized messages, floored at [`BATCH_MAX`] (so large messages
+/// keep today's staging footprint) and capped at [`BATCH_ABS_MAX`] (`writev`'s
+/// iovec limit).
+pub fn stream_batch_size(message_bytes: u32) -> usize {
+    (BATCH_BYTES_BUDGET / (message_bytes.max(1) as usize)).clamp(BATCH_MAX, BATCH_ABS_MAX)
+}
 
 /// Outcome of a single [`DataSource::recv_msg`] call.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -71,8 +91,14 @@ pub trait DataSink: Send {
     fn send_msg(&mut self, buf: &[u8]) -> io::Result<()>;
     /// Send a batch of complete messages, in as few syscalls as the transport
     /// allows. Returns the number of messages actually sent (`< msgs.len()`
-    /// only on a partial datagram-batch send). The default sends them one at a
-    /// time; datagram transports override this with a single `sendmmsg`.
+    /// only on a partial batch send). The default sends them one at a time;
+    /// datagram transports override this with a single `sendmmsg`, stream
+    /// transports with a single `writev`.
+    ///
+    /// Contract: implementations must return **only at message boundaries** —
+    /// a partially transmitted message must be completed before returning,
+    /// because callers rebuild and resend everything after the returned count
+    /// (a partial-message return would permanently desynchronise a stream).
     fn send_batch(&mut self, msgs: &[&[u8]]) -> io::Result<usize> {
         for (i, m) in msgs.iter().enumerate() {
             if let Err(e) = self.send_msg(m) {
@@ -80,6 +106,13 @@ pub trait DataSink: Send {
             }
         }
         Ok(msgs.len())
+    }
+    /// How many messages of `message_bytes` this sink prefers per
+    /// [`Self::send_batch`] call. Datagram transports keep the [`BATCH_MAX`]
+    /// default; stream transports report a size-dependent batch so small
+    /// messages amortise syscall cost.
+    fn preferred_batch(&self, _message_bytes: u32) -> usize {
+        BATCH_MAX
     }
     /// Release the underlying resource.
     fn close(&mut self);
@@ -117,6 +150,13 @@ pub trait DataSource: Send {
     /// DSCP/TOS verification via `recvmsg` ancillary data.
     fn raw_fd(&self) -> Option<i32> {
         None
+    }
+    /// How many message slots of `message_bytes` this source prefers per
+    /// [`Self::recv_batch`] call. Datagram transports keep the [`BATCH_MAX`]
+    /// default; stream transports report a size-dependent batch so one read
+    /// syscall can be carved into many messages.
+    fn preferred_batch(&self, _message_bytes: u32) -> usize {
+        BATCH_MAX
     }
     /// Release the underlying resource.
     fn close(&mut self);
@@ -166,6 +206,13 @@ pub trait ConnAcceptor: Send {
 pub trait Transport {
     /// Short identifier for logs / results (e.g. `"tcp"`).
     fn name(&self) -> &'static str;
+
+    /// Identity for ceiling-cache keying. Defaults to [`Self::name`];
+    /// transports whose measured ability depends on construction parameters
+    /// (e.g. the SHM null ring capacity) fold those parameters in.
+    fn cache_key(&self) -> String {
+        self.name().to_string()
+    }
 
     /// Establish one connected `(sink, source)` pair sized for `message_bytes`
     /// on-wire messages. The sink is the sender end, the source the receiver
@@ -221,48 +268,144 @@ pub trait Transport {
     }
 }
 
+/// Outcome of one [`FramedReader::fill_once`] read attempt.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum FillOutcome {
+    /// The read appended at least one byte to the buffer.
+    Filled,
+    /// No data within the poll timeout (socket idle).
+    Timeout,
+    /// The peer closed the connection / stream ended.
+    Closed,
+}
+
 /// Re-frames a byte stream into discrete SESHAT messages.
 ///
-/// Holds an internal accumulator across calls so a message split over several
-/// reads — or a read that times out mid-message — is reassembled correctly.
+/// Buffered bytes live in one fixed allocation between a `start` (first
+/// unconsumed byte) and `end` (one past last valid byte) cursor, so consuming a
+/// message advances `start` in O(1); the buffer is compacted with a single
+/// memmove only when the write end is exhausted, never per message. A message
+/// split over several reads — or a read that times out mid-message — is
+/// reassembled correctly across calls.
 pub struct FramedReader {
-    acc: Vec<u8>,
-    scratch: Vec<u8>,
+    buf: Vec<u8>,
+    start: usize,
+    end: usize,
 }
 
 impl FramedReader {
-    /// New reader sized to comfortably hold a couple of `message_bytes` frames.
+    /// New reader sized to hold at least two full frames (and at least 128 KiB
+    /// so one `read` can drain many small messages per syscall).
     pub fn new(message_bytes: u32) -> Self {
-        let cap = (message_bytes as usize).max(HEADER_LEN) * 2;
+        let cap = ((message_bytes as usize) + HEADER_LEN).max(64 * 1024) * 2;
         FramedReader {
-            acc: Vec::with_capacity(cap),
-            scratch: vec![0u8; cap.max(64 * 1024)],
+            buf: vec![0u8; cap],
+            start: 0,
+            end: 0,
         }
     }
 
-    /// Try to pull one complete message out of the accumulator into `out`.
-    fn take_message(&mut self, out: &mut [u8]) -> Option<usize> {
-        if self.acc.len() < HEADER_LEN {
-            return None;
-        }
-        let hdr = match WireHeader::decode(&self.acc) {
-            Ok(h) => h,
-            // A bad magic here means the stream is desynchronised; surface it as
-            // a zero-length frame would be wrong, so we drop one byte and retry
-            // on the next call. In practice loopback streams never desync.
-            Err(_) => {
-                self.acc.drain(..1);
+    /// Try to pull one complete message out of the buffer into `out`.
+    ///
+    /// On a desynchronised stream (bad magic, or a declared length that could
+    /// never fit the buffer) this drops one byte and rescans in place — no read
+    /// syscall per dropped byte. In practice loopback streams never desync.
+    fn take_one(&mut self, out: &mut [u8]) -> Option<usize> {
+        loop {
+            if self.end - self.start < HEADER_LEN {
                 return None;
             }
-        };
-        let total = HEADER_LEN + hdr.payload_len as usize;
-        if self.acc.len() < total {
-            return None;
+            let hdr = match WireHeader::decode(&self.buf[self.start..self.end]) {
+                Ok(h) => h,
+                Err(_) => {
+                    self.start += 1;
+                    continue;
+                }
+            };
+            let total = HEADER_LEN + hdr.payload_len as usize;
+            if total > self.buf.len() {
+                // A corrupt length that can never fit even a compacted buffer:
+                // treat it as desync rather than stalling forever.
+                self.start += 1;
+                continue;
+            }
+            if self.end - self.start < total {
+                return None;
+            }
+            let n = total.min(out.len());
+            out[..n].copy_from_slice(&self.buf[self.start..self.start + n]);
+            self.start += total;
+            return Some(n);
         }
-        let n = total.min(out.len());
-        out[..n].copy_from_slice(&self.acc[..n]);
-        self.acc.drain(..total);
-        Some(n)
+    }
+
+    /// Carve up to `max` complete already-buffered messages into `out_buf`,
+    /// message `i` at `out_buf[i*stride..]` with its length in `lens[i]`.
+    /// Performs no I/O; returns the number of messages carved.
+    pub fn take_messages(
+        &mut self,
+        out_buf: &mut [u8],
+        stride: usize,
+        max: usize,
+        lens: &mut [usize],
+    ) -> usize {
+        if stride == 0 {
+            return 0;
+        }
+        let cap = max.min(lens.len()).min(out_buf.len() / stride);
+        let mut count = 0;
+        while count < cap {
+            let slot = &mut out_buf[count * stride..(count + 1) * stride];
+            match self.take_one(slot) {
+                Some(n) => {
+                    lens[count] = n;
+                    count += 1;
+                }
+                None => break,
+            }
+        }
+        count
+    }
+
+    /// Issue one read into the free tail of the buffer, compacting first if the
+    /// tail is exhausted. `read_fn` returns `Ok(0)` on EOF and a `WouldBlock` /
+    /// `TimedOut` error on idle timeout.
+    pub(crate) fn fill_once<F>(&mut self, read_fn: &mut F) -> io::Result<FillOutcome>
+    where
+        F: FnMut(&mut [u8]) -> io::Result<usize>,
+    {
+        if self.start == self.end {
+            // Steady state: everything consumed, reset in O(1).
+            self.start = 0;
+            self.end = 0;
+        } else if self.end == self.buf.len() {
+            // Write end exhausted with a partial message pending: one memmove
+            // per buffer-full, not per message.
+            self.buf.copy_within(self.start..self.end, 0);
+            self.end -= self.start;
+            self.start = 0;
+        }
+        if self.end == self.buf.len() {
+            // Cannot happen with the capacity chosen in `new` (≥ 2 frames), but
+            // reading into an empty slice would misreport EOF; fail loudly.
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "framed-reader buffer full without a complete message",
+            ));
+        }
+        match read_fn(&mut self.buf[self.end..]) {
+            Ok(0) => Ok(FillOutcome::Closed),
+            Ok(n) => {
+                self.end += n;
+                Ok(FillOutcome::Filled)
+            }
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => Ok(FillOutcome::Timeout),
+            Err(e) if e.kind() == io::ErrorKind::TimedOut => Ok(FillOutcome::Timeout),
+            // A signal interrupted the read before any byte arrived: report
+            // `Filled` so the caller's take→fill loop simply retries the read.
+            Err(e) if e.kind() == io::ErrorKind::Interrupted => Ok(FillOutcome::Filled),
+            Err(e) => Err(e),
+        }
     }
 
     /// Read from `read_fn` until a full message is available, a timeout occurs,
@@ -273,16 +416,13 @@ impl FramedReader {
         F: FnMut(&mut [u8]) -> io::Result<usize>,
     {
         loop {
-            if let Some(n) = self.take_message(out) {
+            if let Some(n) = self.take_one(out) {
                 return Ok(RecvOutcome::Message(n));
             }
-            match read_fn(&mut self.scratch) {
-                Ok(0) => return Ok(RecvOutcome::Closed),
-                Ok(n) => self.acc.extend_from_slice(&self.scratch[..n]),
-                Err(e) if e.kind() == io::ErrorKind::WouldBlock => return Ok(RecvOutcome::Timeout),
-                Err(e) if e.kind() == io::ErrorKind::TimedOut => return Ok(RecvOutcome::Timeout),
-                Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
-                Err(e) => return Err(e),
+            match self.fill_once(&mut read_fn)? {
+                FillOutcome::Filled => continue,
+                FillOutcome::Timeout => return Ok(RecvOutcome::Timeout),
+                FillOutcome::Closed => return Ok(RecvOutcome::Closed),
             }
         }
     }
@@ -332,5 +472,297 @@ mod tests {
             }
         }
         assert_eq!(got, vec![0, 1, 2]);
+    }
+
+    /// Build a contiguous byte stream of `count` back-to-back messages of
+    /// `msg_size` on-wire bytes, sequenced from `seq_start`.
+    fn message_stream(seq_start: u64, count: u64, msg_size: u32) -> Vec<u8> {
+        let payload = msg_size - HEADER_LEN as u32;
+        let mut stream = Vec::new();
+        for seq in seq_start..seq_start + count {
+            let mut m = vec![0u8; msg_size as usize];
+            encode_message(seq, payload, &mut m);
+            stream.extend_from_slice(&m);
+        }
+        stream
+    }
+
+    /// Feed `stream` into `reader` in one gulp (as far as the buffer allows).
+    fn fill_from(reader: &mut FramedReader, stream: &[u8], cursor: &mut usize) -> FillOutcome {
+        reader
+            .fill_once(&mut |dst: &mut [u8]| {
+                if *cursor >= stream.len() {
+                    return Err(io::Error::from(io::ErrorKind::WouldBlock));
+                }
+                let take = (stream.len() - *cursor).min(dst.len());
+                dst[..take].copy_from_slice(&stream[*cursor..*cursor + take]);
+                *cursor += take;
+                Ok(take)
+            })
+            .unwrap()
+    }
+
+    #[test]
+    fn take_messages_carves_multiple_buffered() {
+        let msg_size = 64u32;
+        let stream = message_stream(0, 10, msg_size);
+        let mut reader = FramedReader::new(msg_size);
+        let mut cursor = 0usize;
+        assert_eq!(
+            fill_from(&mut reader, &stream, &mut cursor),
+            FillOutcome::Filled
+        );
+        assert_eq!(cursor, stream.len(), "whole stream fits one read");
+
+        let stride = msg_size as usize;
+        let mut out = vec![0u8; stride * 4];
+        let mut lens = [0usize; 4];
+        let mut seqs = Vec::new();
+        for expected in [4usize, 4, 2] {
+            let n = reader.take_messages(&mut out, stride, 4, &mut lens);
+            assert_eq!(n, expected);
+            for i in 0..n {
+                assert_eq!(lens[i], stride);
+                let hdr =
+                    crate::proto::wire::decode_message(&out[i * stride..i * stride + lens[i]])
+                        .unwrap();
+                seqs.push(hdr.seq);
+            }
+        }
+        assert_eq!(seqs, (0..10).collect::<Vec<_>>());
+        assert_eq!(reader.take_messages(&mut out, stride, 4, &mut lens), 0);
+    }
+
+    #[test]
+    fn take_messages_respects_lens_and_bufcap() {
+        let msg_size = 64u32;
+        let stream = message_stream(0, 8, msg_size);
+        let mut reader = FramedReader::new(msg_size);
+        let mut cursor = 0usize;
+        fill_from(&mut reader, &stream, &mut cursor);
+
+        let stride = msg_size as usize;
+        // lens shorter than max caps the carve.
+        let mut out = vec![0u8; stride * 8];
+        let mut lens = [0usize; 3];
+        assert_eq!(reader.take_messages(&mut out, stride, 8, &mut lens), 3);
+        // out shorter than max×stride caps the carve.
+        let mut small_out = vec![0u8; stride * 2];
+        let mut lens8 = [0usize; 8];
+        assert_eq!(
+            reader.take_messages(&mut small_out, stride, 8, &mut lens8),
+            2
+        );
+        // zero stride is a no-op, not a panic.
+        assert_eq!(reader.take_messages(&mut out, 0, 8, &mut lens8), 0);
+    }
+
+    #[test]
+    fn desync_drops_bytes_until_next_magic() {
+        let msg_size = 64u32;
+        // Garbage prefix, one message, mid-stream garbage, another message.
+        let mut stream = vec![0xAAu8; 13];
+        stream.extend_from_slice(&message_stream(7, 1, msg_size));
+        stream.extend_from_slice(&[0x55u8; 9]);
+        stream.extend_from_slice(&message_stream(8, 1, msg_size));
+
+        let mut reader = FramedReader::new(msg_size);
+        let mut cursor = 0usize;
+        let mut out = vec![0u8; msg_size as usize];
+        let mut got = Vec::new();
+        loop {
+            let outcome = reader
+                .next_message(&mut out, |dst| {
+                    if cursor >= stream.len() {
+                        return Err(io::Error::from(io::ErrorKind::WouldBlock));
+                    }
+                    let take = (stream.len() - cursor).min(dst.len());
+                    dst[..take].copy_from_slice(&stream[cursor..cursor + take]);
+                    cursor += take;
+                    Ok(take)
+                })
+                .unwrap();
+            match outcome {
+                RecvOutcome::Message(n) => {
+                    got.push(crate::proto::wire::decode_message(&out[..n]).unwrap().seq)
+                }
+                RecvOutcome::Timeout | RecvOutcome::Closed => break,
+            }
+        }
+        assert_eq!(got, vec![7, 8]);
+    }
+
+    #[test]
+    fn oversized_payload_len_resyncs() {
+        let msg_size = 64u32;
+        // A header with valid magic but a payload_len that can never fit the
+        // buffer, followed by a real message: the reader must skip past the
+        // bogus header instead of stalling or growing without bound.
+        let mut stream = Vec::new();
+        stream.extend_from_slice(&crate::proto::wire::MAGIC);
+        stream.extend_from_slice(&[0u8; 16]); // seq + ts
+        stream.extend_from_slice(&u32::MAX.to_le_bytes()); // absurd payload_len
+        stream.extend_from_slice(&message_stream(42, 1, msg_size));
+
+        let mut reader = FramedReader::new(msg_size);
+        let mut cursor = 0usize;
+        let mut out = vec![0u8; msg_size as usize];
+        let outcome = reader
+            .next_message(&mut out, |dst| {
+                if cursor >= stream.len() {
+                    return Err(io::Error::from(io::ErrorKind::WouldBlock));
+                }
+                let take = (stream.len() - cursor).min(dst.len());
+                dst[..take].copy_from_slice(&stream[cursor..cursor + take]);
+                cursor += take;
+                Ok(take)
+            })
+            .unwrap();
+        match outcome {
+            RecvOutcome::Message(n) => {
+                assert_eq!(
+                    crate::proto::wire::decode_message(&out[..n]).unwrap().seq,
+                    42
+                );
+            }
+            other => panic!("expected recovered message, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn compaction_preserves_split_messages() {
+        // Push several buffer-capacities of messages through with pseudo-random
+        // chunk sizes so partial messages straddle every compaction memmove.
+        let msg_size = 1000u32;
+        let count = 400u64; // 400 kB through a ~128 KiB buffer
+        let stream = message_stream(0, count, msg_size);
+        let mut reader = FramedReader::new(msg_size);
+        let mut cursor = 0usize;
+        let mut rng: u64 = 0x5EED;
+        let mut out = vec![0u8; msg_size as usize];
+        let mut next_seq = 0u64;
+        loop {
+            let outcome = reader
+                .next_message(&mut out, |dst| {
+                    if cursor >= stream.len() {
+                        return Err(io::Error::from(io::ErrorKind::WouldBlock));
+                    }
+                    // Deterministic LCG chunk size in 1..=4096.
+                    rng = rng
+                        .wrapping_mul(6364136223846793005)
+                        .wrapping_add(1442695040888963407);
+                    let chunk = ((rng >> 33) as usize % 4096) + 1;
+                    let take = (stream.len() - cursor).min(chunk).min(dst.len());
+                    dst[..take].copy_from_slice(&stream[cursor..cursor + take]);
+                    cursor += take;
+                    Ok(take)
+                })
+                .unwrap();
+            match outcome {
+                RecvOutcome::Message(n) => {
+                    let hdr = crate::proto::wire::decode_message(&out[..n]).unwrap();
+                    assert_eq!(hdr.seq, next_seq);
+                    next_seq += 1;
+                }
+                RecvOutcome::Timeout | RecvOutcome::Closed => break,
+            }
+        }
+        assert_eq!(next_seq, count, "every message must survive compaction");
+    }
+
+    #[test]
+    fn timeout_and_eof_semantics() {
+        let msg_size = 64u32;
+        let stream = message_stream(0, 2, msg_size);
+        let split = msg_size as usize + 10; // first message + a partial second
+        let mut reader = FramedReader::new(msg_size);
+        let mut out = vec![0u8; msg_size as usize];
+
+        // Phase 1: one complete + one partial message, then idle.
+        let mut cursor = 0usize;
+        let first = &stream[..split];
+        let outcome = reader
+            .next_message(&mut out, |dst| {
+                if cursor >= first.len() {
+                    return Err(io::Error::from(io::ErrorKind::WouldBlock));
+                }
+                let take = (first.len() - cursor).min(dst.len());
+                dst[..take].copy_from_slice(&first[cursor..cursor + take]);
+                cursor += take;
+                Ok(take)
+            })
+            .unwrap();
+        assert!(matches!(outcome, RecvOutcome::Message(_)));
+        let outcome = reader
+            .next_message(&mut out, |_dst: &mut [u8]| {
+                Err(io::Error::from(io::ErrorKind::WouldBlock))
+            })
+            .unwrap();
+        assert_eq!(outcome, RecvOutcome::Timeout);
+
+        // Phase 2: the rest of the second message arrives, then EOF: the
+        // buffered message is returned before Closed.
+        let rest = &stream[split..];
+        let mut cursor2 = 0usize;
+        let outcome = reader
+            .next_message(&mut out, |dst| {
+                if cursor2 >= rest.len() {
+                    return Ok(0); // EOF
+                }
+                let take = (rest.len() - cursor2).min(dst.len());
+                dst[..take].copy_from_slice(&rest[cursor2..cursor2 + take]);
+                cursor2 += take;
+                Ok(take)
+            })
+            .unwrap();
+        match outcome {
+            RecvOutcome::Message(n) => {
+                assert_eq!(
+                    crate::proto::wire::decode_message(&out[..n]).unwrap().seq,
+                    1
+                );
+            }
+            other => panic!("expected buffered message before EOF, got {other:?}"),
+        }
+        let outcome = reader
+            .next_message(&mut out, |_dst: &mut [u8]| Ok(0))
+            .unwrap();
+        assert_eq!(outcome, RecvOutcome::Closed);
+    }
+
+    #[test]
+    fn truncating_out_buffer_consumes_whole_message() {
+        let msg_size = 128u32;
+        let stream = message_stream(0, 2, msg_size);
+        let mut reader = FramedReader::new(msg_size);
+        let mut cursor = 0usize;
+        fill_from(&mut reader, &stream, &mut cursor);
+
+        // Out buffer shorter than the wire message: the copy is truncated but
+        // the whole message is consumed, keeping the stream in sync.
+        let mut small = vec![0u8; 64];
+        assert_eq!(reader.take_one(&mut small), Some(64));
+        let mut out = vec![0u8; msg_size as usize];
+        match reader.take_one(&mut out) {
+            Some(n) => {
+                assert_eq!(n, msg_size as usize);
+                assert_eq!(
+                    crate::proto::wire::decode_message(&out[..n]).unwrap().seq,
+                    1
+                );
+            }
+            None => panic!("second message must still parse after truncation"),
+        }
+    }
+
+    #[test]
+    fn batch_size_math() {
+        assert_eq!(stream_batch_size(64), BATCH_ABS_MAX); // 4096 capped at 1024
+        assert_eq!(stream_batch_size(1024), 256);
+        assert_eq!(stream_batch_size(4096), 64);
+        assert_eq!(stream_batch_size(16384), BATCH_MAX); // floored at 32
+        assert_eq!(stream_batch_size(65536), BATCH_MAX);
+        assert_eq!(stream_batch_size(0), BATCH_ABS_MAX); // guarded division
+        assert_eq!(BATCH_ABS_MAX, libc::UIO_MAXIOV as usize);
     }
 }

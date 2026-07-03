@@ -30,7 +30,9 @@ use crate::run::engine::{self, RunMode, RunParams, RunStats};
 use crate::run::saturation::{self, SweepPlan, SweepResult};
 use crate::transport::gateway::{GatewayDut, GatewayTcpTransport, GatewayUdpTransport};
 use crate::transport::shm::GatewayShmTransport;
+use crate::transport::shm_null::ShmNullTransport;
 use crate::transport::uds::GatewayUdsTransport;
+use crate::transport::uds_null::UdsNullTransport;
 use crate::transport::{tcp::TcpTransport, udp::UdpTransport, Transport};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -102,6 +104,19 @@ fn run(args: RunArgs) -> CmdResult {
     execute_suite(&args, &cfg)
 }
 
+/// Identity of one cached harness-ceiling measurement. The core pools are part
+/// of the key because the probe runs pinned to the scenario's pools: one
+/// `suite` shares this cache across configs, and a config with different
+/// explicit pools measures a different harness.
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+struct CeilingKey {
+    transport: String,
+    message_bytes: u32,
+    connections: usize,
+    sender_cores: Vec<usize>,
+    receiver_cores: Vec<usize>,
+}
+
 /// Shared state for executing one or more configs into a single result tree:
 /// the result directory, host fingerprint, ceiling caches, the once-probed
 /// gateway binary, and the live progress view. Both `run` (single config) and
@@ -109,9 +124,9 @@ fn run(args: RunArgs) -> CmdResult {
 struct RunContext {
     rdir: ResultDir,
     host: crate::sysinfo::SysInfo,
-    /// Cache harness ceilings by (transport, on-wire size, connections) so the
-    /// NFR-PERF headroom probe runs at most once per distinct scenario shape.
-    ceilings: HashMap<(String, u32, usize), f64>,
+    /// Cache harness ceilings by shape + core pools so the NFR-PERF headroom
+    /// probe runs at most once per distinct scenario shape.
+    ceilings: HashMap<CeilingKey, f64>,
     /// Lowest successful throughput per generated comparison group, shared so an
     /// interface-comparison latency row is paced off the slowest available path.
     comparison_ceilings: HashMap<String, f64>,
@@ -1224,7 +1239,7 @@ fn run_gateway_scenario(
     plan: &GatewayPlan,
     binary: &Path,
     rdir: &mut ResultDir,
-    ceilings: &mut HashMap<(String, u32, usize), f64>,
+    ceilings: &mut HashMap<CeilingKey, f64>,
     sys_rate: Option<u32>,
     cores: &CorePlan,
     comparison_rate_mbps: Option<f64>,
@@ -1633,32 +1648,50 @@ fn run_gateway_scenario(
 
     // The headroom ceiling is the harness's own loopback capacity for this shape
     // (loopback UDP for the DTLS path, loopback TCP otherwise), not the SCG path,
-    // so a low ratio flags a harness-limited result — unless the gateway's cores
-    // are saturated, in which case the SCG genuinely *is* the bottleneck.
+    // so a low ratio flags a harness-limited result — unless the gateway's core
+    // pool or its hottest single thread is saturated, in which case the SCG
+    // genuinely *is* the bottleneck (or the whole host is, in which case the
+    // row is a lower bound labeled `host-saturated`).
     let gw_core_count = if cores.gateway.is_empty() {
         crate::sysinfo::cpu_logical()
     } else {
         cores.gateway.len()
     };
-    let gw_cpu = sys_agg.as_ref().map(|a| (a.cpu_pct_peak, gw_core_count));
-    let cal = if is_udp {
-        calibrate_scenario(
-            &UdpTransport,
-            &params,
-            stats.throughput_gbps.mean,
-            ceilings,
-            true,
-            gw_cpu,
-        )?
-    } else {
-        calibrate_scenario(
-            &TcpTransport,
-            &params,
-            stats.throughput_gbps.mean,
-            ceilings,
-            true,
-            gw_cpu,
-        )?
+    let gw_cpu = sys_agg.as_ref().map(|a| calibrate::CpuSignals {
+        gw_pool_pct_p95: a.cpu_pct_p95,
+        gw_pool_cores: gw_core_count,
+        gw_hot_thread_pct_p95: a.cpu_hot_thread_pct_p95,
+        host_busy_frac_p95: a.host_busy_frac_p95,
+    });
+    let ceiling_transport = ceiling_transport_for(is_udp || is_ale_raw, is_uds, is_shm, scenario);
+    let cal = match calibrate_scenario(
+        ceiling_transport.as_ref(),
+        &params,
+        stats.throughput_gbps.mean,
+        ceilings,
+        true,
+        gw_cpu,
+    ) {
+        Ok(cal) => cal,
+        // A null transport can fail on a restricted host (temp-dir sockets,
+        // allocation limits): fall back to a TCP ceiling and record that the
+        // provenance changed rather than losing the row.
+        Err(e) if !matches!(ceiling_transport.name(), "tcp" | "udp") => {
+            log::warn!(
+                "scenario '{}': {} ceiling probe failed ({e}); falling back to a tcp ceiling",
+                scenario.name,
+                ceiling_transport.name()
+            );
+            calibrate_scenario(
+                &TcpTransport,
+                &params,
+                stats.throughput_gbps.mean,
+                ceilings,
+                true,
+                gw_cpu,
+            )?
+        }
+        Err(e) => return Err(e),
     };
     render_calibration(&cal);
 
@@ -2758,35 +2791,60 @@ fn render_saturation_result(result: &SweepResult, loss_threshold_pct: f64) {
     );
 }
 
-/// On-loopback (no SCG) ceiling probe duration per distinct scenario shape.
-const CEILING_PROBE: Duration = Duration::from_millis(500);
+/// Ceiling transport matching a gateway scenario's ACCESS interface — the
+/// kernel/IPC object the harness itself touches — not the gateway's wire
+/// protocol: DTLS **and ALE/RAW** access over UDP, `scg-uds` over a Unix
+/// stream, `scg-shm` over a shared-memory ring (sized like the scenario's),
+/// and everything else (TCP/TLS/kTLS/mTLS/routing, and TPROXY whose client
+/// side is plain TCP) over TCP.
+fn ceiling_transport_for(
+    is_udp_like: bool,
+    is_uds: bool,
+    is_shm: bool,
+    scenario: &Scenario,
+) -> Box<dyn Transport> {
+    if is_udp_like {
+        Box::new(UdpTransport)
+    } else if is_uds {
+        Box::new(UdsNullTransport)
+    } else if is_shm {
+        let ring_capacity = scenario
+            .optimization_flags
+            .shm_ring_capacity
+            .unwrap_or(1024 * 1024) as u64;
+        Box::new(ShmNullTransport::new(ring_capacity))
+    } else {
+        Box::new(TcpTransport)
+    }
+}
 
 /// Measure (or reuse a cached) harness ceiling for a scenario's shape and
 /// compute its headroom. The ceiling is always the harness's null-loopback
-/// capacity for this shape; `is_scg` selects whether the result is a Phase-1
-/// baseline (never flagged) or an SCG measurement (flagged when headroom drops
-/// below the gate).
+/// capacity for this shape, probed under the scenario's own conditions
+/// (core pools, warmed, best-of-N — see [`calibrate::ProbeSpec`]); `is_scg`
+/// selects whether the result is a Phase-1 baseline (never flagged) or an SCG
+/// measurement (flagged when headroom drops below the gate).
 fn calibrate_scenario(
     ceiling_transport: &dyn Transport,
     params: &RunParams,
     measured_gbps: f64,
-    cache: &mut HashMap<(String, u32, usize), f64>,
+    cache: &mut HashMap<CeilingKey, f64>,
     is_scg: bool,
-    gw_cpu: Option<(f64, usize)>,
+    gw_cpu: Option<calibrate::CpuSignals>,
 ) -> Result<Calibration, Box<dyn std::error::Error>> {
-    let key = (
-        ceiling_transport.name().to_string(),
-        params.message_bytes,
-        params.connections,
-    );
+    let key = CeilingKey {
+        transport: ceiling_transport.cache_key(),
+        message_bytes: params.message_bytes,
+        connections: params.connections,
+        sender_cores: params.sender_cores.clone(),
+        receiver_cores: params.receiver_cores.clone(),
+    };
     let ceiling = match cache.get(&key) {
         Some(c) => *c,
         None => {
             let c = calibrate::measure_ceiling(
                 ceiling_transport,
-                params.message_bytes,
-                params.connections,
-                CEILING_PROBE,
+                &calibrate::ProbeSpec::for_params(params),
             )?;
             cache.insert(key, c.throughput_gbps);
             c.throughput_gbps
@@ -2794,14 +2852,13 @@ fn calibrate_scenario(
     };
     Ok(if is_scg {
         match gw_cpu {
-            Some((peak_pct, cores)) => {
-                Calibration::for_scg_with_cpu(ceiling, measured_gbps, peak_pct, cores)
-            }
+            Some(cpu) => Calibration::for_scg_with_cpu(ceiling, measured_gbps, &cpu),
             None => Calibration::for_scg(ceiling, measured_gbps),
         }
     } else {
         Calibration::baseline(ceiling, measured_gbps)
-    })
+    }
+    .with_transport(ceiling_transport.name()))
 }
 
 fn render_calibration(cal: &Calibration) {
@@ -2809,10 +2866,15 @@ fn render_calibration(cal: &Calibration) {
         return;
     }
     let mut value = format!(
-        "ceiling {:.3} Gbit/s    headroom {:.1}×    dut: {}    bottleneck: {}",
-        cal.ceiling_gbps, cal.headroom, cal.dut, cal.bottleneck
+        "ceiling {:.3} Gbit/s ({})    headroom {:.1}×    dut: {}    bottleneck: {}",
+        cal.ceiling_gbps, cal.ceiling_transport, cal.headroom, cal.dut, cal.bottleneck
     );
-    if cal.harness_limited {
+    if cal.bottleneck == "host-saturated" {
+        value.push_str(&format!(
+            "  {}",
+            console::yellow("⚠ HOST-SATURATED (single-host limit — lower bound)")
+        ));
+    } else if cal.harness_limited {
         value.push_str(&format!("  {}", console::yellow("⚠ HARNESS-LIMITED (<3×)")));
     } else if cal.bottleneck == "scg-cpu" {
         value.push_str(&format!("  {}", console::dim("[SCG CPU-bound]")));
@@ -3327,9 +3389,11 @@ fn calibrate(args: CalibrateArgs) -> CmdResult {
     console::kv(
         "Probe",
         &format!(
-            "{} conn, {:.2}s each",
+            "{} conn, {:.2}s warmup + {:.2}s measured, best of {}",
             args.connections,
-            args.duration.as_secs_f64()
+            args.warmup.as_secs_f64(),
+            args.duration.as_secs_f64(),
+            args.probes.max(1),
         ),
         13,
     );
@@ -3361,12 +3425,16 @@ fn calibrate(args: CalibrateArgs) -> CmdResult {
     for size in &args.message_sizes {
         let msg = (*size).max(HEADER_LEN as u32);
         for (label, transport) in &transports {
-            let c = calibrate::measure_ceiling(
-                transport.as_ref(),
-                msg,
-                args.connections as usize,
-                args.duration,
-            )?;
+            let spec = calibrate::ProbeSpec {
+                message_bytes: msg,
+                connections: args.connections as usize,
+                warmup: args.warmup,
+                measure: args.duration,
+                probes: args.probes.max(1) as usize,
+                sender_cores: &[],
+                receiver_cores: &[],
+            };
+            let c = calibrate::measure_ceiling(transport.as_ref(), &spec)?;
             console::line(&format!(
                 "  {:<6} {:>10} {:>11.3} Gbit/s {:>11.0} m/s",
                 label, msg, c.throughput_gbps, c.message_rate
@@ -3527,6 +3595,63 @@ mod tests {
         assert!(!cipher_requires_rsa_auth("ECDHE-ECDSA-AES128-GCM-SHA256"));
         assert!(!cipher_requires_rsa_auth("TLS_AES_128_GCM_SHA256"));
         assert!(!cipher_requires_rsa_auth("TLS_CHACHA20_POLY1305_SHA256"));
+    }
+
+    #[test]
+    fn ceiling_transport_matches_access_interface() {
+        let scenario: Scenario =
+            serde_json::from_str(r#"{"name":"map"}"#).expect("minimal scenario parses");
+        // DTLS and ALE/RAW access over UDP (the ALE/RAW arm was the pre-2026-07
+        // bug: they got a TCP ceiling).
+        assert_eq!(
+            ceiling_transport_for(true, false, false, &scenario).name(),
+            "udp"
+        );
+        assert_eq!(
+            ceiling_transport_for(false, true, false, &scenario).name(),
+            "uds-null"
+        );
+        assert_eq!(
+            ceiling_transport_for(false, false, true, &scenario).name(),
+            "shm-null"
+        );
+        // TCP/TLS/kTLS/mTLS/routing — and TPROXY (plain-TCP client side).
+        assert_eq!(
+            ceiling_transport_for(false, false, false, &scenario).name(),
+            "tcp"
+        );
+
+        // The SHM cache identity folds in the scenario's ring capacity.
+        let sized: Scenario = serde_json::from_str(
+            r#"{"name":"map2","optimization_flags":{"shm_ring_capacity":4194304}}"#,
+        )
+        .expect("scenario with ring capacity parses");
+        assert_eq!(
+            ceiling_transport_for(false, false, true, &sized).cache_key(),
+            "shm-null/4194304"
+        );
+        assert_eq!(
+            ceiling_transport_for(false, false, true, &scenario).cache_key(),
+            "shm-null/1048576"
+        );
+    }
+
+    #[test]
+    fn ceiling_key_distinguishes_pools_and_shapes() {
+        let base = CeilingKey {
+            transport: "tcp".to_string(),
+            message_bytes: 1024,
+            connections: 4,
+            sender_cores: vec![1, 2],
+            receiver_cores: vec![3, 4],
+        };
+        let mut other_pool = base.clone();
+        other_pool.sender_cores = vec![5, 6];
+        assert_ne!(base, other_pool);
+        let mut other_shape = base.clone();
+        other_shape.connections = 16;
+        assert_ne!(base, other_shape);
+        assert_eq!(base, base.clone());
     }
 
     #[test]

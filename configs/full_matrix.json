@@ -10585,6 +10585,69 @@
     },
     {
       "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/plain, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_uds_unix_64B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-451.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/plain, 64B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_uds_unix_64B_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-452.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/plain, 64B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_uds_unix_64B_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-453.sock"
+      }
+    },
+    {
+      "category": "matrix",
       "connections": 1,
       "description": "matrix: SCG scg-direct, unix/plain, 256B, 1 conn",
       "gateway": {
@@ -10601,7 +10664,70 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-451.sock"
+        "target_addr": "/tmp/seshat-matrix-454.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/plain, 256B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_uds_unix_256B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-455.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/plain, 256B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_uds_unix_256B_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-456.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/plain, 256B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_uds_unix_256B_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-457.sock"
       }
     },
     {
@@ -10622,7 +10748,70 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-452.sock"
+        "target_addr": "/tmp/seshat-matrix-458.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/plain, 1KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_uds_unix_1KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-459.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/plain, 1KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_uds_unix_1KB_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-460.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/plain, 1KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_uds_unix_1KB_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-461.sock"
       }
     },
     {
@@ -10643,7 +10832,70 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-453.sock"
+        "target_addr": "/tmp/seshat-matrix-462.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/plain, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_uds_unix_4096B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-463.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/plain, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_uds_unix_4096B_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-464.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/plain, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_uds_unix_4096B_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-465.sock"
       }
     },
     {
@@ -10664,7 +10916,70 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-454.sock"
+        "target_addr": "/tmp/seshat-matrix-466.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/plain, 16KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_uds_unix_16KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-467.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/plain, 16KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_uds_unix_16KB_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-468.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/plain, 16KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_uds_unix_16KB_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-469.sock"
       }
     },
     {
@@ -10685,7 +11000,70 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-455.sock"
+        "target_addr": "/tmp/seshat-matrix-470.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/plain, 64KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_uds_unix_64KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-471.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/plain, 64KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_uds_unix_64KB_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-472.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/plain, 64KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_uds_unix_64KB_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-473.sock"
       }
     },
     {
@@ -10708,7 +11086,76 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-456.sock"
+        "target_addr": "/tmp/seshat-matrix-474.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_uds_unix_64B_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-475.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 64B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_uds_unix_64B_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-476.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 64B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_uds_unix_64B_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-477.sock"
       }
     },
     {
@@ -10731,7 +11178,76 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-457.sock"
+        "target_addr": "/tmp/seshat-matrix-478.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 256B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_uds_unix_256B_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-479.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 256B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_uds_unix_256B_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-480.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 256B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_uds_unix_256B_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-481.sock"
       }
     },
     {
@@ -10754,7 +11270,76 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-458.sock"
+        "target_addr": "/tmp/seshat-matrix-482.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 1KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_uds_unix_1KB_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-483.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 1KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_uds_unix_1KB_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-484.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 1KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_uds_unix_1KB_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-485.sock"
       }
     },
     {
@@ -10777,7 +11362,76 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-459.sock"
+        "target_addr": "/tmp/seshat-matrix-486.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_uds_unix_4096B_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-487.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_uds_unix_4096B_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-488.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_uds_unix_4096B_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-489.sock"
       }
     },
     {
@@ -10800,7 +11454,76 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-460.sock"
+        "target_addr": "/tmp/seshat-matrix-490.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 16KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_uds_unix_16KB_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-491.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 16KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_uds_unix_16KB_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-492.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 16KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_uds_unix_16KB_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-493.sock"
       }
     },
     {
@@ -10823,7 +11546,76 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-461.sock"
+        "target_addr": "/tmp/seshat-matrix-494.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 64KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_uds_unix_64KB_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-495.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 64KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_uds_unix_64KB_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-496.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 64KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_uds_unix_64KB_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-497.sock"
       }
     },
     {
@@ -10848,7 +11640,82 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-462.sock"
+        "target_addr": "/tmp/seshat-matrix-498.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_ktls_uds_unix_64B_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-499.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 64B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_ktls_uds_unix_64B_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-500.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 64B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_ktls_uds_unix_64B_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-501.sock"
       }
     },
     {
@@ -10873,7 +11740,82 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-463.sock"
+        "target_addr": "/tmp/seshat-matrix-502.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 256B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_ktls_uds_unix_256B_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-503.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 256B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_ktls_uds_unix_256B_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-504.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 256B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_ktls_uds_unix_256B_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-505.sock"
       }
     },
     {
@@ -10898,7 +11840,82 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-464.sock"
+        "target_addr": "/tmp/seshat-matrix-506.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 1KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_ktls_uds_unix_1KB_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-507.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 1KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_ktls_uds_unix_1KB_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-508.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 1KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_ktls_uds_unix_1KB_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-509.sock"
       }
     },
     {
@@ -10923,7 +11940,82 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-465.sock"
+        "target_addr": "/tmp/seshat-matrix-510.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_uds_unix_4096B_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-511.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_uds_unix_4096B_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-512.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_uds_unix_4096B_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-513.sock"
       }
     },
     {
@@ -10948,7 +12040,82 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-466.sock"
+        "target_addr": "/tmp/seshat-matrix-514.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 16KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_ktls_uds_unix_16KB_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-515.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 16KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_ktls_uds_unix_16KB_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-516.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 16KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_ktls_uds_unix_16KB_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-517.sock"
       }
     },
     {
@@ -10973,7 +12140,82 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-467.sock"
+        "target_addr": "/tmp/seshat-matrix-518.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 64KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_ktls_uds_unix_64KB_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-519.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 64KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_ktls_uds_unix_64KB_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-520.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 64KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_ktls_uds_unix_64KB_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-521.sock"
       }
     },
     {
@@ -10994,7 +12236,70 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-468"
+        "target_addr": "shm:///seshat-matrix-522"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/plain, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_shm_shm_64B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-523"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/plain, 64B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_shm_shm_64B_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-524"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/plain, 64B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_shm_shm_64B_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-525"
       }
     },
     {
@@ -11015,7 +12320,70 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-469"
+        "target_addr": "shm:///seshat-matrix-526"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/plain, 256B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_shm_shm_256B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-527"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/plain, 256B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_shm_shm_256B_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-528"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/plain, 256B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_shm_shm_256B_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-529"
       }
     },
     {
@@ -11036,7 +12404,70 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-470"
+        "target_addr": "shm:///seshat-matrix-530"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/plain, 1KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_shm_shm_1KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-531"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/plain, 1KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_shm_shm_1KB_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-532"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/plain, 1KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_shm_shm_1KB_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-533"
       }
     },
     {
@@ -11057,7 +12488,70 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-471"
+        "target_addr": "shm:///seshat-matrix-534"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/plain, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_shm_shm_4096B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-535"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/plain, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_shm_shm_4096B_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-536"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/plain, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_shm_shm_4096B_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-537"
       }
     },
     {
@@ -11078,7 +12572,70 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-472"
+        "target_addr": "shm:///seshat-matrix-538"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/plain, 16KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_shm_shm_16KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-539"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/plain, 16KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_shm_shm_16KB_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-540"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/plain, 16KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_shm_shm_16KB_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-541"
       }
     },
     {
@@ -11099,7 +12656,70 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-473"
+        "target_addr": "shm:///seshat-matrix-542"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/plain, 64KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_shm_shm_64KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-543"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/plain, 64KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_shm_shm_64KB_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-544"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/plain, 64KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_shm_shm_64KB_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-545"
       }
     },
     {
@@ -11124,7 +12744,82 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-474"
+        "target_addr": "shm:///seshat-matrix-546"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_ktls_shm_shm_64B_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-547"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 64B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_ktls_shm_shm_64B_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-548"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 64B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_ktls_shm_shm_64B_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-549"
       }
     },
     {
@@ -11149,7 +12844,82 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-475"
+        "target_addr": "shm:///seshat-matrix-550"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 256B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_ktls_shm_shm_256B_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-551"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 256B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_ktls_shm_shm_256B_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-552"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 256B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_ktls_shm_shm_256B_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-553"
       }
     },
     {
@@ -11174,7 +12944,82 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-476"
+        "target_addr": "shm:///seshat-matrix-554"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 1KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_ktls_shm_shm_1KB_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-555"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 1KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_ktls_shm_shm_1KB_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-556"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 1KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_ktls_shm_shm_1KB_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-557"
       }
     },
     {
@@ -11199,7 +13044,82 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-477"
+        "target_addr": "shm:///seshat-matrix-558"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_shm_shm_4096B_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-559"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_shm_shm_4096B_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-560"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_shm_shm_4096B_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-561"
       }
     },
     {
@@ -11224,7 +13144,82 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-478"
+        "target_addr": "shm:///seshat-matrix-562"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 16KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_ktls_shm_shm_16KB_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-563"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 16KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_ktls_shm_shm_16KB_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-564"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 16KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_ktls_shm_shm_16KB_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-565"
       }
     },
     {
@@ -11249,7 +13244,82 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-479"
+        "target_addr": "shm:///seshat-matrix-566"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 64KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_ktls_shm_shm_64KB_direct_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-567"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 64KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_ktls_shm_shm_64KB_direct_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-568"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 64KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_ktls_shm_shm_64KB_direct_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-569"
       }
     },
     {
@@ -11272,7 +13342,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18480"
+        "target_addr": "127.0.0.1:18570"
       }
     },
     {
@@ -11295,7 +13365,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18481"
+        "target_addr": "127.0.0.1:18571"
       }
     },
     {
@@ -11318,7 +13388,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18482"
+        "target_addr": "127.0.0.1:18572"
       }
     },
     {
@@ -11341,7 +13411,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18483"
+        "target_addr": "127.0.0.1:18573"
       }
     },
     {
@@ -11364,7 +13434,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18484"
+        "target_addr": "127.0.0.1:18574"
       }
     },
     {
@@ -11387,7 +13457,31 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18485"
+        "target_addr": "127.0.0.1:18575"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.2, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "cipher_tls12_ecdhe_rsa_aes128_gcm_sha256_1024B",
+      "protocol": {
+        "cipher_suite": "ECDHE-RSA-AES128-GCM-SHA256",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18576"
       }
     },
     {
@@ -11411,7 +13505,55 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18486"
+        "target_addr": "127.0.0.1:18577"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.2, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "cipher_tls12_ecdhe_rsa_aes128_gcm_sha256_16384B",
+      "protocol": {
+        "cipher_suite": "ECDHE-RSA-AES128-GCM-SHA256",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18578"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.2, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "cipher_tls12_ecdhe_rsa_aes256_gcm_sha384_1024B",
+      "protocol": {
+        "cipher_suite": "ECDHE-RSA-AES256-GCM-SHA384",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18579"
       }
     },
     {
@@ -11435,7 +13577,55 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18487"
+        "target_addr": "127.0.0.1:18580"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.2, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "cipher_tls12_ecdhe_rsa_aes256_gcm_sha384_16384B",
+      "protocol": {
+        "cipher_suite": "ECDHE-RSA-AES256-GCM-SHA384",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18581"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.2, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "cipher_tls12_ecdhe_rsa_chacha20_poly1305_1024B",
+      "protocol": {
+        "cipher_suite": "ECDHE-RSA-CHACHA20-POLY1305",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18582"
       }
     },
     {
@@ -11459,7 +13649,55 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18488"
+        "target_addr": "127.0.0.1:18583"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.2, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "cipher_tls12_ecdhe_rsa_chacha20_poly1305_16384B",
+      "protocol": {
+        "cipher_suite": "ECDHE-RSA-CHACHA20-POLY1305",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18584"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.3, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "cipher_tls13_tls_aes_128_gcm_sha256_1024B",
+      "protocol": {
+        "cipher_suite": "TLS_AES_128_GCM_SHA256",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18585"
       }
     },
     {
@@ -11483,7 +13721,55 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18489"
+        "target_addr": "127.0.0.1:18586"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.3, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "cipher_tls13_tls_aes_128_gcm_sha256_16384B",
+      "protocol": {
+        "cipher_suite": "TLS_AES_128_GCM_SHA256",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18587"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.3, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "cipher_tls13_tls_aes_256_gcm_sha384_1024B",
+      "protocol": {
+        "cipher_suite": "TLS_AES_256_GCM_SHA384",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18588"
       }
     },
     {
@@ -11507,7 +13793,55 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18490"
+        "target_addr": "127.0.0.1:18589"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.3, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "cipher_tls13_tls_aes_256_gcm_sha384_16384B",
+      "protocol": {
+        "cipher_suite": "TLS_AES_256_GCM_SHA384",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18590"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.3, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "cipher_tls13_tls_chacha20_poly1305_sha256_1024B",
+      "protocol": {
+        "cipher_suite": "TLS_CHACHA20_POLY1305_SHA256",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18591"
       }
     },
     {
@@ -11531,7 +13865,31 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18491"
+        "target_addr": "127.0.0.1:18592"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.3, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "cipher_tls13_tls_chacha20_poly1305_sha256_16384B",
+      "protocol": {
+        "cipher_suite": "TLS_CHACHA20_POLY1305_SHA256",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18593"
       }
     }
   ],

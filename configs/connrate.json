@@ -77,6 +77,85 @@
         "target_addr": "127.0.0.1:14003",
         "pattern": "sustained"
       }
+    },
+
+    {
+      "name": "conn_scg_tls12_1thread",
+      "description": "TLS 1.2 handshake rate through the SCG, single connector thread (protocol-coverage: TLS 1.2 vs 1.3).",
+      "category": "connection",
+      "mode": "connrate",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.2" },
+      "requirements": { "openssl": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14004", "pattern": "sustained" }
+    },
+    {
+      "name": "conn_scg_ktls13_1thread",
+      "description": "kTLS 1.3 handshake rate through the SCG, single connector thread (handshake is userspace even with kTLS data path).",
+      "category": "connection",
+      "mode": "connrate",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "requirements": { "openssl": true, "ktls": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14005", "pattern": "sustained" }
+    },
+    {
+      "name": "conn_scg_tls13_8thread",
+      "description": "TLS 1.3 handshake rate through the SCG, eight connector threads (thread-scaling beyond 1/4).",
+      "category": "connection",
+      "mode": "connrate",
+      "message_size_bytes": 64,
+      "connections": 8,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "requirements": { "openssl": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14006", "pattern": "sustained" }
+    },
+    {
+      "name": "conn_scg_tls13_resumed_1thread",
+      "description": "TLS 1.3 handshake rate with session resumption/tickets enabled, single thread — resumed vs full-handshake cost (resumed_fraction should be > 0).",
+      "category": "connection",
+      "mode": "connrate",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "resumption": true },
+      "requirements": { "openssl": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14007", "pattern": "sustained" }
+    },
+    {
+      "name": "conn_scg_tls13_resumed_4thread",
+      "description": "TLS 1.3 handshake rate with session resumption/tickets enabled, four threads.",
+      "category": "connection",
+      "mode": "connrate",
+      "message_size_bytes": 64,
+      "connections": 4,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3", "resumption": true },
+      "requirements": { "openssl": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14008", "pattern": "sustained" }
+    },
+    {
+      "name": "conn_scg_psk_tls12_1thread",
+      "description": "TLS 1.2 PSK (subset146-psk) handshake rate, single thread — pre-shared-key vs certificate/full-handshake cost.",
+      "category": "connection",
+      "mode": "connrate",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": {
+        "type": "tls",
+        "version": "1.2",
+        "psk_identity": "seshat-test",
+        "psk_hex": "deadbeef01020304deadbeef01020304",
+        "profile": "subset146-psk"
+      },
+      "requirements": { "openssl": true },
+      "sender": { "interface": "tcp", "target_addr": "127.0.0.1:14009", "pattern": "sustained" }
     }
   ]
 }

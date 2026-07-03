@@ -1,5 +1,7 @@
 # Rust build artifacts
 /target/
+# User-owned build tree (used when /target/ has root-owned files from sudo runs)
+/target-user/
 
 # rustfmt backups
 **/*.rs.bk

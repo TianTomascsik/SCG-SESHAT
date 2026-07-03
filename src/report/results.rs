@@ -102,6 +102,9 @@ const SUMMARY_HEADERS: &[&str] = &[
     "mem_copy_from_user",
     "mem_splice_syscalls",
     "resumed_fraction",
+    "cpu_hot_thread_pct_p95",
+    "host_busy_frac_p95",
+    "ceiling_transport",
 ];
 
 /// Per-run header for each scenario's `runs.csv`.
@@ -427,6 +430,12 @@ impl ResultDir {
             effective
                 .and_then(|e| e.resumed_fraction())
                 .map(|v| num(v, 3))
+                .unwrap_or_default(),
+            sys.map(|a| num(a.cpu_hot_thread_pct_p95, 1))
+                .unwrap_or_default(),
+            sys.map(|a| num(a.host_busy_frac_p95, 3))
+                .unwrap_or_default(),
+            cal.map(|c| c.ceiling_transport.to_string())
                 .unwrap_or_default(),
         ]);
 
@@ -825,11 +834,15 @@ fn scenario_summary_csv(
             .kv("headroom", num(cal.headroom, 2))
             .kv("harness_limited", cal.harness_limited.to_string())
             .kv("dut", cal.dut)
-            .kv("bottleneck", cal.bottleneck);
+            .kv("bottleneck", cal.bottleneck)
+            .kv("ceiling_transport", cal.ceiling_transport);
     }
     if let Some(a) = art.sys {
         c.kv("cpu_pct_peak", num(a.cpu_pct_peak, 1))
             .kv("cpu_pct_mean", num(a.cpu_pct_mean, 1))
+            .kv("cpu_pct_p95", num(a.cpu_pct_p95, 1))
+            .kv("cpu_hot_thread_pct_p95", num(a.cpu_hot_thread_pct_p95, 1))
+            .kv("host_busy_frac_p95", num(a.host_busy_frac_p95, 3))
             .kv("cpu_seconds_total", num(a.cpu_seconds_total, 4))
             .kv("ctx_switches_total", a.ctx_switches_total.to_string())
             .kv("ctx_switches_per_s", num(a.ctx_switches_per_s, 1))

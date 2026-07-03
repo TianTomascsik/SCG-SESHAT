@@ -59,6 +59,18 @@ impl DataSink for UdsSink {
             .map_err(|e| io::Error::other(format!("UDS send: {e}")))
     }
 
+    fn send_batch(&mut self, msgs: &[&[u8]]) -> io::Result<usize> {
+        // One vectored writev per ≤512 frames instead of two write syscalls
+        // per message (frame header + payload).
+        self.client
+            .try_send_batch(self.traffic_id, msgs)
+            .map_err(|e| io::Error::other(format!("UDS send: {e}")))
+    }
+
+    fn preferred_batch(&self, message_bytes: u32) -> usize {
+        crate::transport::stream_batch_size(message_bytes)
+    }
+
     fn close(&mut self) {
         // ScgClient deregisters on drop.
     }
@@ -88,6 +100,39 @@ impl DataSource for UdsSource {
                 }
             }
         }
+    }
+
+    fn recv_batch(
+        &mut self,
+        buf: &mut [u8],
+        stride: usize,
+        max: usize,
+        lens: &mut [usize],
+    ) -> io::Result<crate::transport::BatchOutcome> {
+        use crate::transport::BatchOutcome;
+        if max == 0 || stride == 0 || buf.len() < stride || lens.is_empty() {
+            return Ok(BatchOutcome::Timeout);
+        }
+        let cap = max.min(lens.len());
+        match self
+            .client
+            .recv_batch_into(buf, stride, &mut lens[..cap], Some(self.timeout))
+        {
+            Ok(Some(count)) => Ok(BatchOutcome::Messages(count)),
+            Ok(None) => Ok(BatchOutcome::Timeout),
+            Err(e) => {
+                let msg = format!("{e}");
+                if msg.contains("closed") || msg.contains("EOF") {
+                    Ok(BatchOutcome::Closed)
+                } else {
+                    Err(io::Error::other(format!("UDS recv: {e}")))
+                }
+            }
+        }
+    }
+
+    fn preferred_batch(&self, message_bytes: u32) -> usize {
+        crate::transport::stream_batch_size(message_bytes)
     }
 
     fn close(&mut self) {

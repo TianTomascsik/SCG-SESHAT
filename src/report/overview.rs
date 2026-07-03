@@ -33,6 +33,7 @@ pub struct SummaryRow {
     pub loss_pct: f64,
     pub headroom: f64,
     pub harness_limited: bool,
+    pub bottleneck: String,
     pub saturation_gbps: f64,
     pub max_lossfree_gbps: f64,
     pub rtt_mean_us: f64,
@@ -131,6 +132,7 @@ pub fn parse_summary(text: &str) -> Vec<SummaryRow> {
             loss_pct: num("loss_pct"),
             headroom: num("headroom"),
             harness_limited: flag("harness_limited"),
+            bottleneck: s("bottleneck"),
             saturation_gbps: num("saturation_gbps"),
             max_lossfree_gbps: num("max_lossfree_gbps"),
             rtt_mean_us: num("rtt_us_mean"),
@@ -190,7 +192,9 @@ fn render_throughput(buf: &mut String, rows: &[SummaryRow]) {
     let mut data = Vec::new();
     for r in &thr {
         let mut tput = format!("{:.3} ± {:.3}", r.throughput_mean, r.throughput_ci95);
-        if r.harness_limited {
+        if r.bottleneck == "host-saturated" {
+            tput.push_str(" \u{2020}");
+        } else if r.harness_limited {
             tput.push_str(" *");
         }
         data.push(vec![
