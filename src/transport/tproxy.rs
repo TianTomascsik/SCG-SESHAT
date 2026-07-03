@@ -257,15 +257,30 @@ impl TproxyTransport {
         let backend = TcpListener::bind(&backend_addr)?;
         backend.set_nonblocking(true)?;
 
-        // Build gateway config: one transparent encrypt rule. The upstream is the
-        // explicit loopback backend, not the `"auto"` original-destination
-        // placeholder: the gateway recovers the TPROXY original destination via
-        // `SO_ORIGINAL_DST`, which only works for conntrack REDIRECT/DNAT and
-        // always fails for a TPROXY socket (`getsockname` would be required), so
-        // `"auto"` is unparseable and nothing forwards (SCG-TRA #59). Forwarding
-        // to the backend still exercises the full TPROXY data path — client →
-        // iptables `TPROXY` redirect → gateway `IP_TRANSPARENT` listener → relay →
-        // backend — which is what the throughput benchmark measures.
+        // Build gateway config: one transparent encrypt rule forwarding to the
+        // explicit loopback backend.
+        //
+        // We deliberately do NOT use the `"auto"` original-destination mode here.
+        // The gateway *does* recover the TPROXY original destination correctly —
+        // `SO_ORIGINAL_DST` (conntrack REDIRECT/DNAT) with a `getsockname`
+        // fallback on the `IP_TRANSPARENT` socket for true TPROXY (SCG-TRA #59,
+        // and the code-review M10 fix that added the fallback). The blocker is
+        // *loopback*, not the gateway: with `"auto"` the gateway would forward to
+        // the recovered original destination, which is the same `target_port` the
+        // client dialed. On a single host that forward re-enters `PREROUTING` on
+        // `lo` and hits the same `-j TPROXY` rule → an interception loop; giving
+        // `target_port` a real listener to break the loop makes the `-m socket`
+        // DIVERT rule steer the *client's* SYN straight to that listener,
+        // bypassing the gateway. Client and gateway-forward are indistinguishable
+        // packets on one host (same 5-tuple shape, same uid), so a true `"auto"`
+        // path needs distinct client/backend hosts (multi-netns) — out of scope
+        // for this loopback throughput transport. The M10 recovery logic itself
+        // is covered by the gateway's `recover_transparent_dst` unit tests.
+        //
+        // Forwarding to the explicit backend still exercises the full TPROXY data
+        // path — client → iptables `TPROXY` redirect → gateway `IP_TRANSPARENT`
+        // listener → relay → backend — which is what the throughput benchmark
+        // measures.
         let rule = RuleConfig::new(
             "tproxy-encrypt",
             "encrypt",
