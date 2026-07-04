@@ -19,7 +19,7 @@
   },
   "dimensions": {
     "stream_message_sizes": [64, 256, 1024, 4096, 16384, 65536],
-    "datagram_message_sizes": [64, 256, 512, 1200, 1400, 9000],
+    "datagram_message_sizes": [64, 256, 512, 1200, 1400, 9000, 16384, 32768, 65507],
     "canonical_connections": [1],
     "nightly_connections": [1, 4, 16, 64],
     "scalability_connections": [1, 4, 16, 64, 256, 1024],

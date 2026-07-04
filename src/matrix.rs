@@ -970,9 +970,43 @@ fn requirements_json(requirements: &[String]) -> Value {
     Value::Object(map)
 }
 
+/// IPv4 UDP payload maximum (16-bit length field, minus the 8-byte UDP header):
+/// the largest single datagram the plaintext routing path can relay. It reads a
+/// whole datagram (gateway `UDP_BUF_SIZE` = 64 KiB) and re-emits it unchanged, and
+/// with no per-datagram crypto it keeps delivering under blast even at this size
+/// (the run is flagged harness-limited/overloaded, but still yields a measurement).
+const UDP_PAYLOAD_MAX: u32 = 65_507;
+/// Largest datagram the *encrypted* UDP paths sweep in the throughput matrix.
+/// DTLS is hard-bounded near here — one datagram per record with no application-
+/// layer fragmentation. raw/ALE UDP-over-TLS can *carry* far larger datagrams
+/// (verified lossless to 64 KiB when the sender is paced; the gateway reassembles
+/// datagrams that span multiple TLS records), but a single-connection *blast* of
+/// larger encrypted datagrams saturates the relay and delivers zero messages in
+/// the measurement window — an invalid, auto-skipped result. That is a harness
+/// ceiling, not a gateway limit, so the throughput matrix keeps the encrypted
+/// datagram paths in the blast-measurable single-jumbo-frame band.
+const ENCRYPTED_DATAGRAM_MAX: u32 = 9_000;
+
+/// Largest datagram (bytes) the size sweep should emit for the given datagram
+/// framing, so every generated row yields a valid measurement: plaintext routing
+/// runs the full range to the UDP payload maximum; the encrypted paths (DTLS and
+/// raw/ALE UDP-over-TLS) stay in the blast-measurable band.
+fn datagram_size_cap(protocol: &Value) -> u32 {
+    match protocol.get("type").and_then(Value::as_str) {
+        Some("none") => UDP_PAYLOAD_MAX,
+        _ => ENCRYPTED_DATAGRAM_MAX,
+    }
+}
+
 fn profile_sizes(profile: &Profile, dimensions: &Dimensions) -> Vec<u32> {
     if profile.message_class == "datagram" {
-        dimensions.datagram_message_sizes.clone()
+        let cap = datagram_size_cap(&profile.protocol);
+        dimensions
+            .datagram_message_sizes
+            .iter()
+            .copied()
+            .filter(|&size| size <= cap)
+            .collect()
     } else {
         dimensions.stream_message_sizes.clone()
     }
@@ -1012,6 +1046,7 @@ fn size_label(bytes: u32) -> String {
     match bytes {
         1024 => "1KB".to_string(),
         16_384 => "16KB".to_string(),
+        32_768 => "32KB".to_string(),
         65_536 => "64KB".to_string(),
         _ => format!("{bytes}B"),
     }
@@ -1067,6 +1102,57 @@ mod tests {
             .filter_map(|row| row.get("name").and_then(Value::as_str))
             .collect::<BTreeSet<_>>();
         names.len() == rows(value).len()
+    }
+
+    #[test]
+    fn datagram_sizes_are_capped_per_framing() {
+        let spec = production_spec();
+        let dims = &spec.dimensions;
+        let profile = |proto: Value| -> Profile {
+            serde_json::from_value(json!({
+                "id": "p", "protocol": proto,
+                "interfaces": ["udp"], "chains": ["scg-direct"],
+                "message_class": "datagram"
+            }))
+            .expect("datagram profile parses")
+        };
+
+        // Plaintext routing relays a whole datagram and keeps delivering under
+        // blast, so it sweeps the full range to the UDP payload maximum.
+        let routing = profile_sizes(
+            &profile(json!({ "type": "none", "protection_mode": "routing-only" })),
+            dims,
+        );
+        assert!(
+            routing.contains(&65_507),
+            "plaintext routing reaches the UDP max"
+        );
+        assert!(routing.iter().all(|&s| s <= UDP_PAYLOAD_MAX));
+
+        // The encrypted datagram paths (DTLS and raw/ALE UDP-over-TLS) stay in the
+        // blast-measurable single-jumbo-frame band: a single-connection blast of
+        // larger encrypted datagrams saturates and delivers zero (invalid) results.
+        for proto in [
+            json!({ "type": "dtls", "version": "1.2" }),
+            json!({ "type": "tls", "version": "1.3", "app_protocol": "raw" }),
+            json!({ "type": "tls", "version": "1.3", "app_protocol": "ale" }),
+        ] {
+            let sizes = profile_sizes(&profile(proto), dims);
+            assert!(sizes.iter().all(|&s| s <= ENCRYPTED_DATAGRAM_MAX));
+            assert!(
+                !sizes.contains(&16_384),
+                "encrypted paths never blast beyond the jumbo band"
+            );
+            assert_eq!(sizes.last().copied(), Some(9_000));
+        }
+
+        // Stream profiles are untouched by the datagram caps.
+        let stream: Profile = serde_json::from_value(json!({
+            "id": "s", "protocol": { "type": "tls", "version": "1.3" },
+            "interfaces": ["tcp"], "chains": ["scg-direct"]
+        }))
+        .unwrap();
+        assert_eq!(profile_sizes(&stream, dims), dims.stream_message_sizes);
     }
 
     #[test]

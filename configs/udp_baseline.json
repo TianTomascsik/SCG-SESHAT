@@ -90,6 +90,42 @@
         "target_addr": "127.0.0.1:0",
         "pattern": "sustained"
       }
+    },
+    {
+      "name": "baseline_udp_loopback_16KB",
+      "description": "Plaintext UDP datagram throughput baseline (direct loopback, no gateway) at a large fragmented datagram — the direct reference the gateway routing_udp path is measured against at the same size.",
+      "category": "baseline",
+      "message_size_bytes": 16384,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:0",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "baseline_udp_loopback_32KB",
+      "description": "Plaintext UDP datagram throughput baseline (direct loopback, no gateway) at a large fragmented datagram — the direct reference the gateway routing_udp path is measured against at the same size.",
+      "category": "baseline",
+      "message_size_bytes": 32768,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:0",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "baseline_udp_loopback_65507B",
+      "description": "Plaintext UDP datagram throughput baseline (direct loopback, no gateway) at the IPv4 UDP payload maximum (65507 B) — the direct reference the gateway routing_udp path is measured against at the same size.",
+      "category": "baseline",
+      "message_size_bytes": 65507,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:0",
+        "pattern": "sustained"
+      }
     }
   ]
 }

@@ -1,0 +1,348 @@
+{
+  "suite": {
+    "name": "Encrypted datagram paced large-size sweep",
+    "version": "1.0.0",
+    "author": "SESHAT",
+    "description": "Paced (1000 Mbit/s, sub-saturation) encrypted UDP-over-datagram throughput/latency at large datagrams that single-connection *blast* cannot measure (it saturates to zero delivery). Proves the encrypted datagram paths carry large datagrams and captures per-size overhead. raw framing \u2192 65507 B (IPv4 UDP max); ALE \u2192 65000 B (ALE_MAX_USER_DATA); DTLS \u2192 16384 B (one DTLS record; larger needs app-layer fragmentation DTLS lacks)."
+  },
+  "defaults": {
+    "runs": 3,
+    "duration_secs": 5,
+    "warmup_secs": 2,
+    "cooldown_secs": 1,
+    "auto_affinity": true,
+    "collect_system_metrics": true,
+    "metrics_backend": "procfs",
+    "metrics_sample_rate_hz": 5,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95,
+    "loss_threshold_pct": 1.0
+  },
+  "scenarios": [
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 1400 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1400,
+      "name": "paced_raw_tls13_udp_1400B_direct_1c",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18741",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 9000 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 9000,
+      "name": "paced_raw_tls13_udp_9000B_direct_1c",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18741",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 16384 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "paced_raw_tls13_udp_16KB_direct_1c",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18741",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 32768 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 32768,
+      "name": "paced_raw_tls13_udp_32KB_direct_1c",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18741",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 65507 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65507,
+      "name": "paced_raw_tls13_udp_65507B_direct_1c",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18741",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 1400 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1400,
+      "name": "paced_ale_tls13_udp_1400B_direct_1c",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18723",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 9000 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 9000,
+      "name": "paced_ale_tls13_udp_9000B_direct_1c",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18723",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 16384 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "paced_ale_tls13_udp_16KB_direct_1c",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18723",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 32768 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 32768,
+      "name": "paced_ale_tls13_udp_32KB_direct_1c",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18723",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 65000 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65000,
+      "name": "paced_ale_tls13_udp_65000B_direct_1c",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18723",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 1400 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1400,
+      "name": "paced_dtls12_udp_1400B_direct_1c",
+      "protocol": {
+        "type": "dtls",
+        "version": "1.0"
+      },
+      "requirements": {
+        "dtls10": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18669",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 9000 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 9000,
+      "name": "paced_dtls12_udp_9000B_direct_1c",
+      "protocol": {
+        "type": "dtls",
+        "version": "1.0"
+      },
+      "requirements": {
+        "dtls10": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18669",
+        "rate_limit_mbps": 1000.0
+      }
+    },
+    {
+      "category": "datagram-paced",
+      "connections": 1,
+      "description": "Paced 1000 Mbit/s encrypted datagram (scg-direct, 1 conn) at 16384 B.",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "paced_dtls12_udp_16KB_direct_1c",
+      "protocol": {
+        "type": "dtls",
+        "version": "1.0"
+      },
+      "requirements": {
+        "dtls10": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18669",
+        "rate_limit_mbps": 1000.0
+      }
+    }
+  ]
+}
