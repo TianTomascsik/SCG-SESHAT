@@ -1,0 +1,86 @@
+{
+  "suite": {
+    "author": "SESHAT",
+    "description": "routing_udp end-to-end verification",
+    "name": "SCG Generated Benchmark Matrix",
+    "version": "2.0.0"
+  },
+  "defaults": {
+    "auto_affinity": true,
+    "collect_system_metrics": true,
+    "confidence_level": 0.95,
+    "cooldown_secs": 1,
+    "duration_secs": 5,
+    "loss_threshold_pct": 1.0,
+    "metrics_backend": "procfs",
+    "metrics_sample_rate_hz": 5,
+    "outlier_removal": "iqr",
+    "runs": 3,
+    "warmup_secs": 2
+  },
+  "scenarios": [
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 64B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_udp_udp_64B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18642"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_routing_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18648"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_routing_udp_udp_1200B_scg_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18657"
+      }
+    }
+  ]
+}

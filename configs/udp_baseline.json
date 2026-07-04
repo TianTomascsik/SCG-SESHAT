@@ -1,0 +1,95 @@
+{
+  "suite": {
+    "name": "UDP routing baseline",
+    "version": "1.0.0",
+    "author": "SESHAT",
+    "description": "Plaintext UDP datagram loopback throughput baseline across the datagram size grid."
+  },
+  "defaults": {
+    "runs": 3,
+    "duration_secs": 5,
+    "warmup_secs": 2,
+    "cooldown_secs": 1,
+    "auto_affinity": true,
+    "collect_system_metrics": true,
+    "metrics_backend": "procfs",
+    "metrics_sample_rate_hz": 5,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95,
+    "loss_threshold_pct": 1.0
+  },
+  "scenarios": [
+    {
+      "name": "baseline_udp_loopback_64B",
+      "description": "Plaintext UDP datagram throughput baseline (direct loopback, no gateway) \u2014 the ceiling DTLS / UDP-over-TLS are measured against. The SCG gateway is TCP-routing-only, so a *gateway* UDP-routing baseline is not possible.",
+      "category": "baseline",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:0",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "baseline_udp_loopback_256B",
+      "description": "Plaintext UDP datagram throughput baseline (direct loopback, no gateway) \u2014 the ceiling DTLS / UDP-over-TLS are measured against. The SCG gateway is TCP-routing-only, so a *gateway* UDP-routing baseline is not possible.",
+      "category": "baseline",
+      "message_size_bytes": 256,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:0",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "baseline_udp_loopback_512B",
+      "description": "Plaintext UDP datagram throughput baseline (direct loopback, no gateway) \u2014 the ceiling DTLS / UDP-over-TLS are measured against. The SCG gateway is TCP-routing-only, so a *gateway* UDP-routing baseline is not possible.",
+      "category": "baseline",
+      "message_size_bytes": 512,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:0",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "baseline_udp_loopback_1200B",
+      "description": "Plaintext UDP datagram throughput baseline (direct loopback, no gateway) \u2014 the ceiling DTLS / UDP-over-TLS are measured against. The SCG gateway is TCP-routing-only, so a *gateway* UDP-routing baseline is not possible.",
+      "category": "baseline",
+      "message_size_bytes": 1200,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:0",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "baseline_udp_loopback_1400B",
+      "description": "Plaintext UDP datagram throughput baseline (direct loopback, no gateway) \u2014 the ceiling DTLS / UDP-over-TLS are measured against. The SCG gateway is TCP-routing-only, so a *gateway* UDP-routing baseline is not possible.",
+      "category": "baseline",
+      "message_size_bytes": 1400,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:0",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "baseline_udp_loopback_9KB",
+      "description": "Plaintext UDP datagram throughput baseline (direct loopback, no gateway) \u2014 the ceiling DTLS / UDP-over-TLS are measured against. The SCG gateway is TCP-routing-only, so a *gateway* UDP-routing baseline is not possible.",
+      "category": "baseline",
+      "message_size_bytes": 9000,
+      "connections": 1,
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:0",
+        "pattern": "sustained"
+      }
+    }
+  ]
+}

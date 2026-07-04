@@ -122,6 +122,13 @@ impl GatewayConfig {
 #[derive(Debug, Clone, Serialize)]
 pub struct ApiConfig {
     pub enabled: bool,
+    /// Control-plane endpoint-creation rate limit (requests per uid per minute;
+    /// `0` = unlimited). The isolated benchmark gateway legitimately provisions many
+    /// endpoints in a burst — a 64-connection UDS/SHM scenario creates dozens of
+    /// endpoints back-to-back — so we disable the limit here. The gateway's own default
+    /// (120/min) still protects real deployments; without this override the 64c UDS/SHM
+    /// scenarios fail with "endpoint-creation rate limit exceeded (120/min)".
+    pub create_rate_per_min: u32,
     pub uds_path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tcp_addr: Option<String>,
@@ -147,6 +154,9 @@ impl ApiConfig {
     pub fn new(uds_path: &str, runtime_dir: &str, shm_ring_capacity: usize) -> Self {
         ApiConfig {
             enabled: true,
+            // Isolated benchmark gateway: no control-plane DoS concern, and high-connection
+            // scenarios must be able to burst-provision endpoints. Production default stays 120.
+            create_rate_per_min: 0,
             uds_path: uds_path.to_string(),
             tcp_addr: None,
             runtime_dir: runtime_dir.to_string(),

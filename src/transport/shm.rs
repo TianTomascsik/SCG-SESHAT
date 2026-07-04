@@ -339,7 +339,14 @@ impl DuplexEnd for ShmNullServer {
 }
 pub struct GatewayShmTransport {
     name: &'static str,
+    /// Management socket of the encrypt gateway (also the single-gateway socket;
+    /// used by the hot-reload accessor).
     pub(crate) mgmt_socket: PathBuf,
+    /// Management socket of the decrypt gateway. Equals `mgmt_socket` for
+    /// single-gateway; distinct in scg-scg where encrypt (scg-a) and decrypt
+    /// (scg-b) are separate processes and each direction must be provisioned on
+    /// its own gateway's socket.
+    decrypt_mgmt_socket: PathBuf,
     app_id: String,
     ring_capacity: u64,
     running: Option<RunningPath>,
@@ -423,14 +430,22 @@ impl GatewayShmTransport {
         )
         .shm_tuning(tuning);
 
-        let gateways = match topology {
-            Topology::SingleGateway => vec![NamedGateway {
-                label: "scg".to_string(),
-                config: GatewayConfig::new(rules)
-                    .log_level("info")
-                    .allow_all()
-                    .api(api),
-            }],
+        // Encrypt endpoints are provisioned via `sock` (the encrypt gateway),
+        // decrypt endpoints via `decrypt_sock`. Single-gateway keeps both rules
+        // in one process so the sockets coincide; scg-scg splits encrypt onto
+        // scg-a (`sock`) and decrypt onto scg-b (`sock2`), so each direction must
+        // be provisioned on its own gateway's socket or it fails `not_found`.
+        let (gateways, decrypt_sock) = match topology {
+            Topology::SingleGateway => (
+                vec![NamedGateway {
+                    label: "scg".to_string(),
+                    config: GatewayConfig::new(rules)
+                        .log_level("info")
+                        .allow_all()
+                        .api(api),
+                }],
+                sock.clone(),
+            ),
             Topology::ScgToScg => {
                 let id2 = SHM_MGMT_ID.fetch_add(1, Ordering::Relaxed);
                 let runtime_dir2 = gateway::short_runtime_dir("ss", id2)?;
@@ -444,22 +459,25 @@ impl GatewayShmTransport {
                 let (encrypt_rules, decrypt_rules): (Vec<_>, Vec<_>) = rules
                     .into_iter()
                     .partition(|rule| rule.direction == "encrypt");
-                vec![
-                    NamedGateway {
-                        label: "scg-a".to_string(),
-                        config: GatewayConfig::new(encrypt_rules)
-                            .log_level("info")
-                            .allow_all()
-                            .api(api),
-                    },
-                    NamedGateway {
-                        label: "scg-b".to_string(),
-                        config: GatewayConfig::new(decrypt_rules)
-                            .log_level("info")
-                            .allow_all()
-                            .api(api2),
-                    },
-                ]
+                (
+                    vec![
+                        NamedGateway {
+                            label: "scg-a".to_string(),
+                            config: GatewayConfig::new(encrypt_rules)
+                                .log_level("info")
+                                .allow_all()
+                                .api(api),
+                        },
+                        NamedGateway {
+                            label: "scg-b".to_string(),
+                            config: GatewayConfig::new(decrypt_rules)
+                                .log_level("info")
+                                .allow_all()
+                                .api(api2),
+                        },
+                    ],
+                    sock2,
+                )
             }
         };
 
@@ -471,13 +489,10 @@ impl GatewayShmTransport {
 
         let running = gateway::start_path(&plan, binary, work_dir, READY_TIMEOUT, gateway_cores)?;
 
-        let mgmt_socket = running.mgmt_socket_path().ok_or_else(|| {
-            io::Error::other("gateway has no management socket path for SHM provisioning")
-        })?;
-
         Ok(GatewayShmTransport {
             name,
-            mgmt_socket,
+            mgmt_socket: sock,
+            decrypt_mgmt_socket: decrypt_sock,
             app_id: app_id.to_string(),
             ring_capacity: shm_ring as u64,
             running: Some(running),
@@ -489,16 +504,19 @@ impl GatewayShmTransport {
         _message_bytes: u32,
         class: TrafficClass,
     ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
-        let mgmt = MgmtClient::new(&self.mgmt_socket);
+        // Provision each direction on its own gateway's management socket; the
+        // two coincide for single-gateway and differ for scg-scg.
+        let decrypt_mgmt = MgmtClient::new(&self.decrypt_mgmt_socket);
+        let encrypt_mgmt = MgmtClient::new(&self.mgmt_socket);
 
         // The decrypt endpoint must be listening before encrypt performs its
         // initial TLS handshake; otherwise the retry backoff can consume an
         // entire short measurement window.
-        let decrypt_ep = mgmt
+        let decrypt_ep = decrypt_mgmt
             .create_shm(&self.app_id, class, Direction::Decrypt, self.ring_capacity)
             .map_err(io::Error::other)?;
 
-        let encrypt_ep = mgmt
+        let encrypt_ep = encrypt_mgmt
             .create_shm(&self.app_id, class, Direction::Encrypt, self.ring_capacity)
             .map_err(io::Error::other)?;
 
@@ -520,15 +538,16 @@ impl GatewayShmTransport {
         _message_bytes: u32,
         class: TrafficClass,
     ) -> io::Result<(Box<dyn DuplexEnd>, Box<dyn DuplexEnd>)> {
-        let mgmt = MgmtClient::new(&self.mgmt_socket);
+        let decrypt_mgmt = MgmtClient::new(&self.decrypt_mgmt_socket);
+        let encrypt_mgmt = MgmtClient::new(&self.mgmt_socket);
 
         // Same provisioning order as `loopback_pair`: the decrypt endpoint must
         // exist before encrypt performs its initial TLS handshake.
-        let decrypt_ep = mgmt
+        let decrypt_ep = decrypt_mgmt
             .create_shm(&self.app_id, class, Direction::Decrypt, self.ring_capacity)
             .map_err(io::Error::other)?;
 
-        let encrypt_ep = mgmt
+        let encrypt_ep = encrypt_mgmt
             .create_shm(&self.app_id, class, Direction::Encrypt, self.ring_capacity)
             .map_err(io::Error::other)?;
 
@@ -689,6 +708,46 @@ mod tests {
                 && r.listen_proto == "shm"
                 && r.traffic_class == "safety"
         }));
+    }
+
+    /// Regression + feature test: in scg-scg the encrypt endpoint was provisioned
+    /// on the decrypt-only process (single shared mgmt socket) and failed gRPC
+    /// `not_found`. With per-direction socket routing both endpoints provision
+    /// across the two gateways. Needs a working gateway binary; skips otherwise.
+    #[test]
+    fn shm_scg_to_scg_provisions_both_endpoints() {
+        let _guard = gateway::gateway_test_guard();
+        let work_dir =
+            std::env::temp_dir().join(format!("seshat-shm-scgscg-{}", std::process::id()));
+        let Some(binary) = gateway::locate_working_binary(&work_dir) else {
+            eprintln!("skip: no working gateway binary");
+            let _ = std::fs::remove_dir_all(&work_dir);
+            return;
+        };
+
+        let transport = GatewayShmTransport::start(
+            "shm",
+            &spec(),
+            Topology::ScgToScg,
+            &binary,
+            &work_dir,
+            &[],
+            "scgscg-shm-app",
+            0,
+            &crate::gateway::config::ShmTuning::default(),
+        )
+        .expect("shm scg-scg gateway pair starts");
+        assert_eq!(transport.pids().len(), 2, "scg-scg spawns two gateways");
+
+        let pair = transport.loopback_pair_for_class(256, TrafficClass::Normal);
+        assert!(
+            pair.is_ok(),
+            "scg-scg must provision both encrypt and decrypt endpoints: {:?}",
+            pair.err()
+        );
+
+        transport.shutdown().unwrap();
+        let _ = std::fs::remove_dir_all(&work_dir);
     }
 
     #[test]

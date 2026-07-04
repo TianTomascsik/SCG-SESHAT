@@ -86,12 +86,45 @@
       "requirements": ["openssl", "ktls"]
     },
     {
+      "id": "ktls_mtls12_tcp",
+      "protocol": { "type": "tls", "version": "1.2", "kernel": true, "mutual_auth": true },
+      "interfaces": ["tcp"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl", "ktls"]
+    },
+    {
+      "id": "ktls_mtls13_tcp",
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true, "mutual_auth": true },
+      "interfaces": ["tcp"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl", "ktls"]
+    },
+    {
       "id": "integrity_tls12_tcp",
       "protocol": { "type": "tls", "version": "1.2", "protection_mode": "integrity-only" },
       "interfaces": ["tcp"],
-      "chains": ["scg-direct"],
+      "chains": ["scg-direct", "scg-scg"],
       "tiers": ["canonical", "nightly"],
       "requirements": ["openssl"]
+    },
+    {
+      "id": "integrity_tls13_tcp",
+      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" },
+      "interfaces": ["tcp"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "routing_udp",
+      "protocol": { "type": "none", "protection_mode": "routing-only" },
+      "interfaces": ["udp"],
+      "chains": ["scg-direct", "scg-scg"],
+      "message_class": "datagram",
+      "connections": [1],
+      "tiers": ["canonical", "nightly"]
     },
     {
       "id": "dtls10_udp",
@@ -117,7 +150,7 @@
       "id": "dtls12_mtls_udp",
       "protocol": { "type": "dtls", "version": "1.2", "mutual_auth": true },
       "interfaces": ["udp"],
-      "chains": ["scg-direct"],
+      "chains": ["scg-direct", "scg-scg"],
       "message_class": "datagram",
       "connections": [1],
       "tiers": ["canonical", "nightly"],
@@ -127,7 +160,7 @@
       "id": "ale_tls13_udp",
       "protocol": { "type": "tls", "version": "1.3", "app_protocol": "ale" },
       "interfaces": ["udp"],
-      "chains": ["scg-direct"],
+      "chains": ["scg-direct", "scg-scg"],
       "message_class": "datagram",
       "connections": [1],
       "tiers": ["canonical", "nightly"],
@@ -137,7 +170,27 @@
       "id": "raw_tls13_udp",
       "protocol": { "type": "tls", "version": "1.3", "app_protocol": "raw" },
       "interfaces": ["udp"],
-      "chains": ["scg-direct"],
+      "chains": ["scg-direct", "scg-scg"],
+      "message_class": "datagram",
+      "connections": [1],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "ale_tls12_udp",
+      "protocol": { "type": "tls", "version": "1.2", "app_protocol": "ale" },
+      "interfaces": ["udp"],
+      "chains": ["scg-direct", "scg-scg"],
+      "message_class": "datagram",
+      "connections": [1],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "raw_tls12_udp",
+      "protocol": { "type": "tls", "version": "1.2", "app_protocol": "raw" },
+      "interfaces": ["udp"],
+      "chains": ["scg-direct", "scg-scg"],
       "message_class": "datagram",
       "connections": [1],
       "tiers": ["canonical", "nightly"],
@@ -147,14 +200,14 @@
       "id": "routing_uds",
       "protocol": { "type": "none", "protection_mode": "routing-only" },
       "interfaces": ["unix"],
-      "chains": ["scg-direct"],
+      "chains": ["scg-direct", "scg-scg"],
       "tiers": ["canonical", "nightly"]
     },
     {
       "id": "tls13_uds",
       "protocol": { "type": "tls", "version": "1.3" },
       "interfaces": ["unix"],
-      "chains": ["scg-direct"],
+      "chains": ["scg-direct", "scg-scg"],
       "tiers": ["canonical", "nightly"],
       "requirements": ["openssl"]
     },
@@ -162,33 +215,259 @@
       "id": "ktls_uds",
       "protocol": { "type": "tls", "version": "1.3", "kernel": true },
       "interfaces": ["unix"],
-      "chains": ["scg-direct"],
+      "chains": ["scg-direct", "scg-scg"],
       "tiers": ["canonical", "nightly"],
       "requirements": ["openssl", "ktls"]
+    },
+    {
+      "id": "tls12_uds",
+      "protocol": { "type": "tls", "version": "1.2" },
+      "interfaces": ["unix"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "mtls12_uds",
+      "protocol": { "type": "tls", "version": "1.2", "mutual_auth": true },
+      "interfaces": ["unix"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "mtls13_uds",
+      "protocol": { "type": "tls", "version": "1.3", "mutual_auth": true },
+      "interfaces": ["unix"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "ktls12_uds",
+      "protocol": { "type": "tls", "version": "1.2", "kernel": true },
+      "interfaces": ["unix"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl", "ktls"]
+    },
+    {
+      "id": "ktls_mtls12_uds",
+      "protocol": { "type": "tls", "version": "1.2", "kernel": true, "mutual_auth": true },
+      "interfaces": ["unix"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl", "ktls"]
+    },
+    {
+      "id": "ktls_mtls13_uds",
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true, "mutual_auth": true },
+      "interfaces": ["unix"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl", "ktls"]
+    },
+    {
+      "id": "integrity_tls12_uds",
+      "protocol": { "type": "tls", "version": "1.2", "protection_mode": "integrity-only" },
+      "interfaces": ["unix"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "integrity_tls13_uds",
+      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" },
+      "interfaces": ["unix"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
     },
     {
       "id": "routing_shm",
       "protocol": { "type": "none", "protection_mode": "routing-only" },
       "interfaces": ["shm"],
-      "chains": ["scg-direct"],
+      "chains": ["scg-direct", "scg-scg"],
       "tiers": ["canonical", "nightly"]
     },
     {
       "id": "ktls_shm",
       "protocol": { "type": "tls", "version": "1.3", "kernel": true },
       "interfaces": ["shm"],
-      "chains": ["scg-direct"],
+      "chains": ["scg-direct", "scg-scg"],
       "tiers": ["canonical", "nightly"],
       "requirements": ["openssl", "ktls"]
+    },
+    {
+      "id": "tls13_shm",
+      "protocol": { "type": "tls", "version": "1.3" },
+      "interfaces": ["shm"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "tls12_shm",
+      "protocol": { "type": "tls", "version": "1.2" },
+      "interfaces": ["shm"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "mtls12_shm",
+      "protocol": { "type": "tls", "version": "1.2", "mutual_auth": true },
+      "interfaces": ["shm"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "mtls13_shm",
+      "protocol": { "type": "tls", "version": "1.3", "mutual_auth": true },
+      "interfaces": ["shm"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "ktls12_shm",
+      "protocol": { "type": "tls", "version": "1.2", "kernel": true },
+      "interfaces": ["shm"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl", "ktls"]
+    },
+    {
+      "id": "ktls_mtls12_shm",
+      "protocol": { "type": "tls", "version": "1.2", "kernel": true, "mutual_auth": true },
+      "interfaces": ["shm"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl", "ktls"]
+    },
+    {
+      "id": "ktls_mtls13_shm",
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true, "mutual_auth": true },
+      "interfaces": ["shm"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl", "ktls"]
+    },
+    {
+      "id": "integrity_tls12_shm",
+      "protocol": { "type": "tls", "version": "1.2", "protection_mode": "integrity-only" },
+      "interfaces": ["shm"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
+    },
+    {
+      "id": "integrity_tls13_shm",
+      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" },
+      "interfaces": ["shm"],
+      "chains": ["scg-direct", "scg-scg"],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["openssl"]
     },
     {
       "id": "routing_tproxy",
       "protocol": { "type": "none", "protection_mode": "routing-only" },
       "interfaces": ["tproxy"],
       "chains": ["scg-direct"],
-      "connections": [1],
+      "connections": [1, 4, 16, 64],
       "tiers": ["canonical", "nightly"],
       "requirements": ["cap_net_admin"]
+    },
+    {
+      "id": "tls12_tproxy",
+      "protocol": { "type": "tls", "version": "1.2" },
+      "interfaces": ["tproxy"],
+      "chains": ["scg-direct", "scg-scg"],
+      "connections": [1, 4, 16, 64],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["cap_net_admin", "openssl"]
+    },
+    {
+      "id": "tls13_tproxy",
+      "protocol": { "type": "tls", "version": "1.3" },
+      "interfaces": ["tproxy"],
+      "chains": ["scg-direct", "scg-scg"],
+      "connections": [1, 4, 16, 64],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["cap_net_admin", "openssl"]
+    },
+    {
+      "id": "mtls12_tproxy",
+      "protocol": { "type": "tls", "version": "1.2", "mutual_auth": true },
+      "interfaces": ["tproxy"],
+      "chains": ["scg-direct", "scg-scg"],
+      "connections": [1, 4, 16, 64],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["cap_net_admin", "openssl"]
+    },
+    {
+      "id": "mtls13_tproxy",
+      "protocol": { "type": "tls", "version": "1.3", "mutual_auth": true },
+      "interfaces": ["tproxy"],
+      "chains": ["scg-direct", "scg-scg"],
+      "connections": [1, 4, 16, 64],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["cap_net_admin", "openssl"]
+    },
+    {
+      "id": "ktls12_tproxy",
+      "protocol": { "type": "tls", "version": "1.2", "kernel": true },
+      "interfaces": ["tproxy"],
+      "chains": ["scg-direct", "scg-scg"],
+      "connections": [1, 4, 16, 64],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["cap_net_admin", "openssl", "ktls"]
+    },
+    {
+      "id": "ktls13_tproxy",
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true },
+      "interfaces": ["tproxy"],
+      "chains": ["scg-direct", "scg-scg"],
+      "connections": [1, 4, 16, 64],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["cap_net_admin", "openssl", "ktls"]
+    },
+    {
+      "id": "ktls_mtls12_tproxy",
+      "protocol": { "type": "tls", "version": "1.2", "kernel": true, "mutual_auth": true },
+      "interfaces": ["tproxy"],
+      "chains": ["scg-direct", "scg-scg"],
+      "connections": [1, 4, 16, 64],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["cap_net_admin", "openssl", "ktls"]
+    },
+    {
+      "id": "ktls_mtls13_tproxy",
+      "protocol": { "type": "tls", "version": "1.3", "kernel": true, "mutual_auth": true },
+      "interfaces": ["tproxy"],
+      "chains": ["scg-direct", "scg-scg"],
+      "connections": [1, 4, 16, 64],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["cap_net_admin", "openssl", "ktls"]
+    },
+    {
+      "id": "integrity_tls12_tproxy",
+      "protocol": { "type": "tls", "version": "1.2", "protection_mode": "integrity-only" },
+      "interfaces": ["tproxy"],
+      "chains": ["scg-direct", "scg-scg"],
+      "connections": [1, 4, 16, 64],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["cap_net_admin", "openssl"]
+    },
+    {
+      "id": "integrity_tls13_tproxy",
+      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" },
+      "interfaces": ["tproxy"],
+      "chains": ["scg-direct", "scg-scg"],
+      "connections": [1, 4, 16, 64],
+      "tiers": ["canonical", "nightly"],
+      "requirements": ["cap_net_admin", "openssl"]
     }
   ],
   "cipher_matrix": {
@@ -228,12 +507,6 @@
     "latency_fraction": 0.5
   },
   "limitations": [
-    {
-      "name": "ktls_mtls",
-      "reason": "SCG falls back to userspace TLS when mutual authentication is requested; this is not a valid kTLS benchmark",
-      "interface": "tcp",
-      "protocol": { "type": "tls", "version": "1.3", "kernel": true, "mutual_auth": true }
-    },
     {
       "name": "dtls_multi_connection",
       "reason": "The DTLS gateway transport has one shared backend datagram flow and cannot report independent parallel connections correctly",

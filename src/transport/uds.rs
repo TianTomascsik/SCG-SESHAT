@@ -204,7 +204,14 @@ impl DuplexEnd for UdsNullServer {
 /// interface, provisioned via the gRPC management API.
 pub struct GatewayUdsTransport {
     name: &'static str,
+    /// Management socket of the encrypt gateway (also the single-gateway socket;
+    /// used by the hot-reload accessor).
     pub(crate) mgmt_socket: PathBuf,
+    /// Management socket of the decrypt gateway. Equals `mgmt_socket` in the
+    /// single-gateway topology; distinct in scg-scg where encrypt (scg-a) and
+    /// decrypt (scg-b) run as separate processes and each direction must be
+    /// provisioned on its own gateway's socket.
+    decrypt_mgmt_socket: PathBuf,
     app_id: String,
     running: Option<RunningPath>,
 }
@@ -281,14 +288,24 @@ impl GatewayUdsTransport {
             1024 * 1024,
         );
 
-        let gateways = match topology {
-            Topology::SingleGateway => vec![NamedGateway {
-                label: "scg".to_string(),
-                config: GatewayConfig::new(rules)
-                    .log_level("info")
-                    .allow_all()
-                    .api(api),
-            }],
+        // Encrypt endpoints are provisioned via `sock` (the encrypt gateway),
+        // decrypt endpoints via `decrypt_sock`. In the single-gateway topology
+        // both rules live in one process, so the two sockets coincide. In scg-scg
+        // the encrypt rule runs on scg-a (`sock`) and the decrypt rule on scg-b
+        // (`sock2`), so each direction MUST be provisioned on its own gateway's
+        // socket — provisioning the encrypt endpoint on the decrypt-only process
+        // fails `not_found` (that process carries no encrypt rule).
+        let (gateways, decrypt_sock) = match topology {
+            Topology::SingleGateway => (
+                vec![NamedGateway {
+                    label: "scg".to_string(),
+                    config: GatewayConfig::new(rules)
+                        .log_level("info")
+                        .allow_all()
+                        .api(api),
+                }],
+                sock.clone(),
+            ),
             Topology::ScgToScg => {
                 let id2 = UDS_MGMT_ID.fetch_add(1, Ordering::Relaxed);
                 let runtime_dir2 = gateway::short_runtime_dir("su", id2)?;
@@ -301,22 +318,25 @@ impl GatewayUdsTransport {
                 let (encrypt_rules, decrypt_rules): (Vec<_>, Vec<_>) = rules
                     .into_iter()
                     .partition(|rule| rule.direction == "encrypt");
-                vec![
-                    NamedGateway {
-                        label: "scg-a".to_string(),
-                        config: GatewayConfig::new(encrypt_rules)
-                            .log_level("info")
-                            .allow_all()
-                            .api(api),
-                    },
-                    NamedGateway {
-                        label: "scg-b".to_string(),
-                        config: GatewayConfig::new(decrypt_rules)
-                            .log_level("info")
-                            .allow_all()
-                            .api(api2),
-                    },
-                ]
+                (
+                    vec![
+                        NamedGateway {
+                            label: "scg-a".to_string(),
+                            config: GatewayConfig::new(encrypt_rules)
+                                .log_level("info")
+                                .allow_all()
+                                .api(api),
+                        },
+                        NamedGateway {
+                            label: "scg-b".to_string(),
+                            config: GatewayConfig::new(decrypt_rules)
+                                .log_level("info")
+                                .allow_all()
+                                .api(api2),
+                        },
+                    ],
+                    sock2,
+                )
             }
         };
 
@@ -328,14 +348,10 @@ impl GatewayUdsTransport {
 
         let running = gateway::start_path(&plan, binary, work_dir, READY_TIMEOUT, gateway_cores)?;
 
-        // Discover the management socket path from the running gateway.
-        let mgmt_socket = running.mgmt_socket_path().ok_or_else(|| {
-            io::Error::other("gateway has no management socket path for UDS provisioning")
-        })?;
-
         Ok(GatewayUdsTransport {
             name,
-            mgmt_socket,
+            mgmt_socket: sock,
+            decrypt_mgmt_socket: decrypt_sock,
             app_id: app_id.to_string(),
             running: Some(running),
         })
@@ -346,17 +362,20 @@ impl GatewayUdsTransport {
         _message_bytes: u32,
         class: TrafficClass,
     ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
-        let mgmt = MgmtClient::new(&self.mgmt_socket);
+        // Provision each direction on its own gateway's management socket; the
+        // two coincide for single-gateway and differ for scg-scg.
+        let decrypt_mgmt = MgmtClient::new(&self.decrypt_mgmt_socket);
+        let encrypt_mgmt = MgmtClient::new(&self.mgmt_socket);
 
         // Bring up the decrypt listener first. The encrypt endpoint dials it as
         // part of its initial TLS handshake; provisioning encrypt first makes
         // its first connect race a closed port and adds a one-second retry,
         // which used to consume an entire short benchmark window.
-        let decrypt_ep = mgmt
+        let decrypt_ep = decrypt_mgmt
             .create_uds(&self.app_id, class, Direction::Decrypt)
             .map_err(io::Error::other)?;
 
-        let encrypt_ep = mgmt
+        let encrypt_ep = encrypt_mgmt
             .create_uds(&self.app_id, class, Direction::Encrypt)
             .map_err(io::Error::other)?;
 
@@ -377,13 +396,14 @@ impl GatewayUdsTransport {
         _message_bytes: u32,
         class: TrafficClass,
     ) -> io::Result<(Box<dyn DuplexEnd>, Box<dyn DuplexEnd>)> {
-        let mgmt = MgmtClient::new(&self.mgmt_socket);
+        let decrypt_mgmt = MgmtClient::new(&self.decrypt_mgmt_socket);
+        let encrypt_mgmt = MgmtClient::new(&self.mgmt_socket);
 
-        let decrypt_ep = mgmt
+        let decrypt_ep = decrypt_mgmt
             .create_uds(&self.app_id, class, Direction::Decrypt)
             .map_err(io::Error::other)?;
 
-        let encrypt_ep = mgmt
+        let encrypt_ep = encrypt_mgmt
             .create_uds(&self.app_id, class, Direction::Encrypt)
             .map_err(io::Error::other)?;
 
@@ -555,5 +575,44 @@ mod tests {
             traffic_class_from_label("non-safety").unwrap(),
             TrafficClass::Normal
         );
+    }
+
+    /// Regression + feature test: in scg-scg the encrypt endpoint was provisioned
+    /// on the decrypt-only process (a single shared mgmt socket) and failed gRPC
+    /// `not_found`. With per-direction socket routing, both endpoints provision
+    /// across the two gateways. Needs a working gateway binary; skips otherwise.
+    #[test]
+    fn uds_scg_to_scg_provisions_both_endpoints() {
+        let _guard = gateway::gateway_test_guard();
+        let work_dir =
+            std::env::temp_dir().join(format!("seshat-uds-scgscg-{}", std::process::id()));
+        let Some(binary) = gateway::locate_working_binary(&work_dir) else {
+            eprintln!("skip: no working gateway binary");
+            let _ = std::fs::remove_dir_all(&work_dir);
+            return;
+        };
+
+        let transport = GatewayUdsTransport::start(
+            "uds",
+            &spec(),
+            Topology::ScgToScg,
+            &binary,
+            &work_dir,
+            &[],
+            "scgscg-app",
+        )
+        .expect("uds scg-scg gateway pair starts");
+        assert_eq!(transport.pids().len(), 2, "scg-scg spawns two gateways");
+
+        // The call that previously failed `not_found` on the encrypt direction.
+        let pair = transport.loopback_pair_for_class(256, TrafficClass::Normal);
+        assert!(
+            pair.is_ok(),
+            "scg-scg must provision both encrypt and decrypt endpoints: {:?}",
+            pair.err()
+        );
+
+        transport.shutdown().unwrap();
+        let _ = std::fs::remove_dir_all(&work_dir);
     }
 }

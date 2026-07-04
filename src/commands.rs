@@ -821,8 +821,10 @@ fn loopback_transport(s: &Scenario) -> Option<Box<dyn Transport>> {
 /// time, so this only records the protocol decision).
 #[derive(Debug, Clone, Copy)]
 enum GwSecurity {
-    /// Plaintext L4 routing (no crypto).
+    /// Plaintext L4 routing over TCP (no crypto).
     Routing,
+    /// Plaintext L4 routing over UDP datagrams (no crypto).
+    RoutingUdp,
     /// TLS, optionally kernel-offloaded (kTLS), at the given gateway version.
     Tls { version: &'static str, ktls: bool },
     /// Mutual TLS: both peers present a certificate verified against a CA.
@@ -954,7 +956,20 @@ fn server_identity_for_scenario(
 /// Pick the generated server cert's key algorithm so it satisfies the scenario's
 /// cipher-suite authentication: `ECDHE-RSA` (TLS 1.2) suites require an RSA cert,
 /// everything else (ECDHE-ECDSA, auth-agnostic TLS 1.3) uses EC P-256.
+///
+/// An explicit `cert_key_type` on the protocol overrides this derivation — used by
+/// the handshake-algorithm sweep to compare RSA-2048 vs ECDSA-P256 auth cost at an
+/// auth-agnostic protocol (TLS 1.3), where the cipher alone would not vary the cert.
 fn server_key_type_for_scenario(scenario: &Scenario) -> crate::pki::KeyType {
+    if let Some(explicit) = scenario.protocol.cert_key_type.as_deref() {
+        match explicit.to_ascii_lowercase().as_str() {
+            "rsa" | "rsa2048" => return crate::pki::KeyType::Rsa2048,
+            "ecdsa" | "ec" | "ecp256" | "ecdsa-p256" | "p256" => {
+                return crate::pki::KeyType::EcP256
+            }
+            _ => {} // unrecognized → fall through to the cipher-derived default
+        }
+    }
     match scenario.protocol.cipher_suite.as_deref() {
         Some(cipher) if cipher_requires_rsa_auth(cipher) => crate::pki::KeyType::Rsa2048,
         _ => crate::pki::KeyType::EcP256,
@@ -993,6 +1008,9 @@ fn mtls_bundle_for_scenario(
 
 fn apply_protocol_security_overrides(mut spec: SecuritySpec, scenario: &Scenario) -> SecuritySpec {
     spec = apply_cipher_override(spec, scenario);
+    if let Some(group) = scenario.protocol.kex_group.as_deref() {
+        spec = spec.with_groups(group);
+    }
     spec = match (&scenario.protocol.psk_identity, &scenario.protocol.psk_hex) {
         (Some(identity), Some(hex_key)) => spec.with_psk(identity, hex_key),
         _ => spec,
@@ -1011,6 +1029,7 @@ fn build_security_spec(
 ) -> Result<SecuritySpec, Box<dyn std::error::Error>> {
     let spec = match plan.security {
         GwSecurity::Routing => SecuritySpec::routing_tcp(),
+        GwSecurity::RoutingUdp => SecuritySpec::routing_udp(),
         GwSecurity::Tls { version, ktls } => {
             let id = server_identity_for_scenario(scenario, work_dir, "TLS")?;
             let mut s = SecuritySpec::tls_server(version, &id.cert, &id.key);
@@ -1164,6 +1183,20 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
         });
     }
 
+    // Plaintext UDP routing (no crypto): the gateway's routing provider binds a
+    // UDP listener and forwards datagrams verbatim to a UDP upstream. Must precede
+    // the TCP-only guard below (which the crypto short-circuit sits under).
+    if sender.interface == Interface::Udp
+        && (s.protocol.kind == ProtocolType::None
+            || s.protocol.protection_mode == ProtectionMode::RoutingOnly)
+    {
+        return Some(GatewayPlan {
+            security: GwSecurity::RoutingUdp,
+            topology,
+            transport_name: "scg-udp-routing",
+        });
+    }
+
     if sender.interface != Interface::Tcp {
         return None;
     }
@@ -1224,6 +1257,35 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
         // DTLS is handled above (UDP); WireGuard and IPSec are disabled paths.
         _ => None,
     }
+}
+
+/// Management `app_id` for a UDS/SHM gateway scenario, bounded in length.
+///
+/// UDS/SHM endpoint sockets embed the (sanitized) app-id in a Unix-socket path
+/// (`<runtime_dir>/<app_id>.<class>.<direction>.<id>.sock`), and that path is
+/// capped by `SUN_LEN` (~108 bytes). The longest matrix-latency scenario names —
+/// e.g. `matrix_lat_integrity_tls13_shm_shm_1KB_direct_1c` — overflow it and the
+/// endpoint provisioning fails, silently dropping several protocols from the
+/// UDS/SHM latency grid. Names that fit are used verbatim (readable in gateway
+/// logs); longer ones fall back to a readable head plus a stable, deterministic
+/// hash tail so the id stays short *and* unique per scenario.
+fn scenario_app_id(scenario_name: &str) -> String {
+    use std::hash::{Hash, Hasher};
+    // Conservative budget: with a ≤32-byte runtime dir and the
+    // `.<class>.<direction>.<id>.sock` suffix (~26 bytes), a ≤40-byte app-id
+    // keeps the whole socket path well under SUN_LEN on both UDS and SHM.
+    const MAX: usize = 40;
+    let full = format!("seshat-{}", sanitize(scenario_name));
+    if full.len() <= MAX {
+        return full;
+    }
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    scenario_name.hash(&mut hasher);
+    let digest = hasher.finish();
+    // 8 hex digits of hash + `seshat-` (7) + `-` (1) = 16 fixed bytes; fill the
+    // rest of the budget with a readable head of the sanitized name.
+    let head: String = sanitize(scenario_name).chars().take(MAX - 16).collect();
+    format!("seshat-{head}-{digest:08x}")
 }
 
 /// Run one scenario through the SCG. Returns `Ok(None)` when the scenario was
@@ -1397,14 +1459,17 @@ fn run_gateway_scenario(
     // endpoints; everything else over TCP. All wrap into a `GatewayDut` so PID
     // sampling, the run engine, and shutdown stay uniform. The gateway is pinned
     // to its own core pool so it never contends with the harness sender/receiver.
-    let is_udp = matches!(plan.security, GwSecurity::Dtls { .. });
+    // DTLS and plaintext UDP routing both run over `GatewayUdpTransport` (native
+    // datagrams); the ALE/RAW UDP-over-TLS tunnels are handled by `is_ale_raw`.
+    let is_udp = matches!(plan.security, GwSecurity::Dtls { .. })
+        || plan.transport_name == "scg-udp-routing";
     let is_uds = plan.transport_name == "scg-uds";
     let is_shm = plan.transport_name == "scg-shm";
     let is_tproxy = plan.transport_name == "scg-tproxy";
     let is_ale_raw = matches!(plan.transport_name, "scg-udp-ale" | "scg-udp-raw");
 
     let dut = if is_uds {
-        let app_id = format!("seshat-{}", sanitize(&scenario.name));
+        let app_id = scenario_app_id(&scenario.name);
         match GatewayUdsTransport::start(
             plan.transport_name,
             &spec,
@@ -1426,7 +1491,7 @@ fn run_gateway_scenario(
             }
         }
     } else if is_shm {
-        let app_id = format!("seshat-{}", sanitize(&scenario.name));
+        let app_id = scenario_app_id(&scenario.name);
         // Ring capacity: scenario override, else 1 MiB. Enlarging the ring is
         // opt-in (via optimization_flags.shm_ring_capacity) because a deeper
         // ring inflates queueing latency for open-loop "sustained" senders.
@@ -1497,7 +1562,15 @@ fn run_gateway_scenario(
         }
     } else if is_tproxy {
         use crate::transport::tproxy::TproxyTransport;
-        match TproxyTransport::start(plan.transport_name, binary, &work_dir) {
+        match TproxyTransport::start(
+            plan.transport_name,
+            &spec,
+            plan.topology,
+            binary,
+            &work_dir,
+            &cores.gateway,
+            params.connections,
+        ) {
             Ok(t) => GatewayDut::Tproxy(t),
             Err(e) => {
                 if e.kind() == std::io::ErrorKind::PermissionDenied {

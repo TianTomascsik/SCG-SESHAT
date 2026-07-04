@@ -2,9 +2,9 @@
   "$schema": "seshat-config-v1",
   "suite": {
     "name": "SCG Saturation Suite",
-    "description": "Offered-load sweeps (Phase D). Each scenario first runs its headline fixed-load measurement, then sweeps offered load (sustained at each rate) to map the throughput curve and find the knee: saturation_gbps is the raw ceiling, max_lossfree_gbps is the highest goodput within the loss budget (defaults.loss_threshold_pct). Headline senders here blast unthrottled on purpose, so loss-prone paths (UDP/DTLS) are flagged 'overloaded' while the sweep reports the real sustainable rate. Per-point curves land in scenarios/<name>/saturation.csv.",
+    "description": "Offered-load sweeps (Phase D) as a 3x2 factorial: {loopback, gateway-routing, gateway-crypto} x {TCP, UDP}, all at 1 KB / 1 connection over a SHARED offered-load range so the curves are directly comparable. The three rows decompose the degradation: (routing - loopback) is the gateway's plaintext forwarding cost, (crypto - routing) is the crypto cost, and TCP-vs-UDP within a row isolates the transport at equal crypto. Each scenario first runs its headline fixed-load measurement, then sweeps offered load (sustained at each rate) to map the throughput curve and find the knee: saturation_gbps is the raw ceiling, max_lossfree_gbps is the highest goodput within the loss budget (defaults.loss_threshold_pct). Headline senders here blast unthrottled on purpose, so loss-prone paths (UDP/DTLS) are flagged 'overloaded' while the sweep reports the real sustainable rate. Per-point curves land in scenarios/<name>/saturation.csv.",
     "author": "SESHAT",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "defaults": {
     "runs": 2,
@@ -23,12 +23,12 @@
   },
   "scenarios": [
     {
-      "name": "sat_tcp_loopback_1KB",
-      "description": "Offered-load sweep over direct TCP loopback to find the loss-free ceiling.",
+      "name": "sat_loopback_tcp_1KB",
+      "description": "Row 1 (kernel baseline), TCP: offered-load sweep over direct TCP loopback, no gateway.",
       "category": "saturation",
       "message_size_bytes": 1024,
       "connections": 1,
-      "saturation": { "start_mbps": 1000, "step_mbps": 1000, "max_mbps": 8000 },
+      "saturation": { "start_mbps": 500, "step_mbps": 500, "max_mbps": 8000 },
       "sender": {
         "interface": "tcp",
         "target_addr": "127.0.0.1:13000",
@@ -36,12 +36,12 @@
       }
     },
     {
-      "name": "sat_udp_loopback_1KB",
-      "description": "Offered-load sweep over direct UDP loopback to find the loss-free ceiling.",
+      "name": "sat_loopback_udp_1KB",
+      "description": "Row 1 (kernel baseline), UDP: offered-load sweep over direct UDP loopback, no gateway.",
       "category": "saturation",
       "message_size_bytes": 1024,
       "connections": 1,
-      "saturation": { "start_mbps": 1000, "step_mbps": 1000, "max_mbps": 8000 },
+      "saturation": { "start_mbps": 500, "step_mbps": 500, "max_mbps": 8000 },
       "sender": {
         "interface": "udp",
         "target_addr": "127.0.0.1:13001",
@@ -49,14 +49,14 @@
       }
     },
     {
-      "name": "sat_scg_routing_tcp_1KB",
-      "description": "Offered-load sweep through the SCG (plaintext TCP routing) to find the loss-free ceiling.",
+      "name": "sat_gw_routing_tcp_1KB",
+      "description": "Row 2 (gateway plaintext forwarding), TCP: offered-load sweep through the SCG doing plaintext TCP routing. (routing - loopback) = gateway forwarding cost.",
       "category": "saturation",
       "message_size_bytes": 1024,
       "connections": 1,
       "gateway": { "enabled": true, "chain": "scg-direct" },
-      "protocol": { "type": "none" },
-      "saturation": { "start_mbps": 500, "step_mbps": 500, "max_mbps": 4000 },
+      "protocol": { "type": "none", "protection_mode": "routing-only" },
+      "saturation": { "start_mbps": 500, "step_mbps": 500, "max_mbps": 8000 },
       "sender": {
         "interface": "tcp",
         "target_addr": "127.0.0.1:13010",
@@ -64,14 +64,44 @@
       }
     },
     {
-      "name": "sat_scg_dtls12_udp_1KB",
-      "description": "Offered-load sweep through the SCG with DTLS 1.2 to find the loss-free ceiling.",
+      "name": "sat_gw_routing_udp_1KB",
+      "description": "Row 2 (gateway plaintext forwarding), UDP: offered-load sweep through the SCG doing plaintext multi-client UDP routing. De-confounds the transport axis from crypto (its TCP peer is plaintext too).",
+      "category": "saturation",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none", "protection_mode": "routing-only" },
+      "saturation": { "start_mbps": 500, "step_mbps": 500, "max_mbps": 8000 },
+      "sender": {
+        "interface": "udp",
+        "target_addr": "127.0.0.1:13011",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "sat_gw_tls13_tcp_1KB",
+      "description": "Row 3 (gateway crypto), TCP: offered-load sweep through the SCG with TLS 1.3 (AES-GCM). (crypto - routing) = crypto cost on TCP.",
+      "category": "saturation",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "tls", "version": "1.3" },
+      "saturation": { "start_mbps": 500, "step_mbps": 500, "max_mbps": 8000 },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:13020",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "sat_gw_dtls12_udp_1KB",
+      "description": "Row 3 (gateway crypto), UDP: offered-load sweep through the SCG with DTLS 1.2 (AES-GCM). (crypto - routing) = crypto cost on UDP; the only path expected to shed load by packet loss.",
       "category": "saturation",
       "message_size_bytes": 1024,
       "connections": 1,
       "gateway": { "enabled": true, "chain": "scg-direct" },
       "protocol": { "type": "dtls", "version": "1.2" },
-      "saturation": { "start_mbps": 500, "step_mbps": 500, "max_mbps": 4000 },
+      "saturation": { "start_mbps": 500, "step_mbps": 500, "max_mbps": 8000 },
       "sender": {
         "interface": "udp",
         "target_addr": "127.0.0.1:13030",

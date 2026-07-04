@@ -314,32 +314,92 @@ fn validate_spec(spec: &MatrixSpec) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// The message-size grid for a cipher sweep: one canonical size for the smoke tier, otherwise
+/// the `preferred` sizes that the dimension actually declares (so the AEAD choice can be compared
+/// at more than one payload — F20 renders cost vs message size, not a single cell).
+fn cipher_size_grid(tier: Tier, canonical: u32, all: &[u32], preferred: &[u32]) -> Vec<u32> {
+    if tier == Tier::Canonical {
+        return vec![canonical];
+    }
+    let grid: Vec<u32> = all
+        .iter()
+        .copied()
+        .filter(|b| preferred.contains(b))
+        .collect();
+    if grid.is_empty() {
+        vec![canonical]
+    } else {
+        grid
+    }
+}
+
+/// Push one cipher-sweep scenario (always through the gateway, scg-direct, 1 connection). The
+/// canonical-size row is suffix-free so existing references stay stable; other sizes carry a
+/// `_<n>B` token (the loader strips it back to the suite).
+#[allow(clippy::too_many_arguments)]
+fn push_cipher_scenario(
+    scenarios: &mut Vec<Value>,
+    names: &mut BTreeSet<String>,
+    base: &str,
+    interface: &str,
+    protocol: Value,
+    requirements: &[String],
+    size: u32,
+    canonical_size: u32,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let name = if size == canonical_size {
+        base.to_string()
+    } else {
+        format!("{base}_{size}B")
+    };
+    let ordinal = scenarios.len();
+    push_unique(
+        scenarios,
+        names,
+        name,
+        scenario(
+            "cipher",
+            "cipher-matrix",
+            interface,
+            &protocol,
+            true,
+            "scg-direct",
+            size,
+            1,
+            requirements,
+            None,
+            ordinal,
+        ),
+    )
+}
+
 fn append_cipher_scenarios(
     scenarios: &mut Vec<Value>,
     names: &mut BTreeSet<String>,
     spec: &MatrixSpec,
     tier: Tier,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Canonical: one representative cipher per version at the canonical size (cheap smoke).
-    // Nightly/Catalog: every cipher across a small stream-size grid so the AEAD choice can be
-    // compared at more than one payload (F20 — cipher cost vs message size, not a single cell).
-    let canonical_size = spec.dimensions.canonical_stream_message_size;
-    let sizes: Vec<u32> = if tier == Tier::Canonical {
-        vec![canonical_size]
-    } else {
-        let grid: Vec<u32> = spec
-            .dimensions
-            .stream_message_sizes
-            .iter()
-            .copied()
-            .filter(|&b| b == 1024 || b == canonical_size || b == 16384)
-            .collect();
-        if grid.is_empty() {
-            vec![canonical_size]
-        } else {
-            grid
-        }
-    };
+    // Same AEAD sweep on every path the gateway can carry a chosen cipher on, so F20 can show the
+    // AES-NI-vs-software ranking is transport/path-independent: userspace TLS and kernel-offloaded
+    // kTLS over TCP (stream sizes), and DTLS 1.2 over UDP (datagram sizes; DTLS 1.2 shares the
+    // TLS 1.2 AEAD suite names). Canonical tier keeps one cipher/size per path as a cheap smoke.
+    let canonical_stream = spec.dimensions.canonical_stream_message_size;
+    let stream_sizes = cipher_size_grid(
+        tier,
+        canonical_stream,
+        &spec.dimensions.stream_message_sizes,
+        &[1024, canonical_stream, 16384],
+    );
+    let canonical_dgram = spec.dimensions.canonical_datagram_message_size;
+    // Cap DTLS datagram sizes at the no-fragmentation MTU band so the sweep measures the AEAD, not
+    // IP-fragmentation/reassembly cost.
+    let dgram_sizes = cipher_size_grid(
+        tier,
+        canonical_dgram,
+        &spec.dimensions.datagram_message_sizes,
+        &[256, canonical_dgram, 1400],
+    );
+
     for (version, suites) in [
         ("1.2", &spec.cipher_matrix.tls12),
         ("1.3", &spec.cipher_matrix.tls13),
@@ -349,40 +409,135 @@ fn append_cipher_scenarios(
         } else {
             suites.len()
         };
+        let vshort = version.replace('.', "");
         for suite in suites.iter().take(count) {
-            for &size in &sizes {
-                let base = format!(
-                    "cipher_tls{}_{}",
-                    version.replace('.', ""),
-                    sanitize_name(suite)
-                );
-                // Keep the canonical-size name suffix-free so existing references are stable;
-                // other sizes carry a `_<n>B` token (the loader strips it back to the suite).
-                let name = if size == canonical_size {
-                    base
-                } else {
-                    format!("{base}_{size}B")
-                };
-                let ordinal = scenarios.len();
-                push_unique(
+            for &size in &stream_sizes {
+                // Userspace TLS.
+                push_cipher_scenario(
                     scenarios,
                     names,
-                    name,
-                    scenario(
-                        "cipher",
-                        "cipher-matrix",
-                        "tcp",
-                        &json!({ "type": "tls", "version": version, "cipher_suite": suite }),
-                        true,
-                        "scg-direct",
-                        size,
-                        1,
-                        &["openssl".to_string()],
-                        None,
-                        ordinal,
-                    ),
+                    &format!("cipher_tls{vshort}_{}", sanitize_name(suite)),
+                    "tcp",
+                    json!({ "type": "tls", "version": version, "cipher_suite": suite }),
+                    &["openssl".to_string()],
+                    size,
+                    canonical_stream,
+                )?;
+                // Kernel TLS: kTLS offloads whatever cipher OpenSSL negotiated, so the same
+                // ciphersuites/cipher_list config selects the kernel AEAD. Only AEAD suites are
+                // offloadable; a non-offloadable pick degrades to userspace (logged) rather than
+                // failing, so the sweep stays valid.
+                push_cipher_scenario(
+                    scenarios,
+                    names,
+                    &format!("cipher_ktls{vshort}_{}", sanitize_name(suite)),
+                    "tcp",
+                    json!({ "type": "tls", "kernel": true, "version": version, "cipher_suite": suite }),
+                    &["openssl".to_string(), "ktls".to_string()],
+                    size,
+                    canonical_stream,
                 )?;
             }
+        }
+    }
+
+    // DTLS 1.2 over UDP (shares the TLS 1.2 ECDHE-RSA AEAD suite names; DTLS 1.2 uses the
+    // TLS-1.2-style cipher-list API the gateway applies via set_dtls_cipher_list).
+    let dtls_suites = &spec.cipher_matrix.tls12;
+    let dtls_count = if tier == Tier::Canonical {
+        1
+    } else {
+        dtls_suites.len()
+    };
+    for suite in dtls_suites.iter().take(dtls_count) {
+        for &size in &dgram_sizes {
+            push_cipher_scenario(
+                scenarios,
+                names,
+                &format!("cipher_dtls12_{}", sanitize_name(suite)),
+                "udp",
+                json!({ "type": "dtls", "version": "1.2", "cipher_suite": suite }),
+                &["openssl".to_string()],
+                size,
+                canonical_dgram,
+            )?;
+        }
+    }
+    Ok(())
+}
+
+/// Push one connection-rate handshake row (TLS 1.3, TCP, through the gateway, 64 B). `connrate`
+/// mode reports connections/sec + handshake p50/p99. The canonical churn width (4) is suffix-free.
+fn push_connrate_handshake(
+    scenarios: &mut Vec<Value>,
+    names: &mut BTreeSet<String>,
+    base: &str,
+    protocol: Value,
+    c: u32,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let name = if c == 4 {
+        base.to_string()
+    } else {
+        format!("{base}_{c}c")
+    };
+    let ordinal = scenarios.len();
+    let mut row = scenario(
+        "handshake",
+        "handshake-auth",
+        "tcp",
+        &protocol,
+        true,
+        "scg-direct",
+        64,
+        c,
+        &["openssl".to_string()],
+        None,
+        ordinal,
+    );
+    row.as_object_mut()
+        .expect("scenario object")
+        .insert("mode".to_string(), Value::String("connrate".to_string()));
+    push_unique(scenarios, names, name, row)
+}
+
+/// Handshake-algorithm sweep: connection-rate churn at TLS 1.3 over TCP, isolating each asymmetric
+/// handshake cost on its own axis (F23). TLS 1.3 is auth-agnostic, so the cipher would not vary
+/// either dimension — explicit `cert_key_type` / `kex_group` do.
+///   1. **Server auth**: vary the cert signature (RSA-2048 vs ECDSA-P256) at the default KEX group.
+///   2. **Key exchange**: vary the ECDHE group (X25519 vs P-256) at a fixed ECDSA cert.
+fn append_handshake_scenarios(
+    scenarios: &mut Vec<Value>,
+    names: &mut BTreeSet<String>,
+    tier: Tier,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let conns: &[u32] = if tier == Tier::Canonical {
+        &[4]
+    } else {
+        &[1, 4]
+    };
+    // Axis 1 — server-auth signature algorithm (default KEX group).
+    for cert in ["ecdsa", "rsa"] {
+        for &c in conns {
+            push_connrate_handshake(
+                scenarios,
+                names,
+                &format!("handshake_tls13_{cert}"),
+                json!({ "type": "tls", "version": "1.3", "cert_key_type": cert }),
+                c,
+            )?;
+        }
+    }
+    // Axis 2 — ECDHE key-exchange group (fixed ECDSA cert), gated by the gateway `groups` support
+    // added under TRA #84.
+    for (label, group) in [("x25519", "X25519"), ("p256", "P-256")] {
+        for &c in conns {
+            push_connrate_handshake(
+                scenarios,
+                names,
+                &format!("handshake_kex_{label}"),
+                json!({ "type": "tls", "version": "1.3", "cert_key_type": "ecdsa", "kex_group": group }),
+                c,
+            )?;
         }
     }
     Ok(())
@@ -399,6 +554,13 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
             Tier::Catalog | Tier::Nightly => profile_sizes(profile, &spec.dimensions),
             Tier::Canonical => vec![canonical_size(profile, &spec.dimensions)],
         };
+        // Connection ladder per tier. On a single loopback host SHM/UDS gain no aggregate
+        // throughput from a longer ladder: the data plane is serial per connection (one relay
+        // thread per endpoint) and there is no NIC to bypass, so the box stays largely idle while
+        // one thread pegs a core (see docs/methodology.md "Reading the concurrency sweep" and
+        // seshat-viz F15). The nightly [1,4,16,64] cap on unix/shm is therefore deliberate — past
+        // it the sweep only re-measures the serial ceiling, not fan-out; a bandwidth-bound /
+        // real-NIC tier is what would let it scale, not a wider ladder.
         let connections = match tier {
             Tier::Catalog => spec.dimensions.catalog_connections.clone(),
             Tier::Nightly if profile.scalability => union_connections(
@@ -445,12 +607,47 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
                             ),
                         )?;
                     }
+                    // Also emit a closed-loop ping-pong LATENCY scenario for this
+                    // (protocol, interface, size) at 1 connection on the scg-direct path, so
+                    // seshat-viz F4 has a real per-message RTT for every cell — not only the
+                    // open-loop blast p99 above, which is queueing-dominated (coordinated
+                    // omission). Latency is inherently a 1-connection, single-gateway
+                    // measurement; the throughput grid is unchanged. Skip the catalog tier
+                    // (reference only) and any profile that pins out 1 connection.
+                    if tier != Tier::Catalog
+                        && chain == "scg-direct"
+                        && (profile.connections.is_empty() || profile.connections.contains(&1))
+                    {
+                        let lat_name = format!(
+                            "matrix_lat_{}_{}_{}_direct_1c",
+                            profile.id,
+                            interface,
+                            size_label(size)
+                        );
+                        let ordinal = scenarios.len();
+                        let mut lat_row = scenario(
+                            &profile.id,
+                            "matrix-latency",
+                            interface,
+                            &profile.protocol,
+                            true,
+                            "scg-direct",
+                            size,
+                            1,
+                            &profile.requirements,
+                            None,
+                            ordinal,
+                        );
+                        lat_row["mode"] = Value::String("pingpong".to_string());
+                        push_unique(&mut scenarios, &mut names, lat_name, lat_row)?;
+                    }
                 }
             }
         }
     }
 
     append_cipher_scenarios(&mut scenarios, &mut names, spec, tier)?;
+    append_handshake_scenarios(&mut scenarios, &mut names, tier)?;
 
     if tier == Tier::Catalog {
         for limitation in &spec.limitations {
@@ -597,18 +794,17 @@ fn expand_interface_comparison(spec: &MatrixSpec) -> Result<Value, Box<dyn std::
                     Some(meta),
                     ordinal,
                 );
-                let sender = row
-                    .get_mut("sender")
-                    .and_then(Value::as_object_mut)
-                    .expect("matrix scenario sender is object");
-                // The runner derives a fixed-rate pacer from the completed
-                // throughput comparison group.  A sustained sender with a
-                // rate limit supports sub-microsecond pacing, unlike the JSON
-                // periodic interval field.
-                sender.insert(
-                    "pattern".to_string(),
-                    Value::String("sustained".to_string()),
-                );
+                // Measure per-message latency **closed-loop** (ping-pong RTT), not as an
+                // open-loop paced blast. The old approach derived the offered rate from the
+                // *batched-blast* throughput ceiling (0.5×); on fast local-IPC paths (SHM/UDS)
+                // that rate outruns what the one-message-at-a-time paced sender can sustain, so
+                // the paced deadline slips behind wall-clock across the window and the
+                // coordinated-omission-corrected latency reports seconds of sender backlog
+                // (e.g. iface_shm_latency_64B p99 ≈ 2.9 s) instead of real service time. A
+                // single-in-flight ping-pong has no sender schedule to fall behind and no ring
+                // standing-queue, so it yields true per-message latency — which is the stated
+                // intent of this category ("per-message processing latency, not bufferbloat").
+                row["mode"] = Value::String("pingpong".to_string());
                 push_unique(&mut scenarios, &mut names, name, row)?;
             }
         }
@@ -905,21 +1101,25 @@ mod tests {
                 assert_eq!(interface, Some("udp"));
                 assert_eq!(row["connections"].as_u64(), Some(1));
             }
-            // Datagram (udp) and transparent (tproxy) transports stay single-connection
-            // by design: a UDP "connection" is a flow, and TPROXY interception has no
-            // per-connection fan-out here.
-            if interface == Some("udp") || interface == Some("tproxy") {
+            // Datagram (udp) transports stay single-connection by design: a UDP "connection"
+            // is a flow, and the DTLS/UDP gateway path has one shared backend datagram flow
+            // that cannot report independent parallel connections (the `dtls_multi_connection`
+            // limitation).
+            if interface == Some("udp") {
                 assert_eq!(row["connections"].as_u64(), Some(1));
             }
-            // Stream IPC transports (unix/shm) now sweep the nightly connection ladder —
-            // each connection provisions its own endpoint (gRPC + SCM_RIGHTS) — so they can
-            // be compared with TCP at matched concurrency, but they do not opt into the
-            // scalability tier's 256/1024 fan-out.
-            if interface == Some("unix") || interface == Some("shm") {
+            // Stream transports (unix/shm and transparent tproxy) sweep the nightly connection
+            // ladder — each connection is an independent stream (unix/shm provision their own
+            // gRPC + SCM_RIGHTS endpoint; tproxy opens a fresh transparent TcpStream per
+            // connection through the iptables redirect, see transport::tproxy::loopback_pair) —
+            // so they can be compared with TCP at matched concurrency, but they do not opt into
+            // the scalability tier's 256/1024 fan-out.
+            if interface == Some("unix") || interface == Some("shm") || interface == Some("tproxy")
+            {
                 let conns = row["connections"].as_u64().unwrap();
                 assert!(
                     [1, 4, 16, 64].contains(&conns),
-                    "unix/shm connections must stay within the nightly ladder, got {conns}"
+                    "unix/shm/tproxy connections must stay within the nightly ladder, got {conns}"
                 );
             }
         }

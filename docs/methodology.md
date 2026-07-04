@@ -190,6 +190,25 @@ As of 2026-07 this gate was overhauled end to end:
   single-host physics from harness slowness. Only the residual (low headroom,
   no explaining CPU signal) is labeled `harness-io`.
 
+**Reading the concurrency sweep (F15).** On a single loopback host, sweeping
+SHM/UDS connection count does **not** raise aggregate throughput, and this is not
+a harness or gateway defect. The engine opens N independent gateway endpoints per
+connection (`run/engine.rs`, one gRPC/`SCM_RIGHTS` endpoint + sender/receiver
+thread pair each) and the gateway spawns a dedicated relay thread per endpoint, so
+the "add a thread per interface" fan-out is already in place. But the data plane
+is *serial per connection* and loopback has no NIC for SHM/UDS to bypass, so the
+box stays largely idle (`host_busy_frac_p95` ≈ 0.09–0.30) while one relay thread
+pegs a core (`cpu_hot_thread_pct_p95` ≈ 85–100 %, hence `scg-cpu`). Routing already
+sits at the single-stream loopback ceiling and encrypted paths even *decline* (per-
+thread CPU falls as they stall on per-connection poll/futex wakeups). That is why
+`unix`/`shm` are capped at the nightly `[1,4,16,64]` ladder rather than the
+256/1024 scalability tier — past it the sweep only re-measures the serial ceiling —
+and why F15 tags each point with its bottleneck class. The `shm_null.rs`/
+`uds_null.rs` `connections:1` transports are the ceiling-calibration probes (no
+gateway attached), not the benchmark path. The remedy for real scaling is a
+bandwidth-bound / real-NIC tier (or a non-serial local-IPC relay), not more
+connections.
+
 `perf_gate.sh --strict` still refuses to publish `harness_limited=true`
 throughput rows, including `host-saturated` ones (by design: a lower bound is
 not a publishable gateway limit).

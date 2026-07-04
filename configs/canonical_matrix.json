@@ -36,6 +36,28 @@
       }
     },
     {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18001"
+      }
+    },
+    {
       "category": "matrix",
       "connections": 1,
       "description": "matrix: SCG scg-scg, tcp/plain, 4096B, 1 conn",
@@ -53,7 +75,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18001"
+        "target_addr": "127.0.0.1:18002"
       }
     },
     {
@@ -76,7 +98,31 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18002"
+        "target_addr": "127.0.0.1:18003"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls12_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18004"
       }
     },
     {
@@ -99,7 +145,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18003"
+        "target_addr": "127.0.0.1:18005"
       }
     },
     {
@@ -122,7 +168,31 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18004"
+        "target_addr": "127.0.0.1:18006"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18007"
       }
     },
     {
@@ -145,7 +215,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18005"
+        "target_addr": "127.0.0.1:18008"
       }
     },
     {
@@ -169,7 +239,32 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18006"
+        "target_addr": "127.0.0.1:18009"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_mtls12_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18010"
       }
     },
     {
@@ -193,7 +288,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18007"
+        "target_addr": "127.0.0.1:18011"
       }
     },
     {
@@ -217,7 +312,32 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18008"
+        "target_addr": "127.0.0.1:18012"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_mtls13_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18013"
       }
     },
     {
@@ -241,7 +361,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18009"
+        "target_addr": "127.0.0.1:18014"
       }
     },
     {
@@ -266,7 +386,33 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18010"
+        "target_addr": "127.0.0.1:18015"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls12_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18016"
       }
     },
     {
@@ -291,7 +437,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18011"
+        "target_addr": "127.0.0.1:18017"
       }
     },
     {
@@ -316,7 +462,33 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18012"
+        "target_addr": "127.0.0.1:18018"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls13_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18019"
       }
     },
     {
@@ -341,7 +513,165 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18013"
+        "target_addr": "127.0.0.1:18020"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls12_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18021"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_mtls12_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18022"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls12_tcp_tcp_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18023"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls13_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18024"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_mtls13_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18025"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls13_tcp_tcp_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18026"
       }
     },
     {
@@ -365,7 +695,193 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18014"
+        "target_addr": "127.0.0.1:18027"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_integrity_tls12_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18028"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls12_tcp_tcp_4096B_scg_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18029"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls13_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18030"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_integrity_tls13_tcp_tcp_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18031"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls13_tcp_tcp_4096B_scg_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18032"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_routing_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18033"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18034"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_routing_udp_udp_1200B_scg_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18035"
       }
     },
     {
@@ -389,7 +905,32 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18015"
+        "target_addr": "127.0.0.1:18036"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/dtls1.0, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "mode": "pingpong",
+      "name": "matrix_lat_dtls10_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "type": "dtls",
+        "version": "1.0"
+      },
+      "requirements": {
+        "dtls10": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18037"
       }
     },
     {
@@ -413,7 +954,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18016"
+        "target_addr": "127.0.0.1:18038"
       }
     },
     {
@@ -436,7 +977,31 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18017"
+        "target_addr": "127.0.0.1:18039"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/dtls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "mode": "pingpong",
+      "name": "matrix_lat_dtls12_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "type": "dtls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18040"
       }
     },
     {
@@ -459,7 +1024,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18018"
+        "target_addr": "127.0.0.1:18041"
       }
     },
     {
@@ -483,7 +1048,56 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18019"
+        "target_addr": "127.0.0.1:18042"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/dtls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "mode": "pingpong",
+      "name": "matrix_lat_dtls12_mtls_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "dtls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18043"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, udp/dtls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_dtls12_mtls_udp_udp_1200B_scg_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "dtls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18044"
       }
     },
     {
@@ -507,7 +1121,56 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18020"
+        "target_addr": "127.0.0.1:18045"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/tls1.3, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "mode": "pingpong",
+      "name": "matrix_lat_ale_tls13_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18046"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, udp/tls1.3, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_ale_tls13_udp_udp_1200B_scg_1c",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18047"
       }
     },
     {
@@ -531,7 +1194,202 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18021"
+        "target_addr": "127.0.0.1:18048"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/tls1.3, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "mode": "pingpong",
+      "name": "matrix_lat_raw_tls13_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18049"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, udp/tls1.3, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_raw_tls13_udp_udp_1200B_scg_1c",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18050"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/tls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_ale_tls12_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18051"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/tls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "mode": "pingpong",
+      "name": "matrix_lat_ale_tls12_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18052"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, udp/tls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_ale_tls12_udp_udp_1200B_scg_1c",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18053"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/tls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_raw_tls12_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18054"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/tls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "mode": "pingpong",
+      "name": "matrix_lat_raw_tls12_udp_udp_1200B_direct_1c",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18055"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, udp/tls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_raw_tls12_udp_udp_1200B_scg_1c",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18056"
       }
     },
     {
@@ -552,7 +1410,50 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-22.sock"
+        "target_addr": "/tmp/seshat-matrix-57.sock"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, unix/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-58.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, unix/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_uds_unix_4096B_scg_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-59.sock"
       }
     },
     {
@@ -575,7 +1476,54 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-23.sock"
+        "target_addr": "/tmp/seshat-matrix-60.sock"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-61.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_uds_unix_4096B_scg_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-62.sock"
       }
     },
     {
@@ -600,7 +1548,654 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-24.sock"
+        "target_addr": "/tmp/seshat-matrix-63.sock"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, unix/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-64.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, unix/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_uds_unix_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-65.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls12_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-66.sock"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls12_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-67.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls12_uds_unix_4096B_scg_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-68.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls12_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-69.sock"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_mtls12_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-70.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls12_uds_unix_4096B_scg_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-71.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls13_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-72.sock"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_mtls13_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-73.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls13_uds_unix_4096B_scg_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-74.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, unix/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls12_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-75.sock"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, unix/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls12_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-76.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, unix/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls12_uds_unix_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-77.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, unix/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls12_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-78.sock"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, unix/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_mtls12_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-79.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, unix/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls12_uds_unix_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-80.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, unix/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls13_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-81.sock"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, unix/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_mtls13_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-82.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, unix/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls13_uds_unix_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-83.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls12_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-84.sock"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_integrity_tls12_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-85.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls12_uds_unix_4096B_scg_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-86.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls13_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-87.sock"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_integrity_tls13_uds_unix_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-88.sock"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls13_uds_unix_4096B_scg_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-89.sock"
       }
     },
     {
@@ -621,7 +2216,50 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-25"
+        "target_addr": "shm:///seshat-matrix-90"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-91"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_shm_shm_4096B_scg_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-92"
       }
     },
     {
@@ -646,7 +2284,724 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-26"
+        "target_addr": "shm:///seshat-matrix-93"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-94"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_shm_shm_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-95"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-96"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-97"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_shm_shm_4096B_scg_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-98"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls12_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-99"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls12_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-100"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls12_shm_shm_4096B_scg_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-101"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls12_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-102"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_mtls12_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-103"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls12_shm_shm_4096B_scg_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-104"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls13_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-105"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_mtls13_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-106"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls13_shm_shm_4096B_scg_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-107"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls12_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-108"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls12_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-109"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls12_shm_shm_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-110"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls12_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-111"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_mtls12_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-112"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls12_shm_shm_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-113"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls13_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-114"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_mtls13_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-115"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls13_shm_shm_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-116"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls12_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-117"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_integrity_tls12_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-118"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls12_shm_shm_4096B_scg_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-119"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls13_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-120"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_integrity_tls13_shm_shm_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-121"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls13_shm_shm_4096B_scg_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-122"
       }
     },
     {
@@ -669,7 +3024,803 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18027"
+        "target_addr": "127.0.0.1:18123"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18124"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls12_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18125"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls12_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18126"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls12_tproxy_tproxy_4096B_scg_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18127"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18128"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18129"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tproxy_tproxy_4096B_scg_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18130"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls12_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18131"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_mtls12_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18132"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls12_tproxy_tproxy_4096B_scg_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18133"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls13_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18134"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_mtls13_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18135"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls13_tproxy_tproxy_4096B_scg_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18136"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls12_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18137"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls12_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18138"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tproxy/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls12_tproxy_tproxy_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18139"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls13_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18140"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls13_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18141"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tproxy/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls13_tproxy_tproxy_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18142"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls12_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18143"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_mtls12_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18144"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tproxy/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls12_tproxy_tproxy_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18145"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls13_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18146"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_mtls13_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18147"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tproxy/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls13_tproxy_tproxy_4096B_scg_1c",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18148"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls12_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18149"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_integrity_tls12_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18150"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls12_tproxy_tproxy_4096B_scg_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18151"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls13_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18152"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_integrity_tls13_tproxy_tproxy_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18153"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls13_tproxy_tproxy_4096B_scg_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18154"
       }
     },
     {
@@ -693,7 +3844,33 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18028"
+        "target_addr": "127.0.0.1:18155"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "cipher_ktls12_ecdhe_rsa_aes128_gcm_sha256",
+      "protocol": {
+        "cipher_suite": "ECDHE-RSA-AES128-GCM-SHA256",
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18156"
       }
     },
     {
@@ -717,7 +3894,159 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18029"
+        "target_addr": "127.0.0.1:18157"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "cipher_ktls13_tls_aes_128_gcm_sha256",
+      "protocol": {
+        "cipher_suite": "TLS_AES_128_GCM_SHA256",
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18158"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, udp/dtls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "cipher_dtls12_ecdhe_rsa_aes128_gcm_sha256",
+      "protocol": {
+        "cipher_suite": "ECDHE-RSA-AES128-GCM-SHA256",
+        "type": "dtls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18159"
+      }
+    },
+    {
+      "category": "handshake-auth",
+      "connections": 4,
+      "description": "handshake-auth: SCG scg-direct, tcp/tls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "connrate",
+      "name": "handshake_tls13_ecdsa",
+      "protocol": {
+        "cert_key_type": "ecdsa",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18160"
+      }
+    },
+    {
+      "category": "handshake-auth",
+      "connections": 4,
+      "description": "handshake-auth: SCG scg-direct, tcp/tls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "connrate",
+      "name": "handshake_tls13_rsa",
+      "protocol": {
+        "cert_key_type": "rsa",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18161"
+      }
+    },
+    {
+      "category": "handshake-auth",
+      "connections": 4,
+      "description": "handshake-auth: SCG scg-direct, tcp/tls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "connrate",
+      "name": "handshake_kex_x25519",
+      "protocol": {
+        "cert_key_type": "ecdsa",
+        "kex_group": "X25519",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18162"
+      }
+    },
+    {
+      "category": "handshake-auth",
+      "connections": 4,
+      "description": "handshake-auth: SCG scg-direct, tcp/tls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "connrate",
+      "name": "handshake_kex_p256",
+      "protocol": {
+        "cert_key_type": "ecdsa",
+        "kex_group": "P-256",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18163"
       }
     }
   ],

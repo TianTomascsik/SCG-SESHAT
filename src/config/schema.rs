@@ -386,6 +386,18 @@ pub struct Protocol {
     /// Override cipher suite (e.g. AES-GCM vs ChaCha20).
     #[serde(default)]
     pub cipher_suite: Option<String>,
+    /// Override the generated server cert's key algorithm (`rsa` or `ecdsa`),
+    /// independent of the cipher suite — for the handshake-algorithm sweep that
+    /// compares RSA-2048 vs ECDSA-P256 authentication cost. `None` keeps the
+    /// cipher-derived default (TLS 1.3 / ECDHE-ECDSA → EC, ECDHE-RSA → RSA).
+    #[serde(default)]
+    pub cert_key_type: Option<String>,
+    /// Override the ECDHE key-exchange named group (e.g. `X25519` / `P-256`) for
+    /// the handshake-algorithm sweep's key-exchange axis. Passed to the gateway's
+    /// `groups` provider-param, which allowlist-validates it (TRA #84). `None`
+    /// leaves the gateway's default group set.
+    #[serde(default)]
+    pub kex_group: Option<String>,
     /// Protection depth.
     #[serde(default)]
     pub protection_mode: ProtectionMode,

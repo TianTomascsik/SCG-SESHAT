@@ -176,6 +176,9 @@ pub struct SecuritySpec {
     pub cipher_list: Option<String>,
     /// TLS 1.3 ciphersuites override.
     pub ciphersuites: Option<String>,
+    /// ECDHE key-exchange named-group override (e.g. `X25519` / `P-256`), for the
+    /// handshake-algorithm sweep. The gateway allowlist-validates it (TRA #84).
+    pub groups: Option<String>,
     /// Enable TLS session resumption/tickets.
     pub resumption: bool,
     /// Per-direction listen/upstream proto overrides for asymmetric paths
@@ -224,6 +227,7 @@ impl std::fmt::Debug for SecuritySpec {
             .field("psk_hex", &self.psk_hex.as_ref().map(|_| "[REDACTED]"))
             .field("cipher_list", &self.cipher_list)
             .field("ciphersuites", &self.ciphersuites)
+            .field("groups", &self.groups)
             .field("resumption", &self.resumption)
             .field("encrypt_listen_proto", &self.encrypt_listen_proto)
             .field("encrypt_upstream_proto", &self.encrypt_upstream_proto)
@@ -264,6 +268,7 @@ impl SecuritySpec {
             psk_hex: None,
             cipher_list: None,
             ciphersuites: None,
+            groups: None,
             resumption: false,
             encrypt_listen_proto: None,
             encrypt_upstream_proto: None,
@@ -279,6 +284,16 @@ impl SecuritySpec {
             busy_poll_us: None,
             bdp_adaptive: false,
             bdp_queue_budget_us: None,
+        }
+    }
+
+    /// Plaintext L4 routing over UDP (no crypto): the gateway's `routing` provider
+    /// binds a UDP listener and forwards datagrams verbatim to a UDP upstream.
+    /// Identical to [`Self::routing_tcp`] except the transport is `udp` on both legs.
+    pub fn routing_udp() -> Self {
+        SecuritySpec {
+            proto: "udp".to_string(),
+            ..Self::routing_tcp()
         }
     }
 
@@ -304,6 +319,7 @@ impl SecuritySpec {
             psk_hex: None,
             cipher_list: None,
             ciphersuites: None,
+            groups: None,
             resumption: false,
             encrypt_listen_proto: None,
             encrypt_upstream_proto: None,
@@ -345,6 +361,7 @@ impl SecuritySpec {
             psk_hex: None,
             cipher_list: None,
             ciphersuites: None,
+            groups: None,
             resumption: false,
             encrypt_listen_proto: None,
             encrypt_upstream_proto: None,
@@ -386,6 +403,7 @@ impl SecuritySpec {
             psk_hex: None,
             cipher_list: None,
             ciphersuites: None,
+            groups: None,
             resumption: false,
             encrypt_listen_proto: None,
             encrypt_upstream_proto: None,
@@ -427,6 +445,7 @@ impl SecuritySpec {
             psk_hex: None,
             cipher_list: None,
             ciphersuites: None,
+            groups: None,
             resumption: false,
             encrypt_listen_proto: None,
             encrypt_upstream_proto: None,
@@ -475,6 +494,12 @@ impl SecuritySpec {
     /// Set TLS 1.3 ciphersuites override.
     pub fn with_ciphersuites(mut self, suites: &str) -> Self {
         self.ciphersuites = Some(suites.to_string());
+        self
+    }
+
+    /// Set the ECDHE key-exchange named-group override (e.g. `X25519` / `P-256`).
+    pub fn with_groups(mut self, groups: &str) -> Self {
+        self.groups = Some(groups.to_string());
         self
     }
 
@@ -579,6 +604,9 @@ impl SecuritySpec {
         }
         if let Some(v) = &self.ciphersuites {
             rule = rule.param("ciphersuites", v.clone());
+        }
+        if let Some(v) = &self.groups {
+            rule = rule.param("groups", v.clone());
         }
         if self.resumption {
             rule = rule.param("resumption", true);

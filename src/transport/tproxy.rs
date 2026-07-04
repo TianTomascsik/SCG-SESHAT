@@ -18,8 +18,10 @@ use std::time::Duration;
 
 use super::{tcp, DataSink, DataSource, DuplexEnd, Transport, RECV_POLL_TIMEOUT};
 use crate::gateway::config::{GatewayConfig, RuleConfig};
-use crate::gateway::process::GatewayProcess;
-use crate::gateway::reserve_local_port;
+use crate::gateway::{
+    build_path, reserve_local_port, start_path, NamedGateway, PathPlan, RunningPath, SecuritySpec,
+    Topology,
+};
 
 /// The fwmark used by TPROXY iptables rules.
 const TPROXY_MARK: u32 = 0x1;
@@ -213,6 +215,61 @@ fn run_cmd(program: &str, args: &[&str]) -> io::Result<()> {
     Ok(())
 }
 
+/// The original single-hop plan: one transparent `routing` rule that intercepts on
+/// `gw_port` and forwards straight to the plaintext backend. Preserved verbatim for
+/// `routing` single-gateway so the known-good routing_tproxy path is unchanged.
+fn single_transparent_routing_plan(gw_port: u16, backend_addr: &str) -> PathPlan {
+    let rule = RuleConfig::new(
+        "tproxy-encrypt",
+        "encrypt",
+        &format!("127.0.0.1:{gw_port}"),
+        backend_addr,
+    )
+    .security("routing")
+    .param("transparent", true);
+    PathPlan {
+        ingress_addr: format!("127.0.0.1:{gw_port}"),
+        backend_addr: backend_addr.to_string(),
+        gateways: vec![NamedGateway {
+            label: "scg".to_string(),
+            config: GatewayConfig::new(vec![rule]).log_level("info").allow_all(),
+        }],
+    }
+}
+
+/// Build the standard encrypt/decrypt path for `spec`/`topology`, then retarget the
+/// ingress encrypt rule onto the transparent TPROXY listen port `gw_port`. The
+/// gateway intercepts on `gw_port`, applies the scenario's crypto, and either
+/// (single-gateway) decrypts back to the plaintext backend in the same process, or
+/// (scg-scg) tunnels to a second gateway that decrypts to the backend. Split out so
+/// the config wiring is unit-testable without `CAP_NET_ADMIN`.
+fn build_transparent_plan(
+    spec: &SecuritySpec,
+    topology: Topology,
+    gw_port: u16,
+    backend_addr: &str,
+    connections: usize,
+) -> io::Result<PathPlan> {
+    let mut plan = build_path(spec, topology, backend_addr, connections)?;
+    let mut retargeted = false;
+    for gw in &mut plan.gateways {
+        for rule in &mut gw.config.rules {
+            if rule.direction == "encrypt" {
+                rule.listen_addr = format!("127.0.0.1:{gw_port}");
+                rule.provider_params
+                    .insert("transparent".to_string(), serde_json::Value::Bool(true));
+                retargeted = true;
+            }
+        }
+    }
+    if !retargeted {
+        return Err(io::Error::other(
+            "TPROXY path has no encrypt rule to make transparent",
+        ));
+    }
+    Ok(plan)
+}
+
 /// A benchmark transport that exercises the gateway's TPROXY transparent mode.
 ///
 /// The sender connects to a "virtual" target address; iptables redirects the
@@ -223,18 +280,37 @@ pub struct TproxyTransport {
     target_addr: SocketAddr,
     /// The backend listener (real destination).
     backend: TcpListener,
-    /// The gateway process.
-    gateway: Option<GatewayProcess>,
+    /// The gateway process(es): one for single-gateway, two for scg-scg.
+    running: Option<RunningPath>,
     /// TPROXY iptables rules (cleaned up on drop).
     rules: Option<TproxyRules>,
 }
 
 impl TproxyTransport {
-    /// Start a TPROXY transparent gateway path.
+    /// Start a TPROXY transparent gateway path carrying the scenario's security
+    /// (`spec`) and topology.
     ///
     /// Returns `Err` with `ErrorKind::PermissionDenied` if `CAP_NET_ADMIN` is
     /// missing.
-    pub fn start(name: &'static str, binary: &Path, work_dir: &Path) -> io::Result<Self> {
+    ///
+    /// We deliberately do NOT use the `"auto"` original-destination mode. The
+    /// gateway *does* recover the TPROXY original destination correctly
+    /// (`SO_ORIGINAL_DST` with a `getsockname` fallback on the `IP_TRANSPARENT`
+    /// socket — SCG-TRA #59 / code-review M10, with its own `recover_transparent_dst`
+    /// tests). The blocker is *loopback*: with `"auto"` the gateway would forward to
+    /// the recovered destination (the same `target_port` the client dialed), which
+    /// re-enters `PREROUTING` on `lo`, hits the same `-j TPROXY` rule, and loops.
+    /// Using an explicit backend still exercises the full data path (client →
+    /// iptables redirect → gateway `IP_TRANSPARENT` listener → relay → backend).
+    pub fn start(
+        name: &'static str,
+        spec: &SecuritySpec,
+        topology: Topology,
+        binary: &Path,
+        work_dir: &Path,
+        gateway_cores: &[usize],
+        connections: usize,
+    ) -> io::Result<Self> {
         if !has_cap_net_admin() {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
@@ -247,89 +323,61 @@ impl TproxyTransport {
         // The "target" address the sender thinks it's connecting to.
         let target_port = reserve_local_port()?;
         let target_addr: SocketAddr = format!("127.0.0.1:{target_port}").parse().unwrap();
-
-        // The gateway's listen port (where TPROXY redirects to).
+        // The gateway's transparent listen port (where TPROXY redirects to).
         let gw_port = reserve_local_port()?;
-
-        // The real backend.
+        // The real backend (plaintext egress).
         let backend_port = reserve_local_port()?;
         let backend_addr = format!("127.0.0.1:{backend_port}");
         let backend = TcpListener::bind(&backend_addr)?;
         backend.set_nonblocking(true)?;
 
-        // Build gateway config: one transparent encrypt rule forwarding to the
-        // explicit loopback backend.
-        //
-        // We deliberately do NOT use the `"auto"` original-destination mode here.
-        // The gateway *does* recover the TPROXY original destination correctly —
-        // `SO_ORIGINAL_DST` (conntrack REDIRECT/DNAT) with a `getsockname`
-        // fallback on the `IP_TRANSPARENT` socket for true TPROXY (SCG-TRA #59,
-        // and the code-review M10 fix that added the fallback). The blocker is
-        // *loopback*, not the gateway: with `"auto"` the gateway would forward to
-        // the recovered original destination, which is the same `target_port` the
-        // client dialed. On a single host that forward re-enters `PREROUTING` on
-        // `lo` and hits the same `-j TPROXY` rule → an interception loop; giving
-        // `target_port` a real listener to break the loop makes the `-m socket`
-        // DIVERT rule steer the *client's* SYN straight to that listener,
-        // bypassing the gateway. Client and gateway-forward are indistinguishable
-        // packets on one host (same 5-tuple shape, same uid), so a true `"auto"`
-        // path needs distinct client/backend hosts (multi-netns) — out of scope
-        // for this loopback throughput transport. The M10 recovery logic itself
-        // is covered by the gateway's `recover_transparent_dst` unit tests.
-        //
-        // Forwarding to the explicit backend still exercises the full TPROXY data
-        // path — client → iptables `TPROXY` redirect → gateway `IP_TRANSPARENT`
-        // listener → relay → backend — which is what the throughput benchmark
-        // measures.
-        let rule = RuleConfig::new(
-            "tproxy-encrypt",
-            "encrypt",
-            &format!("127.0.0.1:{gw_port}"),
-            &backend_addr,
-        )
-        .security("routing")
-        .param("transparent", true);
+        // Plaintext routing over a single gateway keeps the original, known-good
+        // *single* transparent hop (gw_port → backend). Any crypto, or a two-gateway
+        // topology, needs the standard encrypt/decrypt path with the ingress encrypt
+        // rule retargeted transparent so the plaintext backend still terminates the
+        // tunnel — see `build_transparent_plan`.
+        let plan = if spec.provider == "routing" && matches!(topology, Topology::SingleGateway) {
+            single_transparent_routing_plan(gw_port, &backend_addr)
+        } else {
+            build_transparent_plan(spec, topology, gw_port, &backend_addr, connections)?
+        };
 
-        let config = GatewayConfig::new(vec![rule]).log_level("info").allow_all();
-
-        // Set up TPROXY iptables rules.
+        // Set up TPROXY iptables rules (redirect <target_port> onto <gw_port>).
         let rules = TproxyRules::setup(target_port, gw_port)?;
 
-        // Start the gateway.
-        let mut gateway = GatewayProcess::spawn(binary, &config, work_dir, "tproxy", "info")?;
-        gateway.wait_ready(READY_TIMEOUT)?;
+        let running = start_path(&plan, binary, work_dir, READY_TIMEOUT, gateway_cores)?;
 
         Ok(TproxyTransport {
             name,
             target_addr,
             backend,
-            gateway: Some(gateway),
+            running: Some(running),
             rules: Some(rules),
         })
     }
 
-    /// OS pid of the gateway process.
+    /// OS pids of the gateway process(es), for `/proc/<pid>` system metrics.
     pub fn pids(&self) -> Vec<i32> {
-        self.gateway
+        self.running
             .as_ref()
-            .map(|g| vec![g.pid()])
+            .map(RunningPath::pids)
             .unwrap_or_default()
     }
 
-    /// Captured gateway log file.
+    /// Captured gateway log files, for post-run effective-protocol scanning.
     pub fn log_paths(&self) -> Vec<PathBuf> {
-        self.gateway
+        self.running
             .as_ref()
-            .map(|g| vec![g.log_path().to_path_buf()])
+            .map(RunningPath::log_paths)
             .unwrap_or_default()
     }
 
-    /// Gracefully stop the gateway and remove iptables rules.
+    /// Gracefully stop the gateway process(es) and remove iptables rules.
     pub fn shutdown(mut self) -> io::Result<()> {
         // Drop rules first (cleanup iptables).
         self.rules.take();
-        if let Some(gw) = self.gateway.take() {
-            gw.shutdown()?;
+        if let Some(running) = self.running.take() {
+            running.shutdown()?;
         }
         Ok(())
     }
@@ -426,6 +474,75 @@ impl Transport for TproxyTransport {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::gateway::SecuritySpec;
+    use std::path::Path;
+
+    #[test]
+    fn routing_single_gateway_keeps_the_known_good_single_transparent_hop() {
+        // Plaintext routing on one gateway must stay byte-for-byte the original
+        // single transparent rule (gw_port → backend), not the 2-hop path.
+        let spec = SecuritySpec::routing_tcp();
+        let plan = if spec.provider == "routing"
+            && matches!(Topology::SingleGateway, Topology::SingleGateway)
+        {
+            single_transparent_routing_plan(19001, "127.0.0.1:19002")
+        } else {
+            unreachable!()
+        };
+        assert_eq!(plan.gateways.len(), 1);
+        let rules = &plan.gateways[0].config.rules;
+        assert_eq!(rules.len(), 1, "routing tproxy is a single transparent hop");
+        assert_eq!(rules[0].direction, "encrypt");
+        assert_eq!(rules[0].security_provider, "routing");
+        assert_eq!(rules[0].listen_addr, "127.0.0.1:19001");
+        assert_eq!(rules[0].upstream_addr, "127.0.0.1:19002");
+        assert_eq!(
+            rules[0].provider_params.get("transparent"),
+            Some(&serde_json::Value::Bool(true))
+        );
+    }
+
+    #[test]
+    fn crypto_retargets_ingress_encrypt_transparent_and_carries_security() {
+        // A TLS scenario must reach the transparent listener as `tls` (not the old
+        // hard-coded routing), with the decrypt rule terminating at the backend.
+        let spec =
+            SecuritySpec::tls_server("tls1.3", Path::new("/tmp/c.pem"), Path::new("/tmp/k.pem"));
+        let plan =
+            build_transparent_plan(&spec, Topology::SingleGateway, 19010, "127.0.0.1:19011", 1)
+                .unwrap();
+        let enc = plan.gateways[0]
+            .config
+            .rules
+            .iter()
+            .find(|r| r.direction == "encrypt")
+            .unwrap();
+        assert_eq!(enc.security_provider, "tls");
+        assert_eq!(enc.listen_addr, "127.0.0.1:19010");
+        assert_eq!(
+            enc.provider_params.get("transparent"),
+            Some(&serde_json::Value::Bool(true))
+        );
+    }
+
+    #[test]
+    fn crypto_scg_to_scg_splits_transparent_encrypt_from_decrypt() {
+        let spec =
+            SecuritySpec::tls_server("tls1.3", Path::new("/tmp/c.pem"), Path::new("/tmp/k.pem"));
+        let plan =
+            build_transparent_plan(&spec, Topology::ScgToScg, 19020, "127.0.0.1:19021", 1).unwrap();
+        assert_eq!(plan.gateways.len(), 2);
+        assert!(plan.gateways[0]
+            .config
+            .rules
+            .iter()
+            .all(|r| r.direction == "encrypt"));
+        assert!(plan.gateways[1]
+            .config
+            .rules
+            .iter()
+            .all(|r| r.direction == "decrypt"));
+    }
 
     #[test]
     fn setup_installs_divert_chain_and_redirect() {

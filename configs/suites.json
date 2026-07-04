@@ -11,6 +11,7 @@
   ],
   "nightly": [
     "full_matrix.json",
+    "udp_baseline.json",
     "interface_comparison.json",
     "hotreload_matrix.json",
     "profile_regression.json",

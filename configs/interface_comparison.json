@@ -1446,6 +1446,7 @@
         "enabled": false
       },
       "message_size_bytes": 64,
+      "mode": "pingpong",
       "name": "iface_tcp_loopback_latency_64B_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1474,6 +1475,7 @@
         "enabled": true
       },
       "message_size_bytes": 64,
+      "mode": "pingpong",
       "name": "iface_tcp_scg_latency_64B_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1502,6 +1504,7 @@
         "enabled": true
       },
       "message_size_bytes": 64,
+      "mode": "pingpong",
       "name": "iface_tproxy_latency_64B_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1532,6 +1535,7 @@
         "enabled": true
       },
       "message_size_bytes": 64,
+      "mode": "pingpong",
       "name": "iface_uds_latency_64B_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1560,6 +1564,7 @@
         "enabled": true
       },
       "message_size_bytes": 64,
+      "mode": "pingpong",
       "name": "iface_shm_latency_64B_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1588,6 +1593,7 @@
         "enabled": false
       },
       "message_size_bytes": 1024,
+      "mode": "pingpong",
       "name": "iface_tcp_loopback_latency_1KB_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1616,6 +1622,7 @@
         "enabled": true
       },
       "message_size_bytes": 1024,
+      "mode": "pingpong",
       "name": "iface_tcp_scg_latency_1KB_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1644,6 +1651,7 @@
         "enabled": true
       },
       "message_size_bytes": 1024,
+      "mode": "pingpong",
       "name": "iface_tproxy_latency_1KB_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1674,6 +1682,7 @@
         "enabled": true
       },
       "message_size_bytes": 1024,
+      "mode": "pingpong",
       "name": "iface_uds_latency_1KB_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1702,6 +1711,7 @@
         "enabled": true
       },
       "message_size_bytes": 1024,
+      "mode": "pingpong",
       "name": "iface_shm_latency_1KB_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1730,6 +1740,7 @@
         "enabled": false
       },
       "message_size_bytes": 4096,
+      "mode": "pingpong",
       "name": "iface_tcp_loopback_latency_4096B_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1758,6 +1769,7 @@
         "enabled": true
       },
       "message_size_bytes": 4096,
+      "mode": "pingpong",
       "name": "iface_tcp_scg_latency_4096B_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1786,6 +1798,7 @@
         "enabled": true
       },
       "message_size_bytes": 4096,
+      "mode": "pingpong",
       "name": "iface_tproxy_latency_4096B_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1816,6 +1829,7 @@
         "enabled": true
       },
       "message_size_bytes": 4096,
+      "mode": "pingpong",
       "name": "iface_uds_latency_4096B_1c",
       "protocol": {
         "protection_mode": "routing-only",
@@ -1844,6 +1858,7 @@
         "enabled": true
       },
       "message_size_bytes": 4096,
+      "mode": "pingpong",
       "name": "iface_shm_latency_4096B_1c",
       "protocol": {
         "protection_mode": "routing-only",
