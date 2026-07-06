@@ -63,6 +63,19 @@ impl Csv {
         out
     }
 
+    /// Render only the data rows (no header), for per-scenario artifacts that a
+    /// consolidated table concatenates verbatim under a single shared header.
+    /// Because the escaping is identical to [`Csv::render`], the blob can be
+    /// appended byte-for-byte without re-parsing — safe even when a field
+    /// contains a comma, quote, or newline.
+    pub fn render_body(&self) -> String {
+        let mut out = String::new();
+        for row in &self.rows {
+            write_row(&mut out, row);
+        }
+        out
+    }
+
     /// Write the table to `path`, creating parent directories as needed.
     pub fn write(&self, path: &Path) -> io::Result<()> {
         if let Some(parent) = path.parent() {

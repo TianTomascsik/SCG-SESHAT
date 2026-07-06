@@ -19,7 +19,7 @@
 
 use std::io;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use scg_client::ScgClient;
 
@@ -285,8 +285,16 @@ struct ShmDuplexClient {
 
 impl DuplexEnd for ShmDuplexClient {
     fn send_msg(&mut self, buf: &[u8]) -> io::Result<()> {
-        // Block until the (typically shallow) ring accepts the single in-flight
-        // message; yield rather than spin so a busy gateway can drain.
+        // Wait for the (typically shallow) ring to accept the single in-flight
+        // message, yielding rather than spinning so a busy gateway can drain.
+        // Bound the wait by `timeout` (the same window `recv_msg` polls on) so a
+        // gateway that has stopped draining the encrypt ring — e.g. a
+        // mis-provisioned upstream whose handshake never completes, so nothing is
+        // ever relayed — surfaces as `WouldBlock` instead of wedging the worker
+        // forever. Mirrors `ShmSink::send_msg`; the ping-pong client loop then
+        // re-observes the phase flag and exits cleanly (the run records zero
+        // metrics and is discarded as a skip).
+        let deadline = Instant::now() + self.timeout;
         loop {
             match self
                 .tx
@@ -294,7 +302,12 @@ impl DuplexEnd for ShmDuplexClient {
                 .map_err(|e| io::Error::other(format!("SHM send: {e}")))?
             {
                 true => return Ok(()),
-                false => std::thread::yield_now(),
+                false => {
+                    if Instant::now() >= deadline {
+                        return Err(io::Error::from(io::ErrorKind::WouldBlock));
+                    }
+                    std::thread::yield_now();
+                }
             }
         }
     }

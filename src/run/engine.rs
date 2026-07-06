@@ -731,8 +731,20 @@ fn pingpong_client_loop(
         let measuring = phase.load(Ordering::Relaxed) == PHASE_MEASURE;
         let msg = builder.build(seq);
         let t0 = monotonic_ns();
-        if client.send_msg(msg).is_err() {
-            break;
+        match client.send_msg(msg) {
+            Ok(()) => {}
+            // The ring/socket is not draining (a stalled or mis-provisioned
+            // gateway that never relays): stop if the run is over, else retry the
+            // same message on the next iteration — mirrors the recv `Timeout` arm
+            // so a transient stall can never end a healthy run early, and a dead
+            // gateway can never wedge the worker (it exits at `PHASE_DONE`).
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                if phase.load(Ordering::Relaxed) == PHASE_DONE {
+                    break;
+                }
+                continue;
+            }
+            Err(_) => break,
         }
         match client.recv_msg(&mut recv) {
             Ok(RecvOutcome::Message(n)) => {

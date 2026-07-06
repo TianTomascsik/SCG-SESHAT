@@ -16,6 +16,7 @@
 //! Output is CSV-only by design; the tree is portable and opens directly in a
 //! spreadsheet.
 
+use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -223,10 +224,13 @@ pub struct ReloadArtifact {
 }
 
 /// A timestamped result directory being populated during a run.
+///
+/// The consolidated top-level `summary.csv`/`skipped.csv` are rebuilt from the
+/// per-scenario files on disk at [`ResultDir::finish`], so an interrupted or
+/// resumed run still yields a complete table — there is no run-length in-memory
+/// accumulator to lose on a kill.
 pub struct ResultDir {
     root: PathBuf,
-    summary: Csv,
-    skipped: Csv,
     comparisons: Vec<ComparisonOutcome>,
     started_unix: u64,
     outcomes: Vec<ScenarioOutcome>,
@@ -247,10 +251,26 @@ impl ResultDir {
         fs::create_dir_all(&root)?;
         Ok(ResultDir {
             root,
-            summary: Csv::new(SUMMARY_HEADERS),
-            skipped: Csv::new(&["scenario", "reason"]),
             comparisons: Vec::new(),
             started_unix,
+            outcomes: Vec::new(),
+        })
+    }
+
+    /// Reopen an existing result directory to resume an interrupted run: adopt it
+    /// as-is (no new timestamp subdir) so scenarios already recorded under it can
+    /// be skipped and the consolidated report rebuilt over the full on-disk set.
+    pub fn open(root: &Path) -> io::Result<Self> {
+        if !root.is_dir() {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("resume directory does not exist: {}", root.display()),
+            ));
+        }
+        Ok(ResultDir {
+            root: root.to_path_buf(),
+            comparisons: Vec::new(),
+            started_unix: realtime_ns() / 1_000_000_000,
             outcomes: Vec::new(),
         })
     }
@@ -258,6 +278,21 @@ impl ResultDir {
     /// The absolute path of this result directory.
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// Whether a scenario has already been recorded in this directory (any
+    /// terminal per-scenario artifact on disk), so a resumed run can skip it
+    /// rather than re-run work that is already saved.
+    pub fn scenario_recorded(&self, name: &str) -> bool {
+        let dir = self.root.join("scenarios").join(sanitize(name));
+        [
+            "summary.csv",
+            "skip.csv",
+            "stream_summary.csv",
+            "hotreload.csv",
+        ]
+        .iter()
+        .any(|f| dir.join(f).is_file())
     }
 
     /// Persist the host fingerprint as `sysinfo.csv`.
@@ -337,7 +372,7 @@ impl ResultDir {
             perf_task_clock_s,
             perf_duration_s,
         ) = perf_cells(perf);
-        self.summary.row(vec![
+        let summary_row = vec![
             scenario.name.clone(),
             transport,
             protocol,
@@ -437,7 +472,13 @@ impl ResultDir {
                 .unwrap_or_default(),
             cal.map(|c| c.ceiling_transport.to_string())
                 .unwrap_or_default(),
-        ]);
+        ];
+        // Persist this scenario's exact top-level row next to its artifacts so a
+        // resumed or interrupted run can rebuild the consolidated `summary.csv`
+        // losslessly from disk (see `finish`).
+        let mut row_csv = Csv::new(SUMMARY_HEADERS);
+        row_csv.row(summary_row);
+        fs::write(dir.join("summary_row.csv"), row_csv.render_body())?;
 
         self.outcomes.push(ScenarioOutcome {
             name: scenario.name.clone(),
@@ -598,20 +639,27 @@ impl ResultDir {
             .kv("scenario", scenario.name.clone())
             .kv("reason", reason.to_string());
         detail.write(&dir.join("skip.csv"))?;
-        self.skipped
-            .row(vec![scenario.name.clone(), reason.to_string()]);
+        // Exact top-level `skipped.csv` row, persisted per scenario so `finish`
+        // can rebuild the consolidated table losslessly from disk on resume.
+        let mut row_csv = Csv::new(&["scenario", "reason"]);
+        row_csv.row(vec![scenario.name.clone(), reason.to_string()]);
+        fs::write(dir.join("skip_row.csv"), row_csv.render_body())?;
         Ok(())
     }
 
-    /// Write `meta.csv` and the top-level `summary.csv`, finishing the tree.
+    /// Finish the tree: rebuild the consolidated `summary.csv` and `skipped.csv`
+    /// from every scenario on disk (so a resumed or interrupted run yields a
+    /// complete table, not just the scenarios executed by this process), then
+    /// write `meta.csv`. Returns the on-disk `(executed, skipped)` counts.
     pub fn finish(
         &self,
         cfg: &Config,
         config_path: &Path,
-        executed: usize,
-        skipped: usize,
         host: &SysInfo,
-    ) -> io::Result<()> {
+    ) -> io::Result<(usize, usize)> {
+        let executed = self.rebuild_summary()?;
+        let skipped = self.rebuild_skipped()?;
+
         let mut meta = Csv::key_value();
         meta.kv("tool", "seshat")
             .kv("version", env!("CARGO_PKG_VERSION"))
@@ -631,9 +679,87 @@ impl ResultDir {
             .kv("ktls_usable", host.ktls_usable.to_string());
         meta.write(&self.root.join("meta.csv"))?;
 
-        self.summary.write(&self.root.join("summary.csv"))?;
-        self.skipped.write(&self.root.join("skipped.csv"))?;
-        self.write_interface_comparison()
+        self.write_interface_comparison()?;
+        Ok((executed, skipped))
+    }
+
+    /// Rebuild the consolidated `summary.csv` + `skipped.csv` from the
+    /// per-scenario files on disk without re-running anything, so an interrupted
+    /// or killed run's partial data is still reportable. Returns the on-disk
+    /// `(executed, skipped)` row counts.
+    pub fn rebuild_consolidated(&self) -> io::Result<(usize, usize)> {
+        Ok((self.rebuild_summary()?, self.rebuild_skipped()?))
+    }
+
+    /// Sorted `scenarios/*/` directories under this result tree (deterministic
+    /// order for the consolidated tables).
+    fn scenario_dirs(&self) -> Vec<PathBuf> {
+        let mut dirs: Vec<PathBuf> = match fs::read_dir(self.root.join("scenarios")) {
+            Ok(entries) => entries
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| p.is_dir())
+                .collect(),
+            Err(_) => Vec::new(),
+        };
+        dirs.sort();
+        dirs
+    }
+
+    /// Rebuild the top-level `summary.csv` from the per-scenario files on disk.
+    /// New scenarios carry an exact `summary_row.csv` (appended verbatim);
+    /// pre-existing scenarios (from before a resume) are reconstructed from their
+    /// key/value `summary.csv` + `config.csv`. Returns the row count.
+    fn rebuild_summary(&self) -> io::Result<usize> {
+        let mut out = Csv::new(SUMMARY_HEADERS).render();
+        let mut count = 0usize;
+        for dir in self.scenario_dirs() {
+            let row_file = dir.join("summary_row.csv");
+            if row_file.is_file() {
+                out.push_str(&fs::read_to_string(&row_file)?);
+                count += 1;
+                continue;
+            }
+            let kv = dir.join("summary.csv");
+            if kv.is_file() {
+                let summary = read_key_value_csv(&kv)?;
+                let config = read_key_value_csv(&dir.join("config.csv")).unwrap_or_default();
+                let mut one = Csv::new(SUMMARY_HEADERS);
+                one.row(reconstruct_summary_row(&config, &summary));
+                out.push_str(&one.render_body());
+                count += 1;
+            }
+        }
+        fs::write(self.root.join("summary.csv"), out)?;
+        Ok(count)
+    }
+
+    /// Rebuild the top-level `skipped.csv` from the per-scenario files on disk,
+    /// mirroring [`Self::rebuild_summary`]. Returns the row count.
+    fn rebuild_skipped(&self) -> io::Result<usize> {
+        let mut out = Csv::new(&["scenario", "reason"]).render();
+        let mut count = 0usize;
+        for dir in self.scenario_dirs() {
+            let row_file = dir.join("skip_row.csv");
+            if row_file.is_file() {
+                out.push_str(&fs::read_to_string(&row_file)?);
+                count += 1;
+                continue;
+            }
+            let kv = dir.join("skip.csv");
+            if kv.is_file() {
+                let m = read_key_value_csv(&kv)?;
+                let mut one = Csv::new(&["scenario", "reason"]);
+                one.row(vec![
+                    m.get("scenario").cloned().unwrap_or_default(),
+                    m.get("reason").cloned().unwrap_or_default(),
+                ]);
+                out.push_str(&one.render_body());
+                count += 1;
+            }
+        }
+        fs::write(self.root.join("skipped.csv"), out)?;
+        Ok(count)
     }
 
     /// Outcomes for the console suite summary, in execution order.
@@ -1173,6 +1299,85 @@ fn total_messages(stats: &RunStats) -> u64 {
     stats.runs.iter().map(|r| r.messages).sum()
 }
 
+/// Parse a `key,value` CSV artifact (as written by [`Csv::key_value`]) back into
+/// a map. The header row is skipped; RFC-4180 quoting is honoured. Values in the
+/// artifacts SESHAT writes never contain embedded newlines, so line-oriented
+/// parsing is sufficient.
+fn read_key_value_csv(path: &Path) -> io::Result<HashMap<String, String>> {
+    let text = fs::read_to_string(path)?;
+    let mut map = HashMap::new();
+    for line in text.lines().skip(1) {
+        if line.is_empty() {
+            continue;
+        }
+        let cells = split_csv_line(line);
+        if cells.len() >= 2 {
+            map.insert(cells[0].clone(), cells[1].clone());
+        }
+    }
+    Ok(map)
+}
+
+/// Split one RFC-4180 CSV record (a single line) into unescaped fields:
+/// double-quoted fields may contain commas, and a doubled `""` is a literal
+/// quote. Assumes the record does not span physical lines (true for every
+/// key/value artifact SESHAT emits).
+fn split_csv_line(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut field = String::new();
+    let mut in_quotes = false;
+    let mut chars = line.chars().peekable();
+    while let Some(c) = chars.next() {
+        if in_quotes {
+            if c == '"' {
+                if chars.peek() == Some(&'"') {
+                    field.push('"');
+                    chars.next();
+                } else {
+                    in_quotes = false;
+                }
+            } else {
+                field.push(c);
+            }
+        } else {
+            match c {
+                '"' => in_quotes = true,
+                ',' => fields.push(std::mem::take(&mut field)),
+                _ => field.push(c),
+            }
+        }
+    }
+    fields.push(field);
+    fields
+}
+
+/// Reconstruct a top-level [`SUMMARY_HEADERS`] row for a pre-existing scenario
+/// from its persisted key/value `config.csv` + `summary.csv`. The per-scenario
+/// keys already match the columnar header names (only `scenario` maps to the
+/// config's `name`); any header absent from disk — e.g. jitter or send-lag,
+/// which older per-scenario artifacts did not persist — is left empty, exactly
+/// as the live writer emits for an unmeasured field.
+fn reconstruct_summary_row(
+    config: &HashMap<String, String>,
+    summary: &HashMap<String, String>,
+) -> Vec<String> {
+    SUMMARY_HEADERS
+        .iter()
+        .map(|header| {
+            let key = if *header == "scenario" {
+                "name"
+            } else {
+                *header
+            };
+            summary
+                .get(key)
+                .or_else(|| config.get(key))
+                .cloned()
+                .unwrap_or_default()
+        })
+        .collect()
+}
+
 /// Replace characters unsafe for a path segment with `_`.
 pub(crate) fn sanitize(name: &str) -> String {
     name.chars()
@@ -1293,6 +1498,122 @@ mod tests {
         assert!(csv.contains("perf_duration_s,1.234567\r\n"));
         assert!(csv.contains("encapsulation_overhead_bytes_analytical,74\r\n"));
         assert!(csv.contains("encapsulation_overhead_capture_verified,false\r\n"));
+    }
+
+    #[test]
+    fn split_csv_line_unescapes_quotes_and_commas() {
+        assert_eq!(split_csv_line("a,b"), vec!["a", "b"]);
+        assert_eq!(split_csv_line("\"a,b\",c"), vec!["a,b", "c"]);
+        assert_eq!(
+            split_csv_line("\"say \"\"hi\"\"\",x"),
+            vec!["say \"hi\"", "x"]
+        );
+        assert_eq!(split_csv_line("trailing,"), vec!["trailing", ""]);
+    }
+
+    #[test]
+    fn read_key_value_csv_roundtrips_through_writer() {
+        let dir = std::env::temp_dir().join(format!("seshat-kv-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("kv.csv");
+        let mut c = Csv::key_value();
+        c.kv("scenario", "a,tricky\"name")
+            .kv("reason", "no messages, none");
+        c.write(&path).unwrap();
+        let map = read_key_value_csv(&path).unwrap();
+        assert_eq!(map.get("scenario").unwrap(), "a,tricky\"name");
+        assert_eq!(map.get("reason").unwrap(), "no messages, none");
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn reconstruct_summary_row_maps_keys_and_defaults_missing() {
+        let mut config = HashMap::new();
+        config.insert("name".to_string(), "scn1".to_string());
+        config.insert("transport".to_string(), "tcp".to_string());
+        config.insert("connections".to_string(), "4".to_string());
+        let mut summary = HashMap::new();
+        summary.insert("throughput_gbps_mean".to_string(), "9.5".to_string());
+        summary.insert("effective_protocol".to_string(), "ktls/1.3".to_string());
+
+        let row = reconstruct_summary_row(&config, &summary);
+        assert_eq!(row.len(), SUMMARY_HEADERS.len());
+        let at = |h: &str| SUMMARY_HEADERS.iter().position(|x| *x == h).unwrap();
+        assert_eq!(row[at("scenario")], "scn1"); // scenario <- config "name"
+        assert_eq!(row[at("transport")], "tcp");
+        assert_eq!(row[at("connections")], "4");
+        assert_eq!(row[at("protocol")], ""); // absent → empty
+        assert_eq!(row[at("throughput_gbps_mean")], "9.5");
+        assert_eq!(row[at("effective_protocol")], "ktls/1.3");
+    }
+
+    #[test]
+    fn finish_rebuilds_consolidated_from_disk_new_and_old_scenarios() {
+        let dir = std::env::temp_dir().join(format!("seshat-rebuild-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let rdir = ResultDir::open(&dir).unwrap();
+        let scen = |n: &str| dir.join("scenarios").join(n);
+
+        // New-style measured scenario: exact columnar row + key/value marker.
+        fs::create_dir_all(scen("new_scn")).unwrap();
+        let mut cells = vec![String::new(); SUMMARY_HEADERS.len()];
+        cells[0] = "new_scn".to_string();
+        cells[1] = "shm".to_string();
+        let mut row = Csv::new(SUMMARY_HEADERS);
+        row.row(cells);
+        fs::write(scen("new_scn").join("summary_row.csv"), row.render_body()).unwrap();
+        fs::write(
+            scen("new_scn").join("summary.csv"),
+            "key,value\r\nruns,3\r\n",
+        )
+        .unwrap();
+
+        // Old-style measured scenario: only key/value config + summary (the shape
+        // of the 1953 scenarios already on disk from the interrupted run).
+        fs::create_dir_all(scen("old_scn")).unwrap();
+        let mut cfg = Csv::key_value();
+        cfg.kv("name", "old_scn")
+            .kv("transport", "tcp")
+            .kv("connections", "1");
+        cfg.write(&scen("old_scn").join("config.csv")).unwrap();
+        let mut sm = Csv::key_value();
+        sm.kv("throughput_gbps_mean", "12.3")
+            .kv("effective_protocol", "tls1.2");
+        sm.write(&scen("old_scn").join("summary.csv")).unwrap();
+
+        // A skipped scenario with a comma in the reason (must stay quoted).
+        fs::create_dir_all(scen("skip_scn")).unwrap();
+        let mut sk = Csv::key_value();
+        sk.kv("scenario", "skip_scn")
+            .kv("reason", "no messages, dropped");
+        sk.write(&scen("skip_scn").join("skip.csv")).unwrap();
+
+        let executed = rdir.rebuild_summary().unwrap();
+        let skipped = rdir.rebuild_skipped().unwrap();
+        assert_eq!(executed, 2, "both new and old measured scenarios counted");
+        assert_eq!(skipped, 1);
+
+        let summary = fs::read_to_string(dir.join("summary.csv")).unwrap();
+        let lines: Vec<&str> = summary.lines().collect();
+        assert_eq!(lines.len(), 3, "one header + two data rows");
+        assert!(lines[0].starts_with("scenario,transport,"));
+        assert!(summary.contains("new_scn,shm,"));
+        assert!(summary.contains("old_scn,tcp,"));
+        assert!(
+            summary.contains(",12.3,"),
+            "reconstructed metric lands in its column"
+        );
+
+        let skipped_csv = fs::read_to_string(dir.join("skipped.csv")).unwrap();
+        assert!(skipped_csv.contains("skip_scn,\"no messages, dropped\""));
+
+        assert!(rdir.scenario_recorded("new_scn"));
+        assert!(rdir.scenario_recorded("old_scn"));
+        assert!(rdir.scenario_recorded("skip_scn"));
+        assert!(!rdir.scenario_recorded("never_ran"));
+
+        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]

@@ -256,6 +256,14 @@ pub struct SuiteArgs {
     #[arg(long)]
     pub output_dir: Option<PathBuf>,
 
+    /// Resume an interrupted run: reuse this existing result directory and skip
+    /// every scenario already recorded there (one with a `summary.csv` or
+    /// `skip.csv` on disk), running only the missing scenarios. The consolidated
+    /// report is rebuilt from all scenarios on disk, so the tier/config set must
+    /// match the original run. Takes precedence over `--output-dir`.
+    #[arg(long)]
+    pub resume: Option<PathBuf>,
+
     /// Shorthand for `--duration 2s --warmup 1s --runs 1` (fast smoke pass).
     #[arg(long, default_value_t = false)]
     pub quick: bool,

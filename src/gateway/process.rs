@@ -243,6 +243,15 @@ fn signal(pid: i32, sig: libc::c_int) {
     }
 }
 
+/// Force-kill the given gateway PIDs (`SIGKILL`), ignoring errors. Used by the
+/// per-scenario watchdog to unwedge a gateway that has stopped making progress
+/// so a single stuck scenario cannot hang the whole suite.
+pub fn force_kill(pids: &[i32]) {
+    for &pid in pids {
+        signal(pid, libc::SIGKILL);
+    }
+}
+
 /// Truncate any previous log, then reopen in append mode so the cloned stderr
 /// handle shares the write position (append writes are atomic at EOF).
 fn create_log(path: &Path) -> io::Result<File> {

@@ -147,8 +147,15 @@ struct RunContext {
 fn prepare_context(
     base: &Path,
     configs: &[&Config],
+    resume: bool,
 ) -> Result<RunContext, Box<dyn std::error::Error>> {
-    let rdir = ResultDir::create(base)?;
+    // On resume, adopt `base` itself as the result directory (it already holds
+    // the partial run); otherwise mint a fresh timestamped subdirectory.
+    let rdir = if resume {
+        ResultDir::open(base)?
+    } else {
+        ResultDir::create(base)?
+    };
     let host = crate::sysinfo::SysInfo::collect();
     // Reproducibility preflight: warn (don't block) when the host is not in a
     // controlled state, so results are interpreted with that caveat in mind.
@@ -234,6 +241,17 @@ fn run_config(ctx: &mut RunContext, cfg: &Config) -> CmdResult {
         let idx = ctx.index;
         ctx.index += 1;
         ctx.progress.start_scenario(idx, ctx.total, scenario);
+
+        // Resume: a scenario already recorded on disk is left untouched, so a
+        // re-launched run only executes the scenarios still missing. Its result
+        // is already counted by the consolidated rebuild in `finish`.
+        if ctx.rdir.scenario_recorded(&scenario.name) {
+            ctx.progress.finish_scenario(&format!(
+                "↻ {} — already recorded, skipped (resume)",
+                scenario.name
+            ));
+            continue;
+        }
 
         if let Some(reason) = unmet_requirements(scenario, &ctx.host) {
             log::warn!("scenario '{}': {reason}; skipping", scenario.name);
@@ -427,10 +445,9 @@ fn run_config(ctx: &mut RunContext, cfg: &Config) -> CmdResult {
 fn finish_context(ctx: RunContext, meta_cfg: &Config, config_path: &Path) -> CmdResult {
     let elapsed = ctx.progress.elapsed();
     ctx.progress.finish();
-    let executed = ctx.rdir.outcomes().len();
-    let skipped = ctx.skipped;
-    ctx.rdir
-        .finish(meta_cfg, config_path, executed, skipped, &ctx.host)?;
+    // Counts come from the on-disk rebuild so a resumed run reports the full
+    // tree (prior + newly-run scenarios), not just this process's scenarios.
+    let (executed, skipped) = ctx.rdir.finish(meta_cfg, config_path, &ctx.host)?;
     render_suite_summary(executed, skipped, ctx.rdir.root(), elapsed);
     crate::report::overview::render_and_write(ctx.rdir.root())?;
     if executed == 0 {
@@ -446,7 +463,7 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
         .output_dir
         .clone()
         .unwrap_or_else(|| PathBuf::from("results"));
-    let mut ctx = prepare_context(&base, &[cfg])?;
+    let mut ctx = prepare_context(&base, &[cfg], false)?;
     run_config(&mut ctx, cfg)?;
     finish_context(ctx, cfg, &args.config)
 }
@@ -501,12 +518,19 @@ fn suite(args: SuiteArgs) -> CmdResult {
         config::human_secs(est)
     );
 
-    let base = args
-        .output_dir
-        .clone()
-        .unwrap_or_else(|| PathBuf::from("results"));
+    // `--resume <dir>` adopts an existing result tree and runs only the missing
+    // scenarios; otherwise a fresh timestamped tree is created under output-dir.
+    let (base, resume) = match &args.resume {
+        Some(dir) => (dir.clone(), true),
+        None => (
+            args.output_dir
+                .clone()
+                .unwrap_or_else(|| PathBuf::from("results")),
+            false,
+        ),
+    };
     let cfg_refs: Vec<&Config> = loaded.iter().map(|(_, c)| c).collect();
-    let mut ctx = prepare_context(&base, &cfg_refs)?;
+    let mut ctx = prepare_context(&base, &cfg_refs, resume)?;
     drop(cfg_refs);
     for (path, cfg) in &loaded {
         log::info!("suite config: {}", path.display());
@@ -1637,6 +1661,42 @@ fn run_gateway_scenario(
     let perf_sampler = start_perf_sampler(defaults, scenario, &dut, &work_dir);
     let mem_copy_sampler = start_mem_copy_sampler(defaults, scenario, &dut, &work_dir);
 
+    // Per-scenario watchdog (defence in depth): a single scenario must never be
+    // able to hang the whole suite. Every transport's send/recv is bounded so the
+    // phase machine always terminates, but as a backstop against any future
+    // regression we force-kill the gateway if a scenario runs far past its
+    // nominal budget — killing the gateway unblocks socket recvs (peer closed)
+    // and, together with the bounded SHM send, any wedged worker. The cap is
+    // deliberately generous (minutes, well above any healthy scenario) so it can
+    // only ever fire on a true hang, never truncate a valid run.
+    let watchdog_done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let watchdog = {
+        let pids = dut.pids();
+        if pids.is_empty() {
+            None
+        } else {
+            let cap = scenario_watchdog_cap(&params);
+            let done = watchdog_done.clone();
+            let name = scenario.name.clone();
+            Some(std::thread::spawn(move || {
+                let start = std::time::Instant::now();
+                while start.elapsed() < cap {
+                    if done.load(std::sync::atomic::Ordering::Relaxed) {
+                        return;
+                    }
+                    std::thread::sleep(Duration::from_millis(250));
+                }
+                if done.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
+                }
+                log::error!(
+                    "scenario '{name}': exceeded {cap:?} watchdog budget; force-killing the gateway to unwedge the suite",
+                );
+                gateway::process::force_kill(&pids);
+            }))
+        }
+    };
+
     let run_result = engine::run_scenario(dut.as_transport(), &params, |i, s| {
         if params.mode == RunMode::Connrate {
             render_connrate_run_line(i, params.runs, s);
@@ -1644,6 +1704,13 @@ fn run_gateway_scenario(
             render_run_line(i, params.runs, s);
         }
     });
+
+    // Signal the watchdog that the scenario finished and reap it before touching
+    // results, so a stuck run is the only thing that can trip the force-kill.
+    watchdog_done.store(true, std::sync::atomic::Ordering::Relaxed);
+    if let Some(w) = watchdog {
+        let _ = w.join();
+    }
 
     // Stop sampling immediately once the runs finish (before any teardown or
     // calibration probe), regardless of whether the runs succeeded.
@@ -2607,6 +2674,28 @@ fn has_measurements(stats: &RunStats) -> bool {
     stats.runs.iter().any(|run| run.messages > 0)
 }
 
+/// A deliberately generous per-scenario wall-clock budget for the watchdog. It
+/// must sit far above any healthy scenario's runtime — so a valid run is never
+/// truncated — while still bounding a true hang to minutes instead of hours. It
+/// scales with the configured warmup/measure/cooldown × runs, plus a large
+/// fixed floor that covers gateway start-up, ping-pong pair setup and cold-start
+/// jitter.
+fn scenario_watchdog_cap(params: &RunParams) -> Duration {
+    watchdog_cap(params.warmup, params.measure, params.cooldown, params.runs)
+}
+
+/// Pure arithmetic behind [`scenario_watchdog_cap`], split out for testing.
+fn watchdog_cap(warmup: Duration, measure: Duration, cooldown: Duration, runs: usize) -> Duration {
+    let nominal = warmup
+        .saturating_add(measure)
+        .saturating_add(cooldown)
+        .saturating_mul(runs.max(1) as u32);
+    nominal
+        .saturating_mul(5)
+        .saturating_add(Duration::from_secs(120))
+        .max(Duration::from_secs(600))
+}
+
 /// Start a per-gateway `perf stat` sampler for every gateway-backed execution
 /// path.  Multi-stream and hot-reload used to omit this even when the caller
 /// explicitly selected the perf backend, which made their `perf_*` summaries
@@ -3243,11 +3332,21 @@ fn report(args: ReportArgs) -> CmdResult {
     // PERFORMANCE_OVERVIEW.txt) without re-running any benchmark.
     let summary_path = args.input.join("summary.csv");
     if !summary_path.is_file() {
-        return Err(format!(
-            "no summary.csv in {} — run `seshat run` or `seshat suite` first",
-            args.input.display()
-        )
-        .into());
+        // An interrupted or killed run never wrote the consolidated table (that
+        // happens only at `finish`). Rebuild it from the per-scenario files on
+        // disk so the partial data is still reportable, rather than erroring.
+        let rdir = ResultDir::open(&args.input)?;
+        let (executed, skipped) = rdir.rebuild_consolidated()?;
+        if executed == 0 && skipped == 0 {
+            return Err(format!(
+                "no scenario results under {} — run `seshat run` or `seshat suite` first",
+                args.input.display()
+            )
+            .into());
+        }
+        log::info!(
+            "reconstructed summary.csv from {executed} scenario(s) + {skipped} skip(s) on disk"
+        );
     }
     crate::report::overview::render_and_write(&args.input)?;
     let overview_path = args.input.join("PERFORMANCE_OVERVIEW.txt");
@@ -3690,6 +3789,36 @@ mod tests {
     use crate::config::Suite;
 
     #[test]
+    fn watchdog_cap_is_generous_and_floored() {
+        // A typical nightly scenario (2s+5s+1s × 3 runs = 24s nominal) is capped
+        // far above its runtime, and never below the 10-minute floor.
+        let cap = watchdog_cap(
+            Duration::from_secs(2),
+            Duration::from_secs(5),
+            Duration::from_secs(1),
+            3,
+        );
+        assert_eq!(
+            cap,
+            Duration::from_secs(600),
+            "short scenarios hit the floor"
+        );
+        // A long scenario scales past the floor (5× nominal + 120s slack).
+        let long = watchdog_cap(
+            Duration::from_secs(10),
+            Duration::from_secs(120),
+            Duration::from_secs(5),
+            2,
+        );
+        assert_eq!(long, Duration::from_secs((10 + 120 + 5) * 2 * 5 + 120));
+        // Zero runs is treated as one (no divide-by-zero / zero-cap footgun).
+        assert!(
+            watchdog_cap(Duration::ZERO, Duration::ZERO, Duration::ZERO, 0)
+                >= Duration::from_secs(600)
+        );
+    }
+
+    #[test]
     fn rsa_auth_ciphers_select_an_rsa_server_cert() {
         // ECDHE-RSA (TLS 1.2) suites authenticate with RSA and need an RSA cert;
         // an EC cert makes OpenSSL report "no shared cipher". TLS 1.3 and ECDSA
@@ -3812,6 +3941,7 @@ mod tests {
             config: vec![],
             scenario_filter: None,
             output_dir: None,
+            resume: None,
             quick: true,
             runs: Some(5),
             duration: None,
