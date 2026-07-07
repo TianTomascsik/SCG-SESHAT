@@ -110,14 +110,6 @@
       "requirements": ["openssl"]
     },
     {
-      "id": "integrity_tls13_tcp",
-      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" },
-      "interfaces": ["tcp"],
-      "chains": ["scg-direct", "scg-scg"],
-      "tiers": ["canonical", "nightly"],
-      "requirements": ["openssl"]
-    },
-    {
       "id": "routing_udp",
       "protocol": { "type": "none", "protection_mode": "routing-only" },
       "interfaces": ["udp"],
@@ -276,14 +268,6 @@
       "requirements": ["openssl"]
     },
     {
-      "id": "integrity_tls13_uds",
-      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" },
-      "interfaces": ["unix"],
-      "chains": ["scg-direct", "scg-scg"],
-      "tiers": ["canonical", "nightly"],
-      "requirements": ["openssl"]
-    },
-    {
       "id": "routing_shm",
       "protocol": { "type": "none", "protection_mode": "routing-only" },
       "interfaces": ["shm"],
@@ -357,14 +341,6 @@
     {
       "id": "integrity_tls12_shm",
       "protocol": { "type": "tls", "version": "1.2", "protection_mode": "integrity-only" },
-      "interfaces": ["shm"],
-      "chains": ["scg-direct", "scg-scg"],
-      "tiers": ["canonical", "nightly"],
-      "requirements": ["openssl"]
-    },
-    {
-      "id": "integrity_tls13_shm",
-      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" },
       "interfaces": ["shm"],
       "chains": ["scg-direct", "scg-scg"],
       "tiers": ["canonical", "nightly"],
@@ -459,15 +435,6 @@
       "connections": [1, 4, 16, 64],
       "tiers": ["canonical", "nightly"],
       "requirements": ["cap_net_admin", "openssl"]
-    },
-    {
-      "id": "integrity_tls13_tproxy",
-      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" },
-      "interfaces": ["tproxy"],
-      "chains": ["scg-direct", "scg-scg"],
-      "connections": [1, 4, 16, 64],
-      "tiers": ["canonical", "nightly"],
-      "requirements": ["cap_net_admin", "openssl"]
     }
   ],
   "cipher_matrix": {
@@ -530,6 +497,30 @@
       "reason": "RSS/PSS and analytical encapsulation overhead are reported, but SCG does not expose owned framing/TLS/SHM copy, splice, zero-copy-success, or fallback counters; physical copy claims are withheld",
       "interface": "tcp",
       "protocol": { "type": "none", "protection_mode": "routing-only" }
+    },
+    {
+      "name": "integrity_only_tls13_tcp",
+      "reason": "TLS 1.3 has no NULL/integrity-only cipher suite; OpenSSL does not implement the draft TLS_SHA256_SHA256/TLS_SHA384_SHA384 codepoints, so an integrity-only TLS 1.3 handshake negotiates zero ciphersuites and never completes. Integrity-only is TLS 1.2 only — SCG now rejects the combination at config load (TRA #85). Profile removed from the executable matrix.",
+      "interface": "tcp",
+      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" }
+    },
+    {
+      "name": "integrity_only_tls13_uds",
+      "reason": "TLS 1.3 has no NULL/integrity-only cipher suite; integrity-only is TLS 1.2 only (SCG rejects it at config load, TRA #85). Over UDS the dead handshake surfaced as a send-spin the harness watchdog had to kill. Profile removed from the executable matrix.",
+      "interface": "unix",
+      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" }
+    },
+    {
+      "name": "integrity_only_tls13_shm",
+      "reason": "TLS 1.3 has no NULL/integrity-only cipher suite; integrity-only is TLS 1.2 only (SCG rejects it at config load, TRA #85). Over SHM the dead handshake surfaced as a send-spin the harness watchdog had to kill. Profile removed from the executable matrix.",
+      "interface": "shm",
+      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" }
+    },
+    {
+      "name": "integrity_only_tls13_tproxy",
+      "reason": "TLS 1.3 has no NULL/integrity-only cipher suite; integrity-only is TLS 1.2 only (SCG rejects it at config load, TRA #85). Profile removed from the executable matrix.",
+      "interface": "tproxy",
+      "protocol": { "type": "tls", "version": "1.3", "protection_mode": "integrity-only" }
     }
   ]
 }

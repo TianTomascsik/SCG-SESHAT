@@ -62,6 +62,28 @@ pub fn stream_batch_size(message_bytes: u32) -> usize {
     (BATCH_BYTES_BUDGET / (message_bytes.max(1) as usize)).clamp(BATCH_MAX, BATCH_ABS_MAX)
 }
 
+/// Per-connection management `app_id` for the UDS/SHM gateway transports.
+///
+/// The gateway keys each dynamically-provisioned endpoint by
+/// `(uid, app_id, class, direction)` with **no** per-connection component, and
+/// re-registering that key tears down the previous endpoint. So N concurrent
+/// connections that all reuse one `app_id` evict each other down to a single
+/// survivor — the historical multi-connection UDS/SHM zero-metric failure
+/// (1 connection passes, ≥2 collapse to zero messages). Giving connection `i` a
+/// distinct `app_id` (paired at the call site with its own reserved upstream
+/// port) makes the N pipelines independent.
+///
+/// The `-c{i}` suffix is length-bounded like [`scenario_app_id`]: the id is
+/// embedded in a Unix-socket path capped by `SUN_LEN` (~108 bytes), so the total
+/// stays ≤ 40 bytes by trimming the readable head — never the unique suffix.
+pub(crate) fn conn_app_id(base: &str, index: usize) -> String {
+    const MAX: usize = 40;
+    let suffix = format!("-c{index}");
+    let room = MAX.saturating_sub(suffix.len());
+    let head: String = base.chars().take(room).collect();
+    format!("{head}{suffix}")
+}
+
 /// Outcome of a single [`DataSource::recv_msg`] call.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecvOutcome {

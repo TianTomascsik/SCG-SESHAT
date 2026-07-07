@@ -129,6 +129,13 @@ pub struct ApiConfig {
     /// (120/min) still protects real deployments; without this override the 64c UDS/SHM
     /// scenarios fail with "endpoint-creation rate limit exceeded (120/min)".
     pub create_rate_per_min: u32,
+    /// Maximum simultaneously-live endpoints per uid (`0` = unlimited). The connection-aware
+    /// UDS/SHM transport provisions two endpoints (encrypt + decrypt) per connection, so a
+    /// 64-connection scenario needs 128 live endpoints — above the gateway's default quota of
+    /// 64. This is an isolated benchmark gateway (no local-exhaustion concern; the production
+    /// default of 64 still protects real deployments), so the quota is disabled here; without
+    /// it the 64c UDS/SHM scenarios fail with "endpoint quota reached (64 live)".
+    pub max_endpoints_per_uid: u32,
     pub uds_path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tcp_addr: Option<String>,
@@ -157,6 +164,9 @@ impl ApiConfig {
             // Isolated benchmark gateway: no control-plane DoS concern, and high-connection
             // scenarios must be able to burst-provision endpoints. Production default stays 120.
             create_rate_per_min: 0,
+            // Two endpoints per connection (encrypt+decrypt) exceed the gateway's default
+            // 64 quota at 64 connections; disable it on the isolated benchmark gateway.
+            max_endpoints_per_uid: 0,
             uds_path: uds_path.to_string(),
             tcp_addr: None,
             runtime_dir: runtime_dir.to_string(),
@@ -522,6 +532,11 @@ mod tests {
         assert_eq!(v["rules"].as_array().unwrap().len(), 1);
         assert_eq!(v["api"]["enabled"], true);
         assert_eq!(v["api"]["uds_path"], "/run/scg/m.sock");
+        // The isolated benchmark gateway disables both the endpoint-creation rate limit and
+        // the per-uid live-endpoint quota, so high-connection UDS/SHM scenarios (2 endpoints
+        // per connection → 128 live at 64c) can burst-provision without hitting the defaults.
+        assert_eq!(v["api"]["create_rate_per_min"], 0);
+        assert_eq!(v["api"]["max_endpoints_per_uid"], 0);
         // A clean round-trip back to a JSON string works.
         assert!(cfg.to_json().contains("\"rules\""));
     }

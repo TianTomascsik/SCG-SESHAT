@@ -1502,6 +1502,7 @@ fn run_gateway_scenario(
             &work_dir,
             &cores.gateway,
             &app_id,
+            params.connections,
         ) {
             Ok(t) => GatewayDut::Uds(t),
             Err(e) => {
@@ -1570,6 +1571,7 @@ fn run_gateway_scenario(
             &work_dir,
             &cores.gateway,
             &app_id,
+            params.connections,
             ring_capacity,
             &shm_tuning,
         ) {

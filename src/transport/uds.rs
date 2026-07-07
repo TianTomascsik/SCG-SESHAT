@@ -212,7 +212,14 @@ pub struct GatewayUdsTransport {
     /// decrypt (scg-b) run as separate processes and each direction must be
     /// provisioned on its own gateway's socket.
     decrypt_mgmt_socket: PathBuf,
+    /// Base management app-id; connection `i` provisions under `conn_app_id(app_id, i)`.
     app_id: String,
+    /// Number of independent per-connection pipelines provisioned at start.
+    connections: usize,
+    /// Hands out the next connection index to `loopback_pair`/`pingpong_pair`, so each
+    /// call provisions its own `(app_id, upstream port)` pair and the gateway does not
+    /// evict siblings that share one app_id (multi-connection zero-metric fix).
+    next_conn: std::sync::atomic::AtomicUsize,
     running: Option<RunningPath>,
 }
 
@@ -223,6 +230,7 @@ impl GatewayUdsTransport {
     /// The gateway must have rules with `listen_proto: "uds"` so that UDS
     /// endpoint creation maps to a pipeline. The `spec` and `topology` describe
     /// the security layer applied between the encrypt and decrypt rules.
+    #[allow(clippy::too_many_arguments)] // cohesive constructor; mirrors `shm.rs::start`.
     pub fn start(
         name: &'static str,
         spec: &SecuritySpec,
@@ -231,6 +239,7 @@ impl GatewayUdsTransport {
         work_dir: &Path,
         gateway_cores: &[usize],
         app_id: &str,
+        connections: usize,
     ) -> io::Result<Self> {
         Self::start_with_classes(
             name,
@@ -240,6 +249,7 @@ impl GatewayUdsTransport {
             work_dir,
             gateway_cores,
             app_id,
+            connections,
             &[TrafficClass::Normal],
         )
     }
@@ -255,6 +265,7 @@ impl GatewayUdsTransport {
         work_dir: &Path,
         gateway_cores: &[usize],
         app_id: &str,
+        connections: usize,
         classes: &[TrafficClass],
     ) -> io::Result<Self> {
         use crate::gateway::config::{ApiConfig, GatewayConfig};
@@ -269,14 +280,25 @@ impl GatewayUdsTransport {
         // real user ID of the calling process with no preconditions.
         let uid = unsafe { libc::getuid() };
         let classes = normalize_classes(classes);
+        let connections = connections.max(1);
 
         // Build UDS rules: the gateway needs `listen_proto: "uds"` rules with an
         // `app_id` so that the management API can create endpoints for this app.
-        // A dummy upstream_addr is still needed for the security pipeline.
+        // Each connection gets its OWN rule pair (distinct app_id + upstream port):
+        // the gateway keys endpoints by (uid, app_id, class, direction) with no
+        // per-connection component, so reusing one app_id across N connections would
+        // evict all but the last (the multi-connection zero-metric bug). Reserve one
+        // upstream port per connection so the N encrypt→decrypt TLS legs don't
+        // contend on a single bound port either.
         // NB: apply_encrypt/apply_decrypt call .proto() which resets listen_proto,
         // so we must set listen_proto("uds") AFTER applying the security spec.
-        let upstream_addr = format!("127.0.0.1:{}", gateway::reserve_local_port()?);
-        let rules = build_rules_for_classes(spec, app_id, uid, &upstream_addr, &classes);
+        let upstream_addrs: Vec<String> = (0..connections)
+            .map(|_| Ok(format!("127.0.0.1:{}", gateway::reserve_local_port()?)))
+            .collect::<io::Result<Vec<_>>>()?;
+        let rules = build_rules_for_classes(spec, app_id, uid, &upstream_addrs, &classes);
+        // Representative backend addr for the plan (informational for UDS: readiness
+        // is gated on the management socket, not this port).
+        let upstream_addr = upstream_addrs[0].clone();
 
         // Build plan with API config (required for UDS endpoint provisioning).
         let id = UDS_MGMT_ID.fetch_add(1, Ordering::Relaxed);
@@ -353,8 +375,26 @@ impl GatewayUdsTransport {
             mgmt_socket: sock,
             decrypt_mgmt_socket: decrypt_sock,
             app_id: app_id.to_string(),
+            connections,
+            next_conn: std::sync::atomic::AtomicUsize::new(0),
             running: Some(running),
         })
+    }
+
+    /// The base app-id for the next connection to provision, or an error once every
+    /// pre-provisioned connection has been handed out (a caller bug — the engine opens
+    /// exactly `connections` pipelines).
+    fn next_conn_app_id(&self) -> io::Result<String> {
+        let i = self
+            .next_conn
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if i >= self.connections {
+            return Err(io::Error::other(format!(
+                "UDS: connection {i} requested but only {} pipeline(s) provisioned",
+                self.connections
+            )));
+        }
+        Ok(super::conn_app_id(&self.app_id, i))
     }
 
     pub fn loopback_pair_for_class(
@@ -366,17 +406,18 @@ impl GatewayUdsTransport {
         // two coincide for single-gateway and differ for scg-scg.
         let decrypt_mgmt = MgmtClient::new(&self.decrypt_mgmt_socket);
         let encrypt_mgmt = MgmtClient::new(&self.mgmt_socket);
+        let app_id = self.next_conn_app_id()?;
 
         // Bring up the decrypt listener first. The encrypt endpoint dials it as
         // part of its initial TLS handshake; provisioning encrypt first makes
         // its first connect race a closed port and adds a one-second retry,
         // which used to consume an entire short benchmark window.
         let decrypt_ep = decrypt_mgmt
-            .create_uds(&self.app_id, class, Direction::Decrypt)
+            .create_uds(&app_id, class, Direction::Decrypt)
             .map_err(io::Error::other)?;
 
         let encrypt_ep = encrypt_mgmt
-            .create_uds(&self.app_id, class, Direction::Encrypt)
+            .create_uds(&app_id, class, Direction::Encrypt)
             .map_err(io::Error::other)?;
 
         let sink = Box::new(UdsSink {
@@ -398,13 +439,14 @@ impl GatewayUdsTransport {
     ) -> io::Result<(Box<dyn DuplexEnd>, Box<dyn DuplexEnd>)> {
         let decrypt_mgmt = MgmtClient::new(&self.decrypt_mgmt_socket);
         let encrypt_mgmt = MgmtClient::new(&self.mgmt_socket);
+        let app_id = self.next_conn_app_id()?;
 
         let decrypt_ep = decrypt_mgmt
-            .create_uds(&self.app_id, class, Direction::Decrypt)
+            .create_uds(&app_id, class, Direction::Decrypt)
             .map_err(io::Error::other)?;
 
         let encrypt_ep = encrypt_mgmt
-            .create_uds(&self.app_id, class, Direction::Encrypt)
+            .create_uds(&app_id, class, Direction::Encrypt)
             .map_err(io::Error::other)?;
 
         // The client sends on encrypt and reads the echo off decrypt; the
@@ -458,48 +500,57 @@ fn normalize_classes(classes: &[TrafficClass]) -> Vec<TrafficClass> {
     out
 }
 
+/// Build the UDS rule set: one encrypt+decrypt pair per (connection, class).
+///
+/// Each connection `i` gets a distinct `app_id` (`conn_app_id(base, i)`) and its own
+/// `upstream_addrs[i]` (encrypt dials it, decrypt listens on it), so the N pipelines are
+/// independent — no gateway owner-key eviction and no shared-port contention. Rule names
+/// are suffixed `-c{i}` to stay unique. `upstream_addrs.len()` is the connection count.
 fn build_rules_for_classes(
     spec: &SecuritySpec,
     app_id: &str,
     uid: u32,
-    upstream_addr: &str,
+    upstream_addrs: &[String],
     classes: &[TrafficClass],
 ) -> Vec<crate::gateway::config::RuleConfig> {
     use crate::gateway::config::RuleConfig;
 
-    let mut rules = Vec::with_capacity(classes.len() * 2);
-    for class in classes {
-        let label = class_label(*class);
-        let encrypt = spec
-            .apply_encrypt(
-                RuleConfig::new(
-                    &format!("seshat-encrypt-{label}"),
-                    "encrypt",
-                    "unused",
-                    upstream_addr,
+    let mut rules = Vec::with_capacity(upstream_addrs.len() * classes.len() * 2);
+    for (i, upstream_addr) in upstream_addrs.iter().enumerate() {
+        let conn_app_id = super::conn_app_id(app_id, i);
+        for class in classes {
+            let label = class_label(*class);
+            let encrypt = spec
+                .apply_encrypt(
+                    RuleConfig::new(
+                        &format!("seshat-encrypt-{label}-c{i}"),
+                        "encrypt",
+                        "unused",
+                        upstream_addr,
+                    )
+                    .app_id(&conn_app_id)
+                    .traffic_class(label)
+                    .allowed_uid(uid),
                 )
-                .app_id(app_id)
                 .traffic_class(label)
-                .allowed_uid(uid),
-            )
-            .traffic_class(label)
-            .listen_proto("uds");
-        let decrypt = spec
-            .apply_decrypt(
-                RuleConfig::new(
-                    &format!("seshat-decrypt-{label}"),
-                    "decrypt",
-                    "unused",
-                    upstream_addr,
+                .listen_proto("uds");
+            let decrypt = spec
+                .apply_decrypt(
+                    RuleConfig::new(
+                        &format!("seshat-decrypt-{label}-c{i}"),
+                        "decrypt",
+                        "unused",
+                        upstream_addr,
+                    )
+                    .app_id(&conn_app_id)
+                    .traffic_class(label)
+                    .allowed_uid(uid),
                 )
-                .app_id(app_id)
                 .traffic_class(label)
-                .allowed_uid(uid),
-            )
-            .traffic_class(label)
-            .listen_proto("uds");
-        rules.push(encrypt);
-        rules.push(decrypt);
+                .listen_proto("uds");
+            rules.push(encrypt);
+            rules.push(decrypt);
+        }
     }
     rules
 }
@@ -546,23 +597,60 @@ mod tests {
             &spec(),
             "app",
             1000,
-            "127.0.0.1:9000",
+            &["127.0.0.1:9000".to_string()],
             &[TrafficClass::Normal, TrafficClass::Safety],
         );
 
         assert_eq!(rules.len(), 4);
         assert!(rules.iter().any(|r| {
-            r.name == "seshat-encrypt-normal"
+            r.name == "seshat-encrypt-normal-c0"
                 && r.direction == "encrypt"
                 && r.listen_proto == "uds"
                 && r.traffic_class == "normal"
         }));
         assert!(rules.iter().any(|r| {
-            r.name == "seshat-decrypt-safety"
+            r.name == "seshat-decrypt-safety-c0"
                 && r.direction == "decrypt"
                 && r.listen_proto == "uds"
                 && r.traffic_class == "safety"
         }));
+    }
+
+    #[test]
+    fn uds_rules_are_independent_per_connection() {
+        // Multi-connection fix: each connection must get its own rule pair with a
+        // DISTINCT app_id and a DISTINCT upstream port, or the gateway evicts
+        // siblings that share one (uid, app_id, class, direction) key and only the
+        // last connection survives (the historical ≥2-connection zero-metric bug).
+        let addrs = [
+            "127.0.0.1:9000".to_string(),
+            "127.0.0.1:9001".to_string(),
+            "127.0.0.1:9002".to_string(),
+        ];
+        let rules = build_rules_for_classes(&spec(), "app", 1000, &addrs, &[TrafficClass::Normal]);
+        assert_eq!(
+            rules.len(),
+            6,
+            "3 connections × 1 class × (encrypt+decrypt)"
+        );
+
+        // Distinct app_ids per connection.
+        let app_ids: std::collections::HashSet<_> =
+            rules.iter().map(|r| r.app_id.clone()).collect();
+        assert_eq!(app_ids.len(), 3, "one app_id per connection: {app_ids:?}");
+
+        // Distinct upstream ports per connection (encrypt dials, decrypt listens).
+        let ports: std::collections::HashSet<_> =
+            rules.iter().map(|r| r.upstream_addr.clone()).collect();
+        assert_eq!(
+            ports.len(),
+            3,
+            "one upstream port per connection: {ports:?}"
+        );
+
+        // Rule names stay unique.
+        let names: std::collections::HashSet<_> = rules.iter().map(|r| r.name.clone()).collect();
+        assert_eq!(names.len(), 6, "rule names unique across connections");
     }
 
     #[test]
@@ -600,6 +688,7 @@ mod tests {
             &work_dir,
             &[],
             "scgscg-app",
+            1,
         )
         .expect("uds scg-scg gateway pair starts");
         assert_eq!(transport.pids().len(), 2, "scg-scg spawns two gateways");

@@ -750,79 +750,6 @@
     {
       "category": "matrix",
       "connections": 1,
-      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-direct",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "name": "matrix_integrity_tls13_tcp_tcp_4096B_direct_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "openssl": true
-      },
-      "sender": {
-        "interface": "tcp",
-        "pattern": "sustained",
-        "target_addr": "127.0.0.1:18030"
-      }
-    },
-    {
-      "category": "matrix-latency",
-      "connections": 1,
-      "description": "matrix-latency: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-direct",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "mode": "pingpong",
-      "name": "matrix_lat_integrity_tls13_tcp_tcp_4096B_direct_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "openssl": true
-      },
-      "sender": {
-        "interface": "tcp",
-        "pattern": "sustained",
-        "target_addr": "127.0.0.1:18031"
-      }
-    },
-    {
-      "category": "matrix",
-      "connections": 1,
-      "description": "matrix: SCG scg-scg, tcp/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-scg",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "name": "matrix_integrity_tls13_tcp_tcp_4096B_scg_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "openssl": true
-      },
-      "sender": {
-        "interface": "tcp",
-        "pattern": "sustained",
-        "target_addr": "127.0.0.1:18032"
-      }
-    },
-    {
-      "category": "matrix",
-      "connections": 1,
       "description": "matrix: SCG scg-direct, udp/plain, 1200B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
@@ -838,7 +765,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18033"
+        "target_addr": "127.0.0.1:18030"
       }
     },
     {
@@ -860,7 +787,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18034"
+        "target_addr": "127.0.0.1:18031"
       }
     },
     {
@@ -881,7 +808,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18035"
+        "target_addr": "127.0.0.1:18032"
       }
     },
     {
@@ -905,7 +832,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18036"
+        "target_addr": "127.0.0.1:18033"
       }
     },
     {
@@ -930,7 +857,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18037"
+        "target_addr": "127.0.0.1:18034"
       }
     },
     {
@@ -954,7 +881,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18038"
+        "target_addr": "127.0.0.1:18035"
       }
     },
     {
@@ -977,7 +904,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18039"
+        "target_addr": "127.0.0.1:18036"
       }
     },
     {
@@ -1001,7 +928,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18040"
+        "target_addr": "127.0.0.1:18037"
       }
     },
     {
@@ -1024,7 +951,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18041"
+        "target_addr": "127.0.0.1:18038"
       }
     },
     {
@@ -1048,7 +975,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18042"
+        "target_addr": "127.0.0.1:18039"
       }
     },
     {
@@ -1073,7 +1000,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18043"
+        "target_addr": "127.0.0.1:18040"
       }
     },
     {
@@ -1097,7 +1024,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18044"
+        "target_addr": "127.0.0.1:18041"
       }
     },
     {
@@ -1121,7 +1048,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18045"
+        "target_addr": "127.0.0.1:18042"
       }
     },
     {
@@ -1146,7 +1073,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18046"
+        "target_addr": "127.0.0.1:18043"
       }
     },
     {
@@ -1170,7 +1097,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18047"
+        "target_addr": "127.0.0.1:18044"
       }
     },
     {
@@ -1194,7 +1121,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18048"
+        "target_addr": "127.0.0.1:18045"
       }
     },
     {
@@ -1219,7 +1146,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18049"
+        "target_addr": "127.0.0.1:18046"
       }
     },
     {
@@ -1243,7 +1170,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18050"
+        "target_addr": "127.0.0.1:18047"
       }
     },
     {
@@ -1267,7 +1194,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18051"
+        "target_addr": "127.0.0.1:18048"
       }
     },
     {
@@ -1292,7 +1219,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18052"
+        "target_addr": "127.0.0.1:18049"
       }
     },
     {
@@ -1316,7 +1243,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18053"
+        "target_addr": "127.0.0.1:18050"
       }
     },
     {
@@ -1340,7 +1267,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18054"
+        "target_addr": "127.0.0.1:18051"
       }
     },
     {
@@ -1365,7 +1292,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18055"
+        "target_addr": "127.0.0.1:18052"
       }
     },
     {
@@ -1389,7 +1316,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18056"
+        "target_addr": "127.0.0.1:18053"
       }
     },
     {
@@ -1410,7 +1337,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-57.sock"
+        "target_addr": "/tmp/seshat-matrix-54.sock"
       }
     },
     {
@@ -1432,7 +1359,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-58.sock"
+        "target_addr": "/tmp/seshat-matrix-55.sock"
       }
     },
     {
@@ -1453,7 +1380,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-59.sock"
+        "target_addr": "/tmp/seshat-matrix-56.sock"
       }
     },
     {
@@ -1476,7 +1403,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-60.sock"
+        "target_addr": "/tmp/seshat-matrix-57.sock"
       }
     },
     {
@@ -1500,7 +1427,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-61.sock"
+        "target_addr": "/tmp/seshat-matrix-58.sock"
       }
     },
     {
@@ -1523,7 +1450,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-62.sock"
+        "target_addr": "/tmp/seshat-matrix-59.sock"
       }
     },
     {
@@ -1548,7 +1475,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-63.sock"
+        "target_addr": "/tmp/seshat-matrix-60.sock"
       }
     },
     {
@@ -1574,7 +1501,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-64.sock"
+        "target_addr": "/tmp/seshat-matrix-61.sock"
       }
     },
     {
@@ -1599,7 +1526,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-65.sock"
+        "target_addr": "/tmp/seshat-matrix-62.sock"
       }
     },
     {
@@ -1622,7 +1549,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-66.sock"
+        "target_addr": "/tmp/seshat-matrix-63.sock"
       }
     },
     {
@@ -1646,7 +1573,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-67.sock"
+        "target_addr": "/tmp/seshat-matrix-64.sock"
       }
     },
     {
@@ -1669,7 +1596,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-68.sock"
+        "target_addr": "/tmp/seshat-matrix-65.sock"
       }
     },
     {
@@ -1693,7 +1620,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-69.sock"
+        "target_addr": "/tmp/seshat-matrix-66.sock"
       }
     },
     {
@@ -1718,7 +1645,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-70.sock"
+        "target_addr": "/tmp/seshat-matrix-67.sock"
       }
     },
     {
@@ -1742,7 +1669,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-71.sock"
+        "target_addr": "/tmp/seshat-matrix-68.sock"
       }
     },
     {
@@ -1766,7 +1693,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-72.sock"
+        "target_addr": "/tmp/seshat-matrix-69.sock"
       }
     },
     {
@@ -1791,7 +1718,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-73.sock"
+        "target_addr": "/tmp/seshat-matrix-70.sock"
       }
     },
     {
@@ -1815,7 +1742,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-74.sock"
+        "target_addr": "/tmp/seshat-matrix-71.sock"
       }
     },
     {
@@ -1840,7 +1767,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-75.sock"
+        "target_addr": "/tmp/seshat-matrix-72.sock"
       }
     },
     {
@@ -1866,7 +1793,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-76.sock"
+        "target_addr": "/tmp/seshat-matrix-73.sock"
       }
     },
     {
@@ -1891,7 +1818,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-77.sock"
+        "target_addr": "/tmp/seshat-matrix-74.sock"
       }
     },
     {
@@ -1917,7 +1844,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-78.sock"
+        "target_addr": "/tmp/seshat-matrix-75.sock"
       }
     },
     {
@@ -1944,7 +1871,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-79.sock"
+        "target_addr": "/tmp/seshat-matrix-76.sock"
       }
     },
     {
@@ -1970,7 +1897,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-80.sock"
+        "target_addr": "/tmp/seshat-matrix-77.sock"
       }
     },
     {
@@ -1996,7 +1923,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-81.sock"
+        "target_addr": "/tmp/seshat-matrix-78.sock"
       }
     },
     {
@@ -2023,7 +1950,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-82.sock"
+        "target_addr": "/tmp/seshat-matrix-79.sock"
       }
     },
     {
@@ -2049,7 +1976,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-83.sock"
+        "target_addr": "/tmp/seshat-matrix-80.sock"
       }
     },
     {
@@ -2073,7 +2000,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-84.sock"
+        "target_addr": "/tmp/seshat-matrix-81.sock"
       }
     },
     {
@@ -2098,7 +2025,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-85.sock"
+        "target_addr": "/tmp/seshat-matrix-82.sock"
       }
     },
     {
@@ -2122,80 +2049,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-86.sock"
-      }
-    },
-    {
-      "category": "matrix",
-      "connections": 1,
-      "description": "matrix: SCG scg-direct, unix/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-direct",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "name": "matrix_integrity_tls13_uds_unix_4096B_direct_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "openssl": true
-      },
-      "sender": {
-        "interface": "unix",
-        "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-87.sock"
-      }
-    },
-    {
-      "category": "matrix-latency",
-      "connections": 1,
-      "description": "matrix-latency: SCG scg-direct, unix/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-direct",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "mode": "pingpong",
-      "name": "matrix_lat_integrity_tls13_uds_unix_4096B_direct_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "openssl": true
-      },
-      "sender": {
-        "interface": "unix",
-        "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-88.sock"
-      }
-    },
-    {
-      "category": "matrix",
-      "connections": 1,
-      "description": "matrix: SCG scg-scg, unix/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-scg",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "name": "matrix_integrity_tls13_uds_unix_4096B_scg_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "openssl": true
-      },
-      "sender": {
-        "interface": "unix",
-        "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-89.sock"
+        "target_addr": "/tmp/seshat-matrix-83.sock"
       }
     },
     {
@@ -2216,7 +2070,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-90"
+        "target_addr": "shm:///seshat-matrix-84"
       }
     },
     {
@@ -2238,7 +2092,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-91"
+        "target_addr": "shm:///seshat-matrix-85"
       }
     },
     {
@@ -2259,7 +2113,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-92"
+        "target_addr": "shm:///seshat-matrix-86"
       }
     },
     {
@@ -2284,7 +2138,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-93"
+        "target_addr": "shm:///seshat-matrix-87"
       }
     },
     {
@@ -2310,7 +2164,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-94"
+        "target_addr": "shm:///seshat-matrix-88"
       }
     },
     {
@@ -2335,7 +2189,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-95"
+        "target_addr": "shm:///seshat-matrix-89"
       }
     },
     {
@@ -2358,7 +2212,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-96"
+        "target_addr": "shm:///seshat-matrix-90"
       }
     },
     {
@@ -2382,7 +2236,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-97"
+        "target_addr": "shm:///seshat-matrix-91"
       }
     },
     {
@@ -2405,7 +2259,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-98"
+        "target_addr": "shm:///seshat-matrix-92"
       }
     },
     {
@@ -2428,7 +2282,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-99"
+        "target_addr": "shm:///seshat-matrix-93"
       }
     },
     {
@@ -2452,7 +2306,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-100"
+        "target_addr": "shm:///seshat-matrix-94"
       }
     },
     {
@@ -2475,7 +2329,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-101"
+        "target_addr": "shm:///seshat-matrix-95"
       }
     },
     {
@@ -2499,7 +2353,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-102"
+        "target_addr": "shm:///seshat-matrix-96"
       }
     },
     {
@@ -2524,7 +2378,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-103"
+        "target_addr": "shm:///seshat-matrix-97"
       }
     },
     {
@@ -2548,7 +2402,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-104"
+        "target_addr": "shm:///seshat-matrix-98"
       }
     },
     {
@@ -2572,7 +2426,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-105"
+        "target_addr": "shm:///seshat-matrix-99"
       }
     },
     {
@@ -2597,7 +2451,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-106"
+        "target_addr": "shm:///seshat-matrix-100"
       }
     },
     {
@@ -2621,7 +2475,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-107"
+        "target_addr": "shm:///seshat-matrix-101"
       }
     },
     {
@@ -2646,7 +2500,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-108"
+        "target_addr": "shm:///seshat-matrix-102"
       }
     },
     {
@@ -2672,7 +2526,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-109"
+        "target_addr": "shm:///seshat-matrix-103"
       }
     },
     {
@@ -2697,7 +2551,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-110"
+        "target_addr": "shm:///seshat-matrix-104"
       }
     },
     {
@@ -2723,7 +2577,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-111"
+        "target_addr": "shm:///seshat-matrix-105"
       }
     },
     {
@@ -2750,7 +2604,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-112"
+        "target_addr": "shm:///seshat-matrix-106"
       }
     },
     {
@@ -2776,7 +2630,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-113"
+        "target_addr": "shm:///seshat-matrix-107"
       }
     },
     {
@@ -2802,7 +2656,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-114"
+        "target_addr": "shm:///seshat-matrix-108"
       }
     },
     {
@@ -2829,7 +2683,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-115"
+        "target_addr": "shm:///seshat-matrix-109"
       }
     },
     {
@@ -2855,7 +2709,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-116"
+        "target_addr": "shm:///seshat-matrix-110"
       }
     },
     {
@@ -2879,7 +2733,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-117"
+        "target_addr": "shm:///seshat-matrix-111"
       }
     },
     {
@@ -2904,7 +2758,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-118"
+        "target_addr": "shm:///seshat-matrix-112"
       }
     },
     {
@@ -2928,80 +2782,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-119"
-      }
-    },
-    {
-      "category": "matrix",
-      "connections": 1,
-      "description": "matrix: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-direct",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "name": "matrix_integrity_tls13_shm_shm_4096B_direct_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "openssl": true
-      },
-      "sender": {
-        "interface": "shm",
-        "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-120"
-      }
-    },
-    {
-      "category": "matrix-latency",
-      "connections": 1,
-      "description": "matrix-latency: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-direct",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "mode": "pingpong",
-      "name": "matrix_lat_integrity_tls13_shm_shm_4096B_direct_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "openssl": true
-      },
-      "sender": {
-        "interface": "shm",
-        "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-121"
-      }
-    },
-    {
-      "category": "matrix",
-      "connections": 1,
-      "description": "matrix: SCG scg-scg, shm/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-scg",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "name": "matrix_integrity_tls13_shm_shm_4096B_scg_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "openssl": true
-      },
-      "sender": {
-        "interface": "shm",
-        "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-122"
+        "target_addr": "shm:///seshat-matrix-113"
       }
     },
     {
@@ -3024,7 +2805,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18123"
+        "target_addr": "127.0.0.1:18114"
       }
     },
     {
@@ -3048,7 +2829,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18124"
+        "target_addr": "127.0.0.1:18115"
       }
     },
     {
@@ -3072,7 +2853,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18125"
+        "target_addr": "127.0.0.1:18116"
       }
     },
     {
@@ -3097,7 +2878,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18126"
+        "target_addr": "127.0.0.1:18117"
       }
     },
     {
@@ -3121,7 +2902,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18127"
+        "target_addr": "127.0.0.1:18118"
       }
     },
     {
@@ -3145,7 +2926,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18128"
+        "target_addr": "127.0.0.1:18119"
       }
     },
     {
@@ -3170,7 +2951,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18129"
+        "target_addr": "127.0.0.1:18120"
       }
     },
     {
@@ -3194,7 +2975,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18130"
+        "target_addr": "127.0.0.1:18121"
       }
     },
     {
@@ -3219,7 +3000,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18131"
+        "target_addr": "127.0.0.1:18122"
       }
     },
     {
@@ -3245,7 +3026,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18132"
+        "target_addr": "127.0.0.1:18123"
       }
     },
     {
@@ -3270,7 +3051,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18133"
+        "target_addr": "127.0.0.1:18124"
       }
     },
     {
@@ -3295,7 +3076,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18134"
+        "target_addr": "127.0.0.1:18125"
       }
     },
     {
@@ -3321,7 +3102,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18135"
+        "target_addr": "127.0.0.1:18126"
       }
     },
     {
@@ -3346,7 +3127,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18136"
+        "target_addr": "127.0.0.1:18127"
       }
     },
     {
@@ -3372,7 +3153,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18137"
+        "target_addr": "127.0.0.1:18128"
       }
     },
     {
@@ -3399,7 +3180,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18138"
+        "target_addr": "127.0.0.1:18129"
       }
     },
     {
@@ -3425,7 +3206,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18139"
+        "target_addr": "127.0.0.1:18130"
       }
     },
     {
@@ -3451,7 +3232,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18140"
+        "target_addr": "127.0.0.1:18131"
       }
     },
     {
@@ -3478,7 +3259,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18141"
+        "target_addr": "127.0.0.1:18132"
       }
     },
     {
@@ -3504,7 +3285,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18142"
+        "target_addr": "127.0.0.1:18133"
       }
     },
     {
@@ -3531,7 +3312,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18143"
+        "target_addr": "127.0.0.1:18134"
       }
     },
     {
@@ -3559,7 +3340,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18144"
+        "target_addr": "127.0.0.1:18135"
       }
     },
     {
@@ -3586,7 +3367,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18145"
+        "target_addr": "127.0.0.1:18136"
       }
     },
     {
@@ -3613,7 +3394,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18146"
+        "target_addr": "127.0.0.1:18137"
       }
     },
     {
@@ -3641,7 +3422,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18147"
+        "target_addr": "127.0.0.1:18138"
       }
     },
     {
@@ -3668,7 +3449,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18148"
+        "target_addr": "127.0.0.1:18139"
       }
     },
     {
@@ -3693,7 +3474,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18149"
+        "target_addr": "127.0.0.1:18140"
       }
     },
     {
@@ -3719,7 +3500,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18150"
+        "target_addr": "127.0.0.1:18141"
       }
     },
     {
@@ -3744,83 +3525,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18151"
-      }
-    },
-    {
-      "category": "matrix",
-      "connections": 1,
-      "description": "matrix: SCG scg-direct, tproxy/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-direct",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "name": "matrix_integrity_tls13_tproxy_tproxy_4096B_direct_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "cap_net_admin": true,
-        "openssl": true
-      },
-      "sender": {
-        "interface": "tproxy",
-        "pattern": "sustained",
-        "target_addr": "127.0.0.1:18152"
-      }
-    },
-    {
-      "category": "matrix-latency",
-      "connections": 1,
-      "description": "matrix-latency: SCG scg-direct, tproxy/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-direct",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "mode": "pingpong",
-      "name": "matrix_lat_integrity_tls13_tproxy_tproxy_4096B_direct_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "cap_net_admin": true,
-        "openssl": true
-      },
-      "sender": {
-        "interface": "tproxy",
-        "pattern": "sustained",
-        "target_addr": "127.0.0.1:18153"
-      }
-    },
-    {
-      "category": "matrix",
-      "connections": 1,
-      "description": "matrix: SCG scg-scg, tproxy/tls1.3, 4096B, 1 conn",
-      "gateway": {
-        "chain": "scg-scg",
-        "enabled": true
-      },
-      "message_size_bytes": 4096,
-      "name": "matrix_integrity_tls13_tproxy_tproxy_4096B_scg_1c",
-      "protocol": {
-        "protection_mode": "integrity-only",
-        "type": "tls",
-        "version": "1.3"
-      },
-      "requirements": {
-        "cap_net_admin": true,
-        "openssl": true
-      },
-      "sender": {
-        "interface": "tproxy",
-        "pattern": "sustained",
-        "target_addr": "127.0.0.1:18154"
+        "target_addr": "127.0.0.1:18142"
       }
     },
     {
@@ -3844,7 +3549,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18155"
+        "target_addr": "127.0.0.1:18143"
       }
     },
     {
@@ -3870,7 +3575,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18156"
+        "target_addr": "127.0.0.1:18144"
       }
     },
     {
@@ -3894,7 +3599,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18157"
+        "target_addr": "127.0.0.1:18145"
       }
     },
     {
@@ -3920,7 +3625,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18158"
+        "target_addr": "127.0.0.1:18146"
       }
     },
     {
@@ -3944,7 +3649,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18159"
+        "target_addr": "127.0.0.1:18147"
       }
     },
     {
@@ -3969,7 +3674,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18160"
+        "target_addr": "127.0.0.1:18148"
       }
     },
     {
@@ -3994,7 +3699,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18161"
+        "target_addr": "127.0.0.1:18149"
       }
     },
     {
@@ -4020,7 +3725,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18162"
+        "target_addr": "127.0.0.1:18150"
       }
     },
     {
@@ -4046,7 +3751,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18163"
+        "target_addr": "127.0.0.1:18151"
       }
     }
   ],
