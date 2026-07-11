@@ -1,0 +1,587 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG Relay-Backend A/B (io_uring vs poll+splice)",
+    "description": "Splice-eligible paths (routing always splices; kTLS splices when active) across a 1/4/16/64-connection sweep and 64B/16KB/256KB sizes. Run TWICE with the io_uring-feature gateway (SCG_GATEWAY_BIN): SCG_RELAY_IO_URING unset (poll+splice) then =1 (io_uring). Loopback throughput is harness-limited, so read the verdict from ctx_switches_total, mem_io_uring_enter vs mem_splice_syscalls/mem_poll_syscalls (--metrics-backend ebpf, root) and perf_cycles/IPC (--metrics-backend perf).",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 5,
+    "duration_secs": 10,
+    "warmup_secs": 3,
+    "cooldown_secs": 1,
+    "auto_affinity": true,
+    "scg_process_name": "gateway",
+    "collect_system_metrics": true,
+    "metrics_sample_rate_hz": 50,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "relaybackend_routing_tcp_64B_1c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15200",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_routing_tcp_64B_4c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 64,
+      "connections": 4,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15201",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_routing_tcp_64B_16c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 64,
+      "connections": 16,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15202",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_routing_tcp_64B_64c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 64,
+      "connections": 64,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15203",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_routing_tcp_16KB_1c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 16384,
+      "connections": 1,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15204",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_routing_tcp_16KB_4c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 16384,
+      "connections": 4,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15205",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_routing_tcp_16KB_16c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 16384,
+      "connections": 16,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15206",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_routing_tcp_16KB_64c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 16384,
+      "connections": 64,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15207",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_routing_tcp_256KB_1c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 262144,
+      "connections": 1,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15208",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_routing_tcp_256KB_4c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 262144,
+      "connections": 4,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15209",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_routing_tcp_256KB_16c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 262144,
+      "connections": 16,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15210",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_routing_tcp_256KB_64c",
+      "category": "relay-backend-routing",
+      "message_size_bytes": 262144,
+      "connections": 64,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15211",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_64B_1c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 64,
+      "connections": 1,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15212",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_64B_4c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 64,
+      "connections": 4,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15213",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_64B_16c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 64,
+      "connections": 16,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15214",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_64B_64c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 64,
+      "connections": 64,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15215",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_16KB_1c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 16384,
+      "connections": 1,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15216",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_16KB_4c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 16384,
+      "connections": 4,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15217",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_16KB_16c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 16384,
+      "connections": 16,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15218",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_16KB_64c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 16384,
+      "connections": 64,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15219",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_256KB_1c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 262144,
+      "connections": 1,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15220",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_256KB_4c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 262144,
+      "connections": 4,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15221",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_256KB_16c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 262144,
+      "connections": 16,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15222",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    },
+    {
+      "name": "relaybackend_ktls_tcp_256KB_64c",
+      "category": "relay-backend-ktls",
+      "message_size_bytes": 262144,
+      "connections": 64,
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "optimization_flags": {
+        "perf_profile": "throughput"
+      },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:15223",
+        "pattern": "sustained"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "requirements": {
+        "ktls": true
+      }
+    }
+  ]
+}
