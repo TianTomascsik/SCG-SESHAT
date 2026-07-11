@@ -102,6 +102,8 @@ const SUMMARY_HEADERS: &[&str] = &[
     "mem_copy_to_user",
     "mem_copy_from_user",
     "mem_splice_syscalls",
+    "mem_poll_syscalls",
+    "mem_io_uring_enter",
     "resumed_fraction",
     "cpu_hot_thread_pct_p95",
     "host_busy_frac_p95",
@@ -462,6 +464,14 @@ impl ResultDir {
                 .and_then(|m| m.splice)
                 .map(|v| v.to_string())
                 .unwrap_or_default(),
+            mem_copies
+                .and_then(|m| m.poll.or(m.ppoll))
+                .map(|v| v.to_string())
+                .unwrap_or_default(),
+            mem_copies
+                .and_then(|m| m.io_uring_enter)
+                .map(|v| v.to_string())
+                .unwrap_or_default(),
             effective
                 .and_then(|e| e.resumed_fraction())
                 .map(|v| num(v, 3))
@@ -473,6 +483,15 @@ impl ResultDir {
             cal.map(|c| c.ceiling_transport.to_string())
                 .unwrap_or_default(),
         ];
+        // Guard against header/row drift: the columnar `summary_row` is built cell
+        // by cell in header order, so a header added without its matching cell (or
+        // vice versa) would silently shift every later column. Catch that in tests
+        // rather than shipping a misaligned `summary.csv`.
+        debug_assert_eq!(
+            summary_row.len(),
+            SUMMARY_HEADERS.len(),
+            "summary_row cell count drifted from SUMMARY_HEADERS"
+        );
         // Persist this scenario's exact top-level row next to its artifacts so a
         // resumed or interrupted run can rebuild the consolidated `summary.csv`
         // losslessly from disk (see `finish`).
@@ -1019,6 +1038,16 @@ fn scenario_summary_csv(
         }
         if let Some(v) = m.splice {
             c.kv("mem_splice_syscalls", v.to_string());
+        }
+        // Relay-backend syscall differentiators: poll+splice drives readiness with
+        // poll and moves bytes with splice; io_uring drives both through
+        // io_uring_enter. The ratio to messages is the definitive backend signal
+        // when loopback throughput is harness-limited.
+        if let Some(v) = m.poll.or(m.ppoll) {
+            c.kv("mem_poll_syscalls", v.to_string());
+        }
+        if let Some(v) = m.io_uring_enter {
+            c.kv("mem_io_uring_enter", v.to_string());
         }
     }
     if let Some(s) = art.sweep {

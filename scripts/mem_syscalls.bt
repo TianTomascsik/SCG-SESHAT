@@ -1,0 +1,30 @@
+#!/usr/bin/env bpftrace
+/*
+ * SESHAT payload-syscall probe (P1.1) — counts the payload-moving syscalls
+ * attributed to the SCG gateway PID(s) over a run window. Split out of
+ * `mem_copies.bt` so a kernel whose copy kprobes are non-attachable still
+ * produces these counts: bpftrace aborts a whole script if any one probe fails
+ * to attach, and the copy kprobes (`_copy_to_user` / `_copy_from_user`) are
+ * inlined or blacklisted on some kernels while these syscall tracepoints are
+ * stable on every kernel that exposes the `syscalls` tracepoint category.
+ *
+ * The poll+splice relay drives readiness with poll/ppoll and moves bytes with
+ * splice; the io_uring relay drives both through io_uring_enter, so the two
+ * backends separate cleanly on these counters even when loopback throughput is
+ * harness-limited.
+ *
+ * The harness substitutes the `__PID_FILTER__` token with a predicate such as
+ * `pid == 1234 || pid == 5678` before running. To use this standalone, replace
+ * it yourself, e.g.:
+ *     sudo bpftrace -e "$(sed 's/__PID_FILTER__/pid == 1234/' mem_syscalls.bt)"
+ *
+ * Requires root (or CAP_BPF + CAP_PERFMON).
+ */
+tracepoint:syscalls:sys_enter_sendmsg /__PID_FILTER__/ { @sendmsg = count(); }
+tracepoint:syscalls:sys_enter_recvmsg /__PID_FILTER__/ { @recvmsg = count(); }
+tracepoint:syscalls:sys_enter_splice  /__PID_FILTER__/ { @splice = count(); }
+
+/* Relay-backend syscall differentiators. */
+tracepoint:syscalls:sys_enter_poll           /__PID_FILTER__/ { @poll = count(); }
+tracepoint:syscalls:sys_enter_ppoll          /__PID_FILTER__/ { @ppoll = count(); }
+tracepoint:syscalls:sys_enter_io_uring_enter /__PID_FILTER__/ { @io_uring_enter = count(); }

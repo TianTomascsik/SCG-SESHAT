@@ -1,25 +1,28 @@
 #!/usr/bin/env bpftrace
 /*
- * SESHAT memory-copy probe (P1.1) — counts the user<->kernel payload copies and
- * the payload-moving syscalls attributed to the SCG gateway PID(s) over a run
- * window, so "memory copies per message" can be reported (a benchmark_features
- * metric). Dividing the copy count by the messages delivered shows directly that
- * the zero-copy paths (routing/kTLS splice) approach ~0 user copies per message
- * while userspace TLS copies each payload in and back out.
+ * SESHAT payload-copy probe (P1.1) — counts the user<->kernel payload copies
+ * attributed to the SCG gateway PID(s) over a run window, so "memory copies per
+ * message" can be reported (a benchmark_features metric). Dividing the copy
+ * count by the messages delivered shows directly that the zero-copy paths
+ * (routing/kTLS splice) approach ~0 user copies per message while userspace TLS
+ * copies each payload in and back out.
+ *
+ * This script attaches ONLY the copy kprobes. `_copy_to_user` / `_copy_from_user`
+ * are inlined or kprobe-blacklisted on some kernels (bpftrace then reports
+ * "No matches for kprobe _copy_to_user"), and bpftrace aborts a whole script when
+ * ANY single probe fails to attach. The payload-moving *syscall* counters
+ * therefore live in the sibling script `mem_syscalls.bt`, run as an independent
+ * bpftrace job, so a kernel without attachable copy kprobes still yields the
+ * syscall counts (the io_uring-vs-poll/splice differentiators) instead of losing
+ * every counter. On such kernels the copy counters simply come back empty and the
+ * harness records the run as having no memory-copy data rather than failing.
  *
  * The harness substitutes the `__PID_FILTER__` token with a predicate such as
  * `pid == 1234 || pid == 5678` before running. To use this standalone, replace
  * it yourself, e.g.:
  *     sudo bpftrace -e "$(sed 's/__PID_FILTER__/pid == 1234/' mem_copies.bt)"
  *
- * Requires root (or CAP_BPF + CAP_PERFMON) and a kernel exposing the
- * `_copy_to_user` / `_copy_from_user` symbols (stable on x86_64). On kernels
- * where those symbols differ, the copy counters come back empty and the harness
- * records the run as having no memory-copy data rather than failing.
+ * Requires root (or CAP_BPF + CAP_PERFMON).
  */
 kprobe:_copy_to_user   /__PID_FILTER__/ { @copy_to_user = count(); }
 kprobe:_copy_from_user /__PID_FILTER__/ { @copy_from_user = count(); }
-
-tracepoint:syscalls:sys_enter_sendmsg /__PID_FILTER__/ { @sendmsg = count(); }
-tracepoint:syscalls:sys_enter_recvmsg /__PID_FILTER__/ { @recvmsg = count(); }
-tracepoint:syscalls:sys_enter_splice  /__PID_FILTER__/ { @splice = count(); }

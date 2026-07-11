@@ -321,8 +321,14 @@ fn parse_perf_f64(value: &str) -> Option<f64> {
 // ─── F-13b: eBPF memory-copy backend (`bpftrace`) ───────────────────────────
 
 /// The embedded `mem_copies.bt` program (kept in `scripts/` for standalone use
-/// and documentation, embedded here so the binary is self-contained).
+/// and documentation, embedded here so the binary is self-contained). Attaches
+/// only the copy kprobes.
 const MEM_COPIES_BT: &str = include_str!("../../scripts/mem_copies.bt");
+
+/// The embedded `mem_syscalls.bt` program: the payload-moving syscall counters,
+/// run as an independent bpftrace job so a kernel with non-attachable copy
+/// kprobes (which abort their own script) still yields these counts.
+const MEM_SYSCALLS_BT: &str = include_str!("../../scripts/mem_syscalls.bt");
 
 /// Result of a `bpftrace` memory-copy run against the gateway PID(s).
 #[derive(Debug, Clone, Default)]
@@ -335,8 +341,14 @@ pub struct MemCopyResult {
     pub sendmsg: Option<u64>,
     /// `recvmsg` syscalls entered.
     pub recvmsg: Option<u64>,
-    /// `splice` syscalls entered (the zero-copy relay path).
+    /// `splice` syscalls entered (the poll+splice zero-copy relay path).
     pub splice: Option<u64>,
+    /// `poll` syscalls entered (poll+splice relay readiness waits).
+    pub poll: Option<u64>,
+    /// `ppoll` syscalls entered (poll+splice relay readiness waits).
+    pub ppoll: Option<u64>,
+    /// `io_uring_enter` syscalls entered (the io_uring relay backend).
+    pub io_uring_enter: Option<u64>,
 }
 
 impl MemCopyResult {
@@ -358,20 +370,30 @@ impl MemCopyResult {
     }
 }
 
-/// A `bpftrace` process counting payload copies for the gateway PID(s) over the
-/// run. Like [`PerfSampler`] it attaches for the full sampler lifetime.
-pub struct MemCopySampler {
-    child: Option<std::process::Child>,
+/// A running `bpftrace` job: its child process and the file its map output is
+/// written to.
+struct BpfJob {
+    child: std::process::Child,
     stdout_path: std::path::PathBuf,
 }
 
-impl MemCopySampler {
-    /// Start `bpftrace` with the embedded program, filtered to `pids`. Returns
-    /// `None` if `bpftrace` is unavailable, the caller is unprivileged, or the
-    /// spawn fails — so an unprivileged run degrades to "no memory-copy data".
-    pub fn start(pids: &[i32], work_dir: &std::path::Path) -> Option<Self> {
-        use std::process::{Command, Stdio};
+/// One or more `bpftrace` processes counting payload copies and payload-moving
+/// syscalls for the gateway PID(s) over the run. Like [`PerfSampler`] the jobs
+/// attach for the full sampler lifetime.
+///
+/// The copy kprobes and the syscall tracepoints run as **independent** jobs
+/// because bpftrace aborts a whole script when any single probe fails to attach,
+/// and the copy kprobes are non-attachable on some kernels. Splitting them means
+/// a kernel without attachable copy kprobes still yields the syscall counts.
+pub struct MemCopySampler {
+    jobs: Vec<BpfJob>,
+}
 
+impl MemCopySampler {
+    /// Start `bpftrace` with the embedded programs, filtered to `pids`. Returns
+    /// `None` if `bpftrace` is unavailable, the caller is unprivileged, or both
+    /// spawns fail — so an unprivileged run degrades to "no memory-copy data".
+    pub fn start(pids: &[i32], work_dir: &std::path::Path) -> Option<Self> {
         if pids.is_empty() || !Self::available() {
             return None;
         }
@@ -381,38 +403,49 @@ impl MemCopySampler {
             .map(|p| format!("pid == {p}"))
             .collect::<Vec<_>>()
             .join(" || ");
-        let program = MEM_COPIES_BT.replace("__PID_FILTER__", &filter);
-        let script_path = work_dir.join("mem_copies.bt");
-        fs::write(&script_path, &program).ok()?;
 
-        let stdout_path = work_dir.join("mem_copies_out.txt");
-        let stdout_file = fs::File::create(&stdout_path).ok()?;
+        // Syscall tracepoints first (attach on every modern kernel), then the
+        // copy kprobes (may be non-attachable and abort their own job only).
+        let mut jobs = Vec::new();
+        if let Some(job) = spawn_bpftrace(
+            &MEM_SYSCALLS_BT.replace("__PID_FILTER__", &filter),
+            work_dir,
+            "mem_syscalls.bt",
+            "mem_syscalls_out.txt",
+            "mem_syscalls_err.txt",
+        ) {
+            jobs.push(job);
+        }
+        if let Some(job) = spawn_bpftrace(
+            &MEM_COPIES_BT.replace("__PID_FILTER__", &filter),
+            work_dir,
+            "mem_copies.bt",
+            "mem_copies_out.txt",
+            "mem_copies_err.txt",
+        ) {
+            jobs.push(job);
+        }
 
-        let child = Command::new("bpftrace")
-            .arg(&script_path)
-            .stdin(Stdio::null())
-            .stdout(stdout_file)
-            .stderr(Stdio::null())
-            .spawn()
-            .ok()?;
-
-        Some(MemCopySampler {
-            child: Some(child),
-            stdout_path,
-        })
+        if jobs.is_empty() {
+            return None;
+        }
+        Some(MemCopySampler { jobs })
     }
 
-    /// Stop bpftrace (SIGINT, which makes it print its maps) and parse the result.
+    /// Stop the bpftrace jobs (SIGINT, which makes them print their maps) and
+    /// parse the merged result across every job's output.
     pub fn stop(mut self) -> MemCopyResult {
-        if let Some(mut child) = self.child.take() {
+        let mut result = MemCopyResult::default();
+        for mut job in std::mem::take(&mut self.jobs) {
             // SAFETY: `libc::kill` is a plain syscall with no memory-safety
-            // preconditions; `child.id()` is the PID of the bpftrace child this
-            // sampler owns and has not yet reaped (taken above, `wait`ed below),
-            // and `SIGINT` is a valid signal number.
-            unsafe { libc::kill(child.id() as i32, libc::SIGINT) };
-            let _ = child.wait();
+            // preconditions; `job.child.id()` is the PID of a bpftrace child this
+            // sampler owns and has not yet reaped (moved out above, `wait`ed
+            // below), and `SIGINT` is a valid signal number.
+            unsafe { libc::kill(job.child.id() as i32, libc::SIGINT) };
+            let _ = job.child.wait();
+            parse_mem_copies_into(&job.stdout_path, &mut result);
         }
-        parse_mem_copies(&self.stdout_path)
+        result
     }
 
     /// Whether memory-copy sampling can run here: `bpftrace` present and the
@@ -436,21 +469,64 @@ impl MemCopySampler {
 
 impl Drop for MemCopySampler {
     fn drop(&mut self) {
-        if let Some(mut child) = self.child.take() {
-            // SAFETY: see `stop`; the owned, unreaped bpftrace child PID is killed
-            // and immediately waited for.
-            unsafe { libc::kill(child.id() as i32, libc::SIGKILL) };
-            let _ = child.wait();
+        for job in &mut self.jobs {
+            // SAFETY: see `stop`; each owned, unreaped bpftrace child PID is
+            // killed and immediately waited for.
+            unsafe { libc::kill(job.child.id() as i32, libc::SIGKILL) };
+            let _ = job.child.wait();
         }
     }
 }
 
+/// Spawn one `bpftrace` job for `program`, writing its script, map output, and
+/// stderr into `work_dir`. Returns `None` if writing the script or spawning
+/// fails. Capturing stderr matters because bpftrace aborts a whole script if any
+/// single probe fails to attach, and a silent null stderr made that undiagnosable.
+fn spawn_bpftrace(
+    program: &str,
+    work_dir: &std::path::Path,
+    script_name: &str,
+    stdout_name: &str,
+    stderr_name: &str,
+) -> Option<BpfJob> {
+    use std::process::{Command, Stdio};
+
+    let script_path = work_dir.join(script_name);
+    fs::write(&script_path, program).ok()?;
+
+    let stdout_path = work_dir.join(stdout_name);
+    let stdout_file = fs::File::create(&stdout_path).ok()?;
+    let stderr_file = fs::File::create(work_dir.join(stderr_name)).ok();
+
+    let child = Command::new("bpftrace")
+        .arg(&script_path)
+        .stdin(Stdio::null())
+        .stdout(stdout_file)
+        .stderr(match stderr_file {
+            Some(f) => Stdio::from(f),
+            None => Stdio::null(),
+        })
+        .spawn()
+        .ok()?;
+
+    Some(BpfJob { child, stdout_path })
+}
+
 /// Parse `bpftrace` map output lines such as `@copy_to_user: 12345`.
+#[cfg(test)]
 fn parse_mem_copies(path: &std::path::Path) -> MemCopyResult {
     let mut result = MemCopyResult::default();
+    parse_mem_copies_into(path, &mut result);
+    result
+}
+
+/// Merge `bpftrace` map output at `path` into `result` (each split job's output
+/// contributes only the counters it collected, so later jobs never clobber
+/// earlier ones).
+fn parse_mem_copies_into(path: &std::path::Path, result: &mut MemCopyResult) {
     let content = match fs::read_to_string(path) {
         Ok(c) => c,
-        Err(_) => return result,
+        Err(_) => return,
     };
     for line in content.lines() {
         let line = line.trim();
@@ -466,10 +542,12 @@ fn parse_mem_copies(path: &std::path::Path) -> MemCopyResult {
             "@sendmsg" => result.sendmsg = Some(n),
             "@recvmsg" => result.recvmsg = Some(n),
             "@splice" => result.splice = Some(n),
+            "@poll" => result.poll = Some(n),
+            "@ppoll" => result.ppoll = Some(n),
+            "@io_uring_enter" => result.io_uring_enter = Some(n),
             _ => {}
         }
     }
-    result
 }
 
 /// Sampling loop: emit one sample per PID per tick until the stop flag is set.
@@ -1195,7 +1273,7 @@ mod tests {
         let path = dir.join("out.txt");
         fs::write(
             &path,
-            "Attaching 5 probes...\n\n@copy_from_user: 2048\n@copy_to_user: 1024\n@recvmsg: 500\n@sendmsg: 500\n@splice: 0\n",
+            "Attaching 8 probes...\n\n@copy_from_user: 2048\n@copy_to_user: 1024\n@recvmsg: 500\n@sendmsg: 500\n@splice: 0\n@poll: 12\n@io_uring_enter: 340\n",
         )
         .unwrap();
         let r = parse_mem_copies(&path);
@@ -1204,6 +1282,9 @@ mod tests {
         assert_eq!(r.total_copies(), Some(3072));
         assert_eq!(r.sendmsg, Some(500));
         assert_eq!(r.splice, Some(0));
+        assert_eq!(r.poll, Some(12));
+        assert_eq!(r.io_uring_enter, Some(340));
+        assert_eq!(r.ppoll, None);
         // 3072 copies over 1024 messages = 3 copies/message.
         assert_eq!(r.copies_per_msg(1024), Some(3.0));
         assert_eq!(r.copies_per_msg(0), None);
