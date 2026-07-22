@@ -1484,6 +1484,67 @@
         "cap_net_admin",
         "openssl"
       ]
+    },
+    {
+      "id": "subset146_pki_tls12_tcp",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2",
+        "mutual_auth": true,
+        "profile": "subset146-pki"
+      },
+      "interfaces": [
+        "tcp"
+      ],
+      "chains": [
+        "scg-direct",
+        "scg-scg"
+      ],
+      "tiers": [],
+      "requirements": [
+        "openssl"
+      ]
+    },
+    {
+      "id": "subset146_pki_tls13_tcp",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "mutual_auth": true,
+        "profile": "subset146-pki"
+      },
+      "interfaces": [
+        "tcp"
+      ],
+      "chains": [
+        "scg-direct",
+        "scg-scg"
+      ],
+      "tiers": [],
+      "requirements": [
+        "openssl"
+      ]
+    },
+    {
+      "id": "subset146_psk_tls12_tcp",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2",
+        "profile": "subset146-psk",
+        "psk_identity": "seshat-bench",
+        "psk_hex": "deadbeef01020304deadbeef01020304"
+      },
+      "interfaces": [
+        "tcp"
+      ],
+      "chains": [
+        "scg-direct",
+        "scg-scg"
+      ],
+      "tiers": [],
+      "requirements": [
+        "openssl"
+      ]
     }
   ],
   "cipher_matrix": {
@@ -1645,6 +1706,16 @@
       "interface": "udp",
       "protocol": {
         "type": "wireguard"
+      }
+    },
+    {
+      "name": "subset146_psk_tls13",
+      "reason": "subset146-psk is a pre-shared-key profile; PSK-only handshakes were removed in TLS 1.3, so SCG rejects subset146-psk on TLS 1.3 at config load: 'subset146-psk requires TLS 1.2 (PSK-only handshakes were removed in TLS 1.3)'. The PKI variant (subset146-pki) is TLS 1.3 capable and stays in the executable matrix. Profile removed from the executable matrix.",
+      "interface": "tcp",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "profile": "subset146-psk"
       }
     }
   ]

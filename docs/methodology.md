@@ -203,7 +203,11 @@ sits at the single-stream loopback ceiling and encrypted paths even *decline* (p
 thread CPU falls as they stall on per-connection poll/futex wakeups). That is why
 `unix`/`shm` are capped at the nightly `[1,4,16,64]` ladder rather than the
 256/1024 scalability tier — past it the sweep only re-measures the serial ceiling —
-and why F15 tags each point with its bottleneck class. The `shm_null.rs`/
+and why F15 tags each point with its bottleneck class. (The **everything** tier
+deliberately lifts this cap and gives `unix`/`shm` the full `256/1024`-connection
+rows too: "every combination" includes the ones that only re-measure the serial
+ceiling. Read those points as ceiling re-measurements, not fan-out scaling.) The
+`shm_null.rs`/
 `uds_null.rs` `connections:1` transports are the ceiling-calibration probes (no
 gateway attached), not the benchmark path. The remedy for real scaling is a
 bandwidth-bound / real-NIC tier (or a non-serial local-IPC relay), not more
@@ -286,7 +290,8 @@ are deterministic; CSV-only, per-run output enables independent re-analysis.
    and reported separately. Folding it in needs a netns-aware `GatewayProcess`
    and a UDP distributed engine (future work). So that no unified run silently
    omits this, every generated matrix tier (`matrix_catalog.json`,
-   `full_matrix.json`, `canonical_matrix.json`) carries an explicit disabled
+   `full_matrix.json`, `canonical_matrix.json`, `everything_matrix.json`, and the
+   `smoke_matrix.json`) carries an explicit disabled
    `blocked_wireguard_script_orchestrated` row whose `disabled_reason` points
    at the `scripts/wg_bench.sh` / `scripts/perf_gate.sh` orchestration; the
    runner never executes disabled rows, so the row is a pure coverage signal.

@@ -220,18 +220,26 @@ pub struct RunArgs {
 /// Benchmark evaluation tier selecting a bundled set of config suites.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum SuiteTier {
+    /// Minimal per-capability verification: every SCG path once, at the
+    /// canonical size / 1 connection (fast — "does everything still run").
+    Smoke,
     /// Compact, representative coverage (the default full evaluation).
     Canonical,
-    /// Exhaustive coverage: the generated full matrix and hot-reload suites too.
+    /// Broad coverage: the generated nightly matrix and hot-reload suites too.
     Nightly,
+    /// Exhaustive coverage: every capability in every valid combination (full
+    /// size range × connection ladder) plus the hand-written extras. Very long.
+    Everything,
 }
 
 impl SuiteTier {
     /// Key used to look the tier up in the `configs/suites.json` manifest.
     pub fn key(self) -> &'static str {
         match self {
+            SuiteTier::Smoke => "smoke",
             SuiteTier::Canonical => "canonical",
             SuiteTier::Nightly => "nightly",
+            SuiteTier::Everything => "everything",
         }
     }
 }

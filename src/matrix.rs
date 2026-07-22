@@ -152,6 +152,89 @@ struct Limitation {
     protocol: Value,
 }
 
+/// Build every committed matrix document as an in-memory `(filename, JSON)`
+/// pair. Kept separate from disk I/O so a unit test can regenerate the whole set
+/// and byte-compare it against the checked-in files (the "codegen --check" guard
+/// in `tests::checked_in_generated_files_are_current`).
+fn render_documents(
+    spec: &MatrixSpec,
+) -> Result<Vec<(&'static str, Value)>, Box<dyn std::error::Error>> {
+    Ok(vec![
+        (
+            "matrix_catalog.json",
+            suite_document(
+                spec,
+                "Benchmark matrix catalog (compatible and blocked combinations)",
+                expand_profiles(spec, Tier::Catalog)?,
+            ),
+        ),
+        (
+            "full_matrix.json",
+            suite_document(
+                spec,
+                "Generated executable nightly benchmark matrix (disabled blocked_* rows document deliberate non-coverage)",
+                expand_profiles(spec, Tier::Nightly)?,
+            ),
+        ),
+        (
+            "canonical_matrix.json",
+            suite_document(
+                spec,
+                "Generated compact canonical benchmark matrix (disabled blocked_* rows document deliberate non-coverage)",
+                expand_profiles(spec, Tier::Canonical)?,
+            ),
+        ),
+        (
+            "interface_comparison.json",
+            suite_document(
+                spec,
+                "Matched loopback, SCG TCP, TPROXY, UDS, and SHM comparison suite",
+                expand_interface_comparison(spec)?,
+            ),
+        ),
+        (
+            "hotreload_matrix.json",
+            suite_document(
+                spec,
+                "Generated compatible hot-reload scenarios (nightly tier)",
+                expand_hotreload(spec)?,
+            ),
+        ),
+        (
+            "smoke_matrix.json",
+            with_default_overrides(
+                suite_document(
+                    spec,
+                    "Generated minimal smoke matrix: every capability path once at the canonical size (no payload-size or connection sweep)",
+                    expand_smoke(spec)?,
+                ),
+                // A smoke pass wants a single short run per path; genuine reload
+                // timing rows override this back up per-scenario.
+                &[("runs", 1), ("duration_secs", 2), ("warmup_secs", 1), ("cooldown_secs", 0)],
+            ),
+        ),
+        (
+            "everything_matrix.json",
+            suite_document(
+                spec,
+                "Generated exhaustive executable matrix: every compatible profile in every valid combination (full message-size range × catalog connection ladder, plus the latency, cipher, and handshake sweeps)",
+                expand_profiles(spec, Tier::Everything)?,
+            ),
+        ),
+    ])
+}
+
+/// Merge a set of integer `defaults` overrides into a suite document (used to
+/// give the smoke matrix its own short-run defaults without editing the spec).
+fn with_default_overrides(mut doc: Value, pairs: &[(&str, u64)]) -> Value {
+    if let Some(defaults) = doc.get_mut("defaults").and_then(Value::as_object_mut) {
+        for (key, value) in pairs {
+            defaults.insert((*key).to_string(), Value::from(*value));
+        }
+    }
+    doc
+}
+
 /// Generate all committed matrix files from `spec_path`.
 pub fn generate(spec_path: &Path, out_dir: &Path) -> Result<Generated, Box<dyn std::error::Error>> {
     let text = fs::read_to_string(spec_path)?;
@@ -159,70 +242,20 @@ pub fn generate(spec_path: &Path, out_dir: &Path) -> Result<Generated, Box<dyn s
     validate_spec(&spec)?;
     fs::create_dir_all(out_dir)?;
 
-    let catalog = expand_profiles(&spec, Tier::Catalog)?;
-    let full = expand_profiles(&spec, Tier::Nightly)?;
-    let canonical = expand_profiles(&spec, Tier::Canonical)?;
-    let interface = expand_interface_comparison(&spec)?;
-    let hotreload = expand_hotreload(&spec)?;
-
-    let outputs = [
-        (
-            "matrix_catalog.json",
-            suite_document(
-                &spec,
-                "Benchmark matrix catalog (compatible and blocked combinations)",
-                catalog,
-            ),
-        ),
-        (
-            "full_matrix.json",
-            suite_document(
-                &spec,
-                "Generated executable nightly benchmark matrix (disabled blocked_* rows document deliberate non-coverage)",
-                full,
-            ),
-        ),
-        (
-            "canonical_matrix.json",
-            suite_document(
-                &spec,
-                "Generated compact canonical benchmark matrix (disabled blocked_* rows document deliberate non-coverage)",
-                canonical,
-            ),
-        ),
-        (
-            "interface_comparison.json",
-            suite_document(
-                &spec,
-                "Matched loopback, SCG TCP, TPROXY, UDS, and SHM comparison suite",
-                interface,
-            ),
-        ),
-        (
-            "hotreload_matrix.json",
-            suite_document(
-                &spec,
-                "Generated compatible hot-reload scenarios (nightly tier)",
-                hotreload,
-            ),
-        ),
-    ];
-
+    let documents = render_documents(&spec)?;
+    let files = documents.len();
     let mut scenarios = 0usize;
-    for (name, scenarios_for_file) in outputs {
-        scenarios += scenarios_for_file
+    for (name, document) in &documents {
+        scenarios += document
             .get("scenarios")
             .and_then(Value::as_array)
             .map_or(0, Vec::len);
         fs::write(
             out_dir.join(name),
-            format!("{}\n", serde_json::to_string_pretty(&scenarios_for_file)?),
+            format!("{}\n", serde_json::to_string_pretty(document)?),
         )?;
     }
-    Ok(Generated {
-        files: 5,
-        scenarios,
-    })
+    Ok(Generated { files, scenarios })
 }
 
 fn expand_hotreload(spec: &MatrixSpec) -> Result<Value, Box<dyn std::error::Error>> {
@@ -311,6 +344,12 @@ enum Tier {
     Catalog,
     Nightly,
     Canonical,
+    /// Exhaustive *executable* cross-product: every profile (regardless of its
+    /// tier tags, so `tiers: []` profiles are included), swept over the full
+    /// message-size range and the catalog connection ladder, plus the latency,
+    /// cipher, and handshake sweeps. This is the "test everything in every
+    /// combination" tier — the largest suite that still runs end-to-end.
+    Everything,
 }
 
 fn validate_spec(spec: &MatrixSpec) -> Result<(), Box<dyn std::error::Error>> {
@@ -568,11 +607,19 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
     let mut scenarios = Vec::new();
     let mut names = BTreeSet::new();
     for profile in &spec.profiles {
-        if tier != Tier::Catalog && !profile.tiers.iter().any(|t| tier_name(tier) == t) {
+        // Catalog (reference) and Everything (exhaustive executable) both ignore
+        // per-profile tier tags, so a profile carrying `tiers: []` — one held out
+        // of canonical/nightly on purpose, e.g. subset146 keeping the thesis-era
+        // tiers byte-identical — still gets full coverage here.
+        if !matches!(tier, Tier::Catalog | Tier::Everything)
+            && !profile.tiers.iter().any(|t| tier_name(tier) == t)
+        {
             continue;
         }
         let sizes = match tier {
-            Tier::Catalog | Tier::Nightly => profile_sizes(profile, &spec.dimensions),
+            Tier::Catalog | Tier::Nightly | Tier::Everything => {
+                profile_sizes(profile, &spec.dimensions)
+            }
             Tier::Canonical => vec![canonical_size(profile, &spec.dimensions)],
         };
         // Connection ladder per tier. On a single loopback host SHM/UDS gain no aggregate
@@ -583,7 +630,10 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
         // it the sweep only re-measures the serial ceiling, not fan-out; a bandwidth-bound /
         // real-NIC tier is what would let it scale, not a wider ladder.
         let connections = match tier {
-            Tier::Catalog => spec.dimensions.catalog_connections.clone(),
+            // Everything sweeps the widest ladder the catalog documents; the
+            // per-profile `connections` pinning below still caps UDP→[1] and
+            // tproxy→[1,4,16,64].
+            Tier::Catalog | Tier::Everything => spec.dimensions.catalog_connections.clone(),
             Tier::Nightly if profile.scalability => union_connections(
                 &spec.dimensions.nightly_connections,
                 &spec.dimensions.scalability_connections,
@@ -668,16 +718,28 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
     append_cipher_scenarios(&mut scenarios, &mut names, spec, tier)?;
     append_handshake_scenarios(&mut scenarios, &mut names, tier)?;
 
-    // Emit the catalogued limitations as explicit disabled `blocked_*` rows in
-    // *every* generated tier, not only the reference catalog, so a canonical or
-    // nightly suite config self-documents what is deliberately not covered
-    // (e.g. WireGuard, which is benchmarked only by the privileged
-    // scripts/wg_bench.sh orchestration via scripts/perf_gate.sh). This is
-    // execution-safe: the runner, the progress/duplicate accounting, and the
-    // wall-time estimate all filter on `enabled` (src/commands.rs,
-    // config::estimate_total_secs), validation short-circuits disabled rows
-    // into a SKIP note, and executed/skipped report totals are rebuilt from
-    // on-disk scenario directories that disabled rows never create.
+    append_blocked_rows(&mut scenarios, &mut names, spec)?;
+
+    Ok(Value::Array(scenarios))
+}
+
+/// Emit the catalogued limitations as explicit disabled `blocked_*` rows.
+///
+/// Every generated suite (catalog, nightly, canonical, everything, and the smoke
+/// matrix) carries these, not only the reference catalog, so any suite config
+/// self-documents what is deliberately not covered (e.g. WireGuard, which is
+/// benchmarked only by the privileged scripts/wg_bench.sh orchestration via
+/// scripts/perf_gate.sh). This is execution-safe: the runner, the
+/// progress/duplicate accounting, and the wall-time estimate all filter on
+/// `enabled` (src/commands.rs, config::estimate_total_secs), validation
+/// short-circuits disabled rows into a SKIP note, and executed/skipped report
+/// totals are rebuilt from on-disk scenario directories that disabled rows never
+/// create.
+fn append_blocked_rows(
+    scenarios: &mut Vec<Value>,
+    names: &mut BTreeSet<String>,
+    spec: &MatrixSpec,
+) -> Result<(), Box<dyn std::error::Error>> {
     for limitation in &spec.limitations {
         let name = format!("blocked_{}", limitation.name);
         let mut row = scenario(
@@ -696,8 +758,328 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
         row["name"] = Value::String(name.clone());
         row["enabled"] = Value::Bool(false);
         row["disabled_reason"] = Value::String(limitation.reason.clone());
-        push_unique(&mut scenarios, &mut names, name, row)?;
+        push_unique(scenarios, names, name, row)?;
     }
+    Ok(())
+}
+
+/// Minimal per-capability smoke matrix: exercise every profile path once at the
+/// canonical message size and a single connection, plus one representative of
+/// each cross-cutting dimension (closed-loop latency, cipher override, handshake
+/// churn, session resumption, hot-reload, direct-loopback baseline, and
+/// multi-stream scheduling). It sweeps **no** payload sizes or connection
+/// ladders — its job is "does every path still run end-to-end", not "how fast".
+/// Every name is `smoke_`-prefixed so the file composes cleanly with any other
+/// config in an ad-hoc `suite --config` run.
+fn expand_smoke(spec: &MatrixSpec) -> Result<Value, Box<dyn std::error::Error>> {
+    let mut scenarios = Vec::new();
+    let mut names = BTreeSet::new();
+
+    // 1. Every profile × chain, once, at the canonical size / 1 connection.
+    for profile in &spec.profiles {
+        let size = canonical_size(profile, &spec.dimensions);
+        for interface in &profile.interfaces {
+            for chain in &profile.chains {
+                let name = format!(
+                    "smoke_{}_{}_{}",
+                    profile.id,
+                    interface,
+                    chain.replace("scg-", "")
+                );
+                let ordinal = scenarios.len();
+                let mut row = scenario(
+                    &profile.id,
+                    "smoke",
+                    interface,
+                    &profile.protocol,
+                    true,
+                    chain,
+                    size,
+                    1,
+                    &profile.requirements,
+                    None,
+                    ordinal,
+                );
+                stamp_optimization_flags(&mut row, &profile.optimization_flags);
+                push_unique(&mut scenarios, &mut names, name, row)?;
+            }
+        }
+    }
+
+    // 2. One closed-loop ping-pong latency rep per plaintext-routing transport
+    //    (no DTLS — pingpong + DTLS is auto-skipped by the runner). Look the
+    //    profiles up by id so each rep inherits the transport's requirements
+    //    (tproxy → cap_net_admin) and optimization flags (shmslot → slot ring).
+    for id in [
+        "routing_tcp",
+        "routing_udp",
+        "routing_uds",
+        "routing_shm",
+        "routing_shmslot",
+        "routing_tproxy",
+    ] {
+        let Some(profile) = spec.profiles.iter().find(|p| p.id == id) else {
+            continue;
+        };
+        let interface = &profile.interfaces[0];
+        let size = canonical_size(profile, &spec.dimensions);
+        let ordinal = scenarios.len();
+        let mut row = scenario(
+            &profile.id,
+            "smoke-latency",
+            interface,
+            &profile.protocol,
+            true,
+            "scg-direct",
+            size,
+            1,
+            &profile.requirements,
+            None,
+            ordinal,
+        );
+        row["mode"] = Value::String("pingpong".to_string());
+        stamp_optimization_flags(&mut row, &profile.optimization_flags);
+        push_unique(&mut scenarios, &mut names, format!("smoke_lat_{id}"), row)?;
+    }
+
+    // 3. One cipher-override rep per TLS/kTLS/DTLS engine (first suite, canonical
+    //    size) so the explicit-cipher config path is exercised on every engine.
+    let canonical_stream = spec.dimensions.canonical_stream_message_size;
+    let canonical_dgram = spec.dimensions.canonical_datagram_message_size;
+    if let Some(suite) = spec.cipher_matrix.tls12.first() {
+        push_cipher_scenario(
+            &mut scenarios,
+            &mut names,
+            "smoke_cipher_tls12",
+            "tcp",
+            json!({ "type": "tls", "version": "1.2", "cipher_suite": suite }),
+            &["openssl".to_string()],
+            canonical_stream,
+            canonical_stream,
+        )?;
+        push_cipher_scenario(
+            &mut scenarios,
+            &mut names,
+            "smoke_cipher_ktls12",
+            "tcp",
+            json!({ "type": "tls", "kernel": true, "version": "1.2", "cipher_suite": suite }),
+            &["openssl".to_string(), "ktls".to_string()],
+            canonical_stream,
+            canonical_stream,
+        )?;
+        push_cipher_scenario(
+            &mut scenarios,
+            &mut names,
+            "smoke_cipher_dtls12",
+            "udp",
+            json!({ "type": "dtls", "version": "1.2", "cipher_suite": suite }),
+            &["openssl".to_string()],
+            canonical_dgram,
+            canonical_dgram,
+        )?;
+    }
+    if let Some(suite) = spec.cipher_matrix.tls13.first() {
+        push_cipher_scenario(
+            &mut scenarios,
+            &mut names,
+            "smoke_cipher_tls13",
+            "tcp",
+            json!({ "type": "tls", "version": "1.3", "cipher_suite": suite }),
+            &["openssl".to_string()],
+            canonical_stream,
+            canonical_stream,
+        )?;
+        push_cipher_scenario(
+            &mut scenarios,
+            &mut names,
+            "smoke_cipher_ktls13",
+            "tcp",
+            json!({ "type": "tls", "kernel": true, "version": "1.3", "cipher_suite": suite }),
+            &["openssl".to_string(), "ktls".to_string()],
+            canonical_stream,
+            canonical_stream,
+        )?;
+    }
+
+    // 4. One handshake-churn rep per auth/kex axis (connrate mode, churn width 4).
+    push_connrate_handshake(
+        &mut scenarios,
+        &mut names,
+        "smoke_handshake_ecdsa",
+        json!({ "type": "tls", "version": "1.3", "cert_key_type": "ecdsa" }),
+        4,
+    )?;
+    push_connrate_handshake(
+        &mut scenarios,
+        &mut names,
+        "smoke_handshake_rsa",
+        json!({ "type": "tls", "version": "1.3", "cert_key_type": "rsa" }),
+        4,
+    )?;
+    push_connrate_handshake(
+        &mut scenarios,
+        &mut names,
+        "smoke_handshake_kex_x25519",
+        json!({ "type": "tls", "version": "1.3", "cert_key_type": "ecdsa", "kex_group": "X25519" }),
+        4,
+    )?;
+    push_connrate_handshake(
+        &mut scenarios,
+        &mut names,
+        "smoke_handshake_kex_p256",
+        json!({ "type": "tls", "version": "1.3", "cert_key_type": "ecdsa", "kex_group": "P-256" }),
+        4,
+    )?;
+
+    // 5. TLS session-resumption rep (connrate so the reconnects actually
+    //    exercise the ticket path).
+    {
+        let ordinal = scenarios.len();
+        let mut row = scenario(
+            "resumption",
+            "smoke-resumption",
+            "tcp",
+            &json!({ "type": "tls", "version": "1.3", "resumption": true }),
+            true,
+            "scg-direct",
+            canonical_stream,
+            1,
+            &["openssl".to_string()],
+            None,
+            ordinal,
+        );
+        row["mode"] = Value::String("connrate".to_string());
+        push_unique(
+            &mut scenarios,
+            &mut names,
+            "smoke_resumption_tls13".to_string(),
+            row,
+        )?;
+    }
+
+    // 6. Hot-reload reps: each reload action once on the TLS 1.3 TCP path at a
+    //    single sub-saturation connection. The reload timeline needs
+    //    trigger_at(3) + after-window(5) inside the measurement phase, so these
+    //    rows pin a longer duration than the smoke default (2 s); per-scenario
+    //    overrides survive the suite's `--quick`/duration overrides.
+    for action in [
+        "add_connection",
+        "remove_connection",
+        "invalid_config",
+        "rotate_cert",
+    ] {
+        let ordinal = scenarios.len();
+        let mut row = scenario(
+            "tls13_tcp",
+            "smoke-hotreload",
+            "tcp",
+            &json!({ "type": "tls", "version": "1.3" }),
+            true,
+            "scg-direct",
+            canonical_stream,
+            1,
+            &["openssl".to_string()],
+            None,
+            ordinal,
+        );
+        let sender = row
+            .get_mut("sender")
+            .and_then(Value::as_object_mut)
+            .expect("smoke scenario sender is object");
+        sender.insert("rate_limit_mbps".to_string(), Value::from(100.0));
+        row["reload_event"] = json!({
+            "trigger_at_secs": 3,
+            "action": action,
+            // The rotated rule's established connections are severed by the
+            // changed-bucket restart, so drops are expected there.
+            "expect_zero_drops": action != "rotate_cert",
+            "measure_window_before_secs": 2,
+            "measure_window_after_secs": 5,
+        });
+        let object = row.as_object_mut().expect("scenario object");
+        object.insert("duration_secs".to_string(), Value::from(10_u64));
+        object.insert("warmup_secs".to_string(), Value::from(1_u64));
+        push_unique(
+            &mut scenarios,
+            &mut names,
+            format!("smoke_hotreload_{action}"),
+            row,
+        )?;
+    }
+
+    // 7. Direct-loopback baselines (no gateway) — exercises the non-gateway
+    //    measurement engine on both a stream and a datagram transport.
+    for (label, interface, size) in [
+        ("tcp", "tcp", canonical_stream),
+        ("udp", "udp", canonical_dgram),
+    ] {
+        let ordinal = scenarios.len();
+        let row = scenario(
+            "loopback",
+            "smoke-baseline",
+            interface,
+            &json!({ "type": "none" }),
+            false,
+            "scg-direct",
+            size,
+            1,
+            &[],
+            None,
+            ordinal,
+        );
+        push_unique(
+            &mut scenarios,
+            &mut names,
+            format!("smoke_loopback_{label}"),
+            row,
+        )?;
+    }
+
+    // 8. Multi-stream scheduling rep (a safety class alongside a bulk class on
+    //    the same gateway) so the DSCP-priority scheduler path is covered.
+    {
+        let mut row = json!({
+            "name": "smoke_multistream",
+            "category": "smoke-scheduling",
+            "message_size_bytes": 1024,
+            "connections": 1,
+            "gateway": { "enabled": true, "chain": "scg-direct" },
+            "protocol": { "type": "none" },
+            "streams": [
+                {
+                    "role": "safety",
+                    "interface": "tcp",
+                    "target_addr": "127.0.0.1:17990",
+                    "message_size_bytes": 256,
+                    "pattern": "periodic",
+                    "interval_us": 500,
+                    "priority": { "dscp_tag": "EF", "traffic_class": "safety" },
+                    "protocol": { "type": "none" }
+                },
+                {
+                    "role": "bulk",
+                    "interface": "tcp",
+                    "target_addr": "127.0.0.1:17990",
+                    "message_size_bytes": 4096,
+                    "priority": { "dscp_tag": "BE", "traffic_class": "normal" },
+                    "protocol": { "type": "none" }
+                }
+            ],
+            "sender": { "interface": "tcp", "target_addr": "127.0.0.1:17990", "pattern": "sustained" },
+            "description": "smoke: multi-stream DSCP scheduling (safety + bulk), tcp/plain"
+        });
+        row["name"] = Value::String("smoke_multistream".to_string());
+        push_unique(
+            &mut scenarios,
+            &mut names,
+            "smoke_multistream".to_string(),
+            row,
+        )?;
+    }
+
+    // 9. The catalogued impossibilities, as disabled blocked_* rows, so the smoke
+    //    file documents the same gaps every other generated suite does.
+    append_blocked_rows(&mut scenarios, &mut names, spec)?;
 
     Ok(Value::Array(scenarios))
 }
@@ -1065,6 +1447,7 @@ fn tier_name(tier: Tier) -> &'static str {
         Tier::Catalog => "catalog",
         Tier::Nightly => "nightly",
         Tier::Canonical => "canonical",
+        Tier::Everything => "everything",
     }
 }
 
@@ -1269,8 +1652,19 @@ mod tests {
     #[test]
     fn limitations_are_emitted_as_blocked_rows_in_every_tier() {
         let spec = production_spec();
-        for tier in [Tier::Catalog, Tier::Nightly, Tier::Canonical] {
-            let expanded = expand_profiles(&spec, tier).unwrap();
+        // Each generated tier plus the smoke matrix must carry the full set of
+        // catalogued impossibilities as disabled rows.
+        let tier_expansions = [
+            Tier::Catalog,
+            Tier::Nightly,
+            Tier::Canonical,
+            Tier::Everything,
+        ]
+        .into_iter()
+        .map(|tier| (format!("{tier:?}"), expand_profiles(&spec, tier).unwrap()));
+        let smoke = std::iter::once(("smoke".to_string(), expand_smoke(&spec).unwrap()));
+
+        for (label, expanded) in tier_expansions.chain(smoke) {
             let blocked: Vec<&Value> = rows(&expanded)
                 .iter()
                 .filter(|row| row["enabled"] == Value::Bool(false))
@@ -1278,7 +1672,7 @@ mod tests {
             assert_eq!(
                 blocked.len(),
                 spec.limitations.len(),
-                "every catalogued limitation must surface as a disabled row in {tier:?}"
+                "every catalogued limitation must surface as a disabled row in {label}"
             );
             for row in &blocked {
                 assert!(row["name"].as_str().unwrap().starts_with("blocked_"));
@@ -1292,12 +1686,79 @@ mod tests {
             let wg = blocked
                 .iter()
                 .find(|row| row["name"] == "blocked_wireguard_script_orchestrated")
-                .unwrap_or_else(|| panic!("{tier:?} must carry the wireguard blocked row"));
+                .unwrap_or_else(|| panic!("{label} must carry the wireguard blocked row"));
             assert_eq!(wg["protocol"]["type"], "wireguard");
             assert_eq!(wg["sender"]["interface"], "udp");
             assert!(wg["disabled_reason"]
                 .as_str()
                 .is_some_and(|reason| reason.contains("wg_bench.sh")));
+        }
+    }
+
+    /// The exact file set `generate` writes. `checked_in_generated_files_are_current`
+    /// maps each name to its committed copy; keep the two in lockstep.
+    fn checked_in_generated_file(name: &str) -> &'static str {
+        match name {
+            "matrix_catalog.json" => include_str!("../configs/matrix_catalog.json"),
+            "full_matrix.json" => include_str!("../configs/full_matrix.json"),
+            "canonical_matrix.json" => include_str!("../configs/canonical_matrix.json"),
+            "interface_comparison.json" => include_str!("../configs/interface_comparison.json"),
+            "hotreload_matrix.json" => include_str!("../configs/hotreload_matrix.json"),
+            "smoke_matrix.json" => include_str!("../configs/smoke_matrix.json"),
+            "everything_matrix.json" => include_str!("../configs/everything_matrix.json"),
+            other => panic!("no checked-in copy mapped for generated file '{other}'"),
+        }
+    }
+
+    #[test]
+    fn checked_in_generated_files_are_current() {
+        // Regenerate every committed matrix in memory and byte-compare it to the
+        // file on disk. Generation is deterministic (sorted JSON keys, stable
+        // ordering), so any drift means someone edited a generated file by hand
+        // or changed matrix_spec.json / the generator without re-running
+        // `seshat matrix generate`.
+        let spec = production_spec();
+        let documents = render_documents(&spec).unwrap();
+        assert_eq!(documents.len(), 7, "generate writes exactly seven files");
+        for (name, document) in documents {
+            let rendered = format!("{}\n", serde_json::to_string_pretty(&document).unwrap());
+            assert_eq!(
+                rendered,
+                checked_in_generated_file(name),
+                "{name} is stale — run `seshat matrix generate` and commit the result"
+            );
+        }
+    }
+
+    #[test]
+    fn smoke_and_everything_cover_every_profile() {
+        // Every declared profile must appear at least once in both the smoke
+        // matrix (per-capability verification) and the everything matrix
+        // (exhaustive coverage) — the mechanical half of the SESHAT-parity rule.
+        let spec = production_spec();
+        let smoke = expand_smoke(&spec).unwrap();
+        let everything = expand_profiles(&spec, Tier::Everything).unwrap();
+        let names_in = |value: &Value| -> Vec<String> {
+            rows(value)
+                .iter()
+                .filter_map(|row| row.get("name").and_then(Value::as_str))
+                .map(str::to_string)
+                .collect()
+        };
+        let smoke_names = names_in(&smoke);
+        let everything_names = names_in(&everything);
+        for profile in &spec.profiles {
+            let token = format!("_{}_", profile.id);
+            assert!(
+                smoke_names.iter().any(|n| n.contains(&token)),
+                "smoke matrix is missing profile '{}'",
+                profile.id
+            );
+            assert!(
+                everything_names.iter().any(|n| n.contains(&token)),
+                "everything matrix is missing profile '{}'",
+                profile.id
+            );
         }
     }
 

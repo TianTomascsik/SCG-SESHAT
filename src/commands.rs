@@ -4079,7 +4079,11 @@ mod tests {
 
     #[test]
     fn parse_suite_manifest_resolves_known_tiers() {
-        let json = r#"{ "canonical": ["a.json", "b.json"], "nightly": ["c.json"] }"#;
+        let json = r#"{ "smoke": ["s.json"], "canonical": ["a.json", "b.json"], "nightly": ["c.json"], "everything": ["e.json", "s.json"] }"#;
+        assert_eq!(
+            parse_suite_manifest(json, SuiteTier::Smoke).expect("smoke"),
+            vec!["s.json".to_string()]
+        );
         assert_eq!(
             parse_suite_manifest(json, SuiteTier::Canonical).expect("canonical"),
             vec!["a.json".to_string(), "b.json".to_string()]
@@ -4088,6 +4092,53 @@ mod tests {
             parse_suite_manifest(json, SuiteTier::Nightly).expect("nightly"),
             vec!["c.json".to_string()]
         );
+        assert_eq!(
+            parse_suite_manifest(json, SuiteTier::Everything).expect("everything"),
+            vec!["e.json".to_string(), "s.json".to_string()]
+        );
+    }
+
+    #[test]
+    fn bundled_tiers_exist_validate_and_have_unique_names() {
+        // Every tier in the shipped suites.json must resolve to config files that
+        // exist, parse, validate cleanly, and carry no colliding *enabled*
+        // scenario names across the tier's files (the suite runner shares one
+        // scenario namespace, so a cross-file duplicate would abort the run).
+        let manifest = include_str!("../configs/suites.json");
+        for tier in [
+            SuiteTier::Smoke,
+            SuiteTier::Canonical,
+            SuiteTier::Nightly,
+            SuiteTier::Everything,
+        ] {
+            let files = parse_suite_manifest(manifest, tier)
+                .unwrap_or_else(|e| panic!("{} tier: {e}", tier.key()));
+            assert!(!files.is_empty(), "{} tier has no configs", tier.key());
+            let mut seen: HashMap<String, String> = HashMap::new();
+            for file in files {
+                let path = PathBuf::from("configs").join(&file);
+                let text = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+                    panic!("{} tier: cannot read {}: {e}", tier.key(), path.display())
+                });
+                let cfg: Config = serde_json::from_str(&text)
+                    .unwrap_or_else(|e| panic!("{} tier: {file} does not parse: {e}", tier.key()));
+                let report = config::validate(&cfg);
+                assert!(
+                    report.ok(),
+                    "{} tier: {file} must validate cleanly: {report:?}",
+                    tier.key()
+                );
+                for scenario in cfg.scenarios.iter().filter(|s| s.enabled) {
+                    if let Some(prev) = seen.insert(scenario.name.clone(), file.clone()) {
+                        panic!(
+                            "{} tier: enabled scenario '{}' appears in both {prev} and {file}",
+                            tier.key(),
+                            scenario.name
+                        );
+                    }
+                }
+            }
+        }
     }
 
     #[test]

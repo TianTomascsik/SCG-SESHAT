@@ -133,11 +133,24 @@ Ready-made configs ship in [`configs/`](configs):
   matrix across compatible protocols, sizes, chains, and connection sweeps.
 - [`configs/matrix_catalog.json`](configs/matrix_catalog.json) — generated
   catalog including explicitly disabled technical limitations. Every generated
-  matrix tier (catalog, full, canonical) also carries the disabled `blocked_*`
-  limitation rows — including `blocked_wireguard_script_orchestrated`, which
-  records that WireGuard is benchmarked only by the privileged
-  `scripts/wg_bench.sh` orchestration — so deliberate non-coverage is visible
-  in the suite definition itself; the runner never executes disabled rows.
+  matrix tier (catalog, full, canonical, everything, and the smoke matrix) also
+  carries the disabled `blocked_*` limitation rows — including
+  `blocked_wireguard_script_orchestrated`, which records that WireGuard is
+  benchmarked only by the privileged `scripts/wg_bench.sh` orchestration — so
+  deliberate non-coverage is visible in the suite definition itself; the runner
+  never executes disabled rows.
+- [`configs/smoke_matrix.json`](configs/smoke_matrix.json) — generated **minimal
+  per-capability** matrix: every profile path once at the canonical size / 1
+  connection, plus one representative of each cross-cutting dimension (latency,
+  cipher, handshake, resumption, hot-reload, loopback baseline, multi-stream).
+  It sweeps no payload sizes — its job is "does every path still run". Run it
+  with `seshat suite --tier smoke` (a few minutes).
+- [`configs/everything_matrix.json`](configs/everything_matrix.json) — generated
+  **exhaustive executable** matrix: every compatible profile in every valid
+  combination (full message-size range × the catalog connection ladder) plus the
+  latency, cipher, and handshake sweeps. Run it with
+  `seshat suite --tier everything` — this is very long (hours to days); use
+  `--quick`, `--runs`, `--scenario-filter`, and `--resume` to bound or resume it.
 - [`configs/interface_comparison.json`](configs/interface_comparison.json) —
   matched direct TCP loopback, SCG TCP, TPROXY, UDS, and SHM measurements.
 - [`configs/hotreload_matrix.json`](configs/hotreload_matrix.json) — generated
@@ -170,10 +183,18 @@ A full evaluation runs straight from the binary — build once, then run the
 ```bash
 cargo build --release                              # build seshat (and ../SCG gateway)
 ./target/release/seshat suite                      # canonical tier (default)
-./target/release/seshat suite --tier nightly       # exhaustive generated matrix
-./target/release/seshat suite --quick              # fast smoke (2s/1 run)
+./target/release/seshat suite --tier smoke         # minimal per-capability check (~minutes)
+./target/release/seshat suite --tier nightly       # broad generated matrix
+./target/release/seshat suite --tier everything    # EVERY capability × combination (very long)
+./target/release/seshat suite --quick              # 2s/1-run override, applies to any tier
 ./target/release/seshat suite --scenario-filter tcp  # only configs whose name matches
 ```
+
+`--tier smoke` verifies every capability path once; it is a different (much
+smaller) row set than `--quick`, which merely shortens whichever tier you run.
+`--tier everything` is the exhaustive "test everything in every combination"
+run — expect hours to days at the default rigor; pair it with `--quick` for a
+fast full-coverage pass or `--resume <dir>` to continue an interrupted one.
 
 `suite` runs the generated `canonical_matrix` plus the matched
 `interface_comparison`, latency, saturation, ping-pong, and connection-rate
@@ -224,7 +245,7 @@ The groups below make the scenario names and intent visible at a glance.
 
 | Coverage | Scenarios |
 | --- | --- |
-| Loopback baselines | `baseline_tcp_loopback_1KB`, `baseline_tcp_loopback_64KB`, `baseline_udp_loopback_1400B` |
+| Loopback baselines | `baseline_tcp_loopback_1KB`, `baseline_tcp_loopback_64KB`, `fullsuite_baseline_udp_1400B` |
 | TCP routing, topology, and optimization | `scg_routing_tcp_4KB`, `scg_routing_tcp_4KB_zerocopy`, `scg_routing_tcp_scgscg_4KB`, `scg_routing_tcp_256conn`, `scg_ktls13_tcp_4KB`, `scg_ktls13_tcp_4KB_zerocopy` |
 | TLS and security profiles | `scg_tls12_tcp_4KB`, `scg_tls13_tcp_4KB`, `scg_tls13_tcp_scgscg_4KB`, `scg_mtls13_tcp_4KB`, `scg_integrity_tls12_tcp_4KB`, `scg_subset146_pki_tls12_tcp_4KB`, `scg_subset146_psk_tls12_tcp_4KB` |
 | DTLS and UDP-over-TLS applications | `scg_dtls12_udp_1400B`, `scg_dtls12_mtls_udp_1400B`, `scg_ale_udp_over_tls13_1400B`, `scg_raw_udp_over_tls13_1400B` |

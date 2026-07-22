@@ -1,4 +1,7 @@
 {
+  "smoke": [
+    "smoke_matrix.json"
+  ],
   "canonical": [
     "canonical_matrix.json",
     "interface_comparison.json",
@@ -21,5 +24,21 @@
     "pingpong.json",
     "connrate.json",
     "shm_zerocopy.json"
+  ],
+  "everything": [
+    "everything_matrix.json",
+    "interface_comparison.json",
+    "hotreload_matrix.json",
+    "full_suite.json",
+    "qos_isolation.json",
+    "udp_baseline.json",
+    "datagram_encrypted_paced.json",
+    "profile_regression.json",
+    "latency.json",
+    "saturation.json",
+    "pingpong.json",
+    "connrate.json",
+    "shm_zerocopy.json",
+    "wireguard.json"
   ]
 }

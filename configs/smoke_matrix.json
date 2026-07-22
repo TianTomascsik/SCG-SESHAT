@@ -1,0 +1,3862 @@
+{
+  "$schema": "seshat-config-v1",
+  "defaults": {
+    "auto_affinity": true,
+    "collect_system_metrics": true,
+    "confidence_level": 0.95,
+    "cooldown_secs": 0,
+    "duration_secs": 2,
+    "loss_threshold_pct": 1.0,
+    "metrics_backend": "procfs",
+    "metrics_sample_rate_hz": 5,
+    "outlier_removal": "iqr",
+    "runs": 1,
+    "warmup_secs": 1
+  },
+  "scenarios": [
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_routing_tcp_tcp_direct",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18000"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_routing_tcp_tcp_scg",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18001"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls12_tcp_tcp_direct",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18002"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls12_tcp_tcp_scg",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18003"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls13_tcp_tcp_direct",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18004"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls13_tcp_tcp_scg",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18005"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls12_tcp_tcp_direct",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18006"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls12_tcp_tcp_scg",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18007"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls13_tcp_tcp_direct",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18008"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls13_tcp_tcp_scg",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18009"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls12_tcp_tcp_direct",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18010"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls12_tcp_tcp_scg",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18011"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls13_tcp_tcp_direct",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18012"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls13_tcp_tcp_scg",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18013"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls12_tcp_tcp_direct",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18014"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls12_tcp_tcp_scg",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18015"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls13_tcp_tcp_direct",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18016"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls13_tcp_tcp_scg",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18017"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_integrity_tls12_tcp_tcp_direct",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18018"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_integrity_tls12_tcp_tcp_scg",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18019"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_routing_udp_udp_direct",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18020"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_routing_udp_udp_scg",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18021"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, udp/dtls1.0, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_dtls10_udp_udp_direct",
+      "protocol": {
+        "type": "dtls",
+        "version": "1.0"
+      },
+      "requirements": {
+        "dtls10": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18022"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, udp/dtls1.0, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_dtls10_udp_udp_scg",
+      "protocol": {
+        "type": "dtls",
+        "version": "1.0"
+      },
+      "requirements": {
+        "dtls10": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18023"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, udp/dtls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_dtls12_udp_udp_direct",
+      "protocol": {
+        "type": "dtls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18024"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, udp/dtls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_dtls12_udp_udp_scg",
+      "protocol": {
+        "type": "dtls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18025"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, udp/dtls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_dtls12_mtls_udp_udp_direct",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "dtls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18026"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, udp/dtls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_dtls12_mtls_udp_udp_scg",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "dtls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18027"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, udp/tls1.3, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_ale_tls13_udp_udp_direct",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18028"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, udp/tls1.3, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_ale_tls13_udp_udp_scg",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18029"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, udp/tls1.3, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_raw_tls13_udp_udp_direct",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18030"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, udp/tls1.3, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_raw_tls13_udp_udp_scg",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18031"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, udp/tls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_ale_tls12_udp_udp_direct",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18032"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, udp/tls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_ale_tls12_udp_udp_scg",
+      "protocol": {
+        "app_protocol": "ale",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18033"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, udp/tls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_raw_tls12_udp_udp_direct",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18034"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, udp/tls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_raw_tls12_udp_udp_scg",
+      "protocol": {
+        "app_protocol": "raw",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18035"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, unix/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_routing_uds_unix_direct",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-36.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, unix/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_routing_uds_unix_scg",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-37.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls13_uds_unix_direct",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-38.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls13_uds_unix_scg",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-39.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, unix/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_uds_unix_direct",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-40.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, unix/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_uds_unix_scg",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-41.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls12_uds_unix_direct",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-42.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls12_uds_unix_scg",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-43.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls12_uds_unix_direct",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-44.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls12_uds_unix_scg",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-45.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls13_uds_unix_direct",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-46.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, unix/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls13_uds_unix_scg",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-47.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, unix/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls12_uds_unix_direct",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-48.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, unix/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls12_uds_unix_scg",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-49.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, unix/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls12_uds_unix_direct",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-50.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, unix/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls12_uds_unix_scg",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-51.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, unix/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls13_uds_unix_direct",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-52.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, unix/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls13_uds_unix_scg",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-53.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_integrity_tls12_uds_unix_direct",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-54.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, unix/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_integrity_tls12_uds_unix_scg",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-55.sock"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_routing_shm_shm_direct",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-56"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_routing_shm_shm_scg",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-57"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_shm_shm_direct",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-58"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_shm_shm_scg",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-59"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls13_shm_shm_direct",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-60"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls13_shm_shm_scg",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-61"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls12_shm_shm_direct",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-62"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls12_shm_shm_scg",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-63"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls12_shm_shm_direct",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-64"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls12_shm_shm_scg",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-65"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls13_shm_shm_direct",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-66"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls13_shm_shm_scg",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-67"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls12_shm_shm_direct",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-68"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls12_shm_shm_scg",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-69"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls12_shm_shm_direct",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-70"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls12_shm_shm_scg",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-71"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls13_shm_shm_direct",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-72"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls13_shm_shm_scg",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-73"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_integrity_tls12_shm_shm_direct",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-74"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_integrity_tls12_shm_shm_scg",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-75"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_routing_shmslot_shm_direct",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-76"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_routing_shmslot_shm_scg",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-77"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_shmslot_shm_direct",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-78"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_shmslot_shm_scg",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-79"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls13_shmslot_shm_direct",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-80"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls13_shmslot_shm_scg",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-81"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls12_shmslot_shm_direct",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-82"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls12_shmslot_shm_scg",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-83"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls12_shmslot_shm_direct",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-84"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls12_shmslot_shm_scg",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-85"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls13_shmslot_shm_direct",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-86"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls13_shmslot_shm_scg",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-87"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls12_shmslot_shm_direct",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-88"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls12_shmslot_shm_scg",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-89"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls12_shmslot_shm_direct",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-90"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls12_shmslot_shm_scg",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-91"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls13_shmslot_shm_direct",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-92"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls13_shmslot_shm_scg",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-93"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_integrity_tls12_shmslot_shm_direct",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-94"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_integrity_tls12_shmslot_shm_scg",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-95"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tproxy/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_routing_tproxy_tproxy_direct",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18096"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls12_tproxy_tproxy_direct",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18097"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls12_tproxy_tproxy_scg",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18098"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls13_tproxy_tproxy_direct",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18099"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_tls13_tproxy_tproxy_scg",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18100"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls12_tproxy_tproxy_direct",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18101"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls12_tproxy_tproxy_scg",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18102"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls13_tproxy_tproxy_direct",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18103"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tproxy/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_mtls13_tproxy_tproxy_scg",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18104"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tproxy/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls12_tproxy_tproxy_direct",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18105"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tproxy/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls12_tproxy_tproxy_scg",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18106"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tproxy/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls13_tproxy_tproxy_direct",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18107"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tproxy/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls13_tproxy_tproxy_scg",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18108"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tproxy/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls12_tproxy_tproxy_direct",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18109"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tproxy/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls12_tproxy_tproxy_scg",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18110"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tproxy/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls13_tproxy_tproxy_direct",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18111"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tproxy/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_ktls_mtls13_tproxy_tproxy_scg",
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18112"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_integrity_tls12_tproxy_tproxy_direct",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18113"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tproxy/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_integrity_tls12_tproxy_tproxy_scg",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "cap_net_admin": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18114"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_subset146_pki_tls12_tcp_tcp_direct",
+      "protocol": {
+        "mutual_auth": true,
+        "profile": "subset146-pki",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18115"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_subset146_pki_tls12_tcp_tcp_scg",
+      "protocol": {
+        "mutual_auth": true,
+        "profile": "subset146-pki",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18116"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_subset146_pki_tls13_tcp_tcp_direct",
+      "protocol": {
+        "mutual_auth": true,
+        "profile": "subset146-pki",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18117"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_subset146_pki_tls13_tcp_tcp_scg",
+      "protocol": {
+        "mutual_auth": true,
+        "profile": "subset146-pki",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18118"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_subset146_psk_tls12_tcp_tcp_direct",
+      "protocol": {
+        "profile": "subset146-psk",
+        "psk_hex": "deadbeef01020304deadbeef01020304",
+        "psk_identity": "seshat-bench",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18119"
+      }
+    },
+    {
+      "category": "smoke",
+      "connections": 1,
+      "description": "smoke: SCG scg-scg, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_subset146_psk_tls12_tcp_tcp_scg",
+      "protocol": {
+        "profile": "subset146-psk",
+        "psk_hex": "deadbeef01020304deadbeef01020304",
+        "psk_identity": "seshat-bench",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18120"
+      }
+    },
+    {
+      "category": "smoke-latency",
+      "connections": 1,
+      "description": "smoke-latency: SCG scg-direct, tcp/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "smoke_lat_routing_tcp",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18121"
+      }
+    },
+    {
+      "category": "smoke-latency",
+      "connections": 1,
+      "description": "smoke-latency: SCG scg-direct, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "mode": "pingpong",
+      "name": "smoke_lat_routing_udp",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18122"
+      }
+    },
+    {
+      "category": "smoke-latency",
+      "connections": 1,
+      "description": "smoke-latency: SCG scg-direct, unix/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "smoke_lat_routing_uds",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-123.sock"
+      }
+    },
+    {
+      "category": "smoke-latency",
+      "connections": 1,
+      "description": "smoke-latency: SCG scg-direct, shm/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "smoke_lat_routing_shm",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-124"
+      }
+    },
+    {
+      "category": "smoke-latency",
+      "connections": 1,
+      "description": "smoke-latency: SCG scg-direct, shm/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "smoke_lat_routing_shmslot",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-125"
+      }
+    },
+    {
+      "category": "smoke-latency",
+      "connections": 1,
+      "description": "smoke-latency: SCG scg-direct, tproxy/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "smoke_lat_routing_tproxy",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18126"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_cipher_tls12",
+      "protocol": {
+        "cipher_suite": "ECDHE-RSA-AES128-GCM-SHA256",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18127"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_cipher_ktls12",
+      "protocol": {
+        "cipher_suite": "ECDHE-RSA-AES128-GCM-SHA256",
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18128"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, udp/dtls1.2, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_cipher_dtls12",
+      "protocol": {
+        "cipher_suite": "ECDHE-RSA-AES128-GCM-SHA256",
+        "type": "dtls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18129"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_cipher_tls13",
+      "protocol": {
+        "cipher_suite": "TLS_AES_128_GCM_SHA256",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18130"
+      }
+    },
+    {
+      "category": "cipher-matrix",
+      "connections": 1,
+      "description": "cipher-matrix: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_cipher_ktls13",
+      "protocol": {
+        "cipher_suite": "TLS_AES_128_GCM_SHA256",
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18131"
+      }
+    },
+    {
+      "category": "handshake-auth",
+      "connections": 4,
+      "description": "handshake-auth: SCG scg-direct, tcp/tls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "connrate",
+      "name": "smoke_handshake_ecdsa",
+      "protocol": {
+        "cert_key_type": "ecdsa",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18132"
+      }
+    },
+    {
+      "category": "handshake-auth",
+      "connections": 4,
+      "description": "handshake-auth: SCG scg-direct, tcp/tls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "connrate",
+      "name": "smoke_handshake_rsa",
+      "protocol": {
+        "cert_key_type": "rsa",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18133"
+      }
+    },
+    {
+      "category": "handshake-auth",
+      "connections": 4,
+      "description": "handshake-auth: SCG scg-direct, tcp/tls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "connrate",
+      "name": "smoke_handshake_kex_x25519",
+      "protocol": {
+        "cert_key_type": "ecdsa",
+        "kex_group": "X25519",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18134"
+      }
+    },
+    {
+      "category": "handshake-auth",
+      "connections": 4,
+      "description": "handshake-auth: SCG scg-direct, tcp/tls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "connrate",
+      "name": "smoke_handshake_kex_p256",
+      "protocol": {
+        "cert_key_type": "ecdsa",
+        "kex_group": "P-256",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18135"
+      }
+    },
+    {
+      "category": "smoke-resumption",
+      "connections": 1,
+      "description": "smoke-resumption: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "connrate",
+      "name": "smoke_resumption_tls13",
+      "protocol": {
+        "resumption": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18136"
+      }
+    },
+    {
+      "category": "smoke-hotreload",
+      "connections": 1,
+      "description": "smoke-hotreload: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "duration_secs": 10,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_hotreload_add_connection",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "add_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18137"
+      },
+      "warmup_secs": 1
+    },
+    {
+      "category": "smoke-hotreload",
+      "connections": 1,
+      "description": "smoke-hotreload: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "duration_secs": 10,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_hotreload_remove_connection",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "remove_connection",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18138"
+      },
+      "warmup_secs": 1
+    },
+    {
+      "category": "smoke-hotreload",
+      "connections": 1,
+      "description": "smoke-hotreload: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "duration_secs": 10,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_hotreload_invalid_config",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "invalid_config",
+        "expect_zero_drops": true,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18139"
+      },
+      "warmup_secs": 1
+    },
+    {
+      "category": "smoke-hotreload",
+      "connections": 1,
+      "description": "smoke-hotreload: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "duration_secs": 10,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_hotreload_rotate_cert",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18140"
+      },
+      "warmup_secs": 1
+    },
+    {
+      "category": "smoke-baseline",
+      "connections": 1,
+      "description": "smoke-baseline: direct loopback, tcp/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 4096,
+      "name": "smoke_loopback_tcp",
+      "protocol": {
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18141"
+      }
+    },
+    {
+      "category": "smoke-baseline",
+      "connections": 1,
+      "description": "smoke-baseline: direct loopback, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": false
+      },
+      "message_size_bytes": 1200,
+      "name": "smoke_loopback_udp",
+      "protocol": {
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18142"
+      }
+    },
+    {
+      "category": "smoke-scheduling",
+      "connections": 1,
+      "description": "smoke: multi-stream DSCP scheduling (safety + bulk), tcp/plain",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "smoke_multistream",
+      "protocol": {
+        "type": "none"
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:17990"
+      },
+      "streams": [
+        {
+          "interface": "tcp",
+          "interval_us": 500,
+          "message_size_bytes": 256,
+          "pattern": "periodic",
+          "priority": {
+            "dscp_tag": "EF",
+            "traffic_class": "safety"
+          },
+          "protocol": {
+            "type": "none"
+          },
+          "role": "safety",
+          "target_addr": "127.0.0.1:17990"
+        },
+        {
+          "interface": "tcp",
+          "message_size_bytes": 4096,
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          },
+          "protocol": {
+            "type": "none"
+          },
+          "role": "bulk",
+          "target_addr": "127.0.0.1:17990"
+        }
+      ]
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, udp/dtls1.2, 1KB, 1 conn",
+      "disabled_reason": "The DTLS gateway transport has one shared backend datagram flow and cannot report independent parallel connections correctly",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_dtls_multi_connection",
+      "protocol": {
+        "type": "dtls",
+        "version": "1.2"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18144"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, tcp/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "SCG reload currently diffs rules by name, so a same-name TLS profile change is not applied to the listener lifecycle and has no control-plane acknowledgement; profile-update measurements are withheld",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_tls_profile_reload_ack",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18145"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, tcp/plain, 1KB, 1 conn",
+      "disabled_reason": "RSS/PSS and analytical encapsulation overhead are reported, but SCG does not expose owned framing/TLS/SHM copy, splice, zero-copy-success, or fallback counters; physical copy claims are withheld",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_gateway_copy_accounting",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18146"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, tcp/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "TLS 1.3 has no NULL/integrity-only cipher suite; OpenSSL does not implement the draft TLS_SHA256_SHA256/TLS_SHA384_SHA384 codepoints, so an integrity-only TLS 1.3 handshake negotiates zero ciphersuites and never completes. Integrity-only is TLS 1.2 only — SCG now rejects the combination at config load (TRA #85). Profile removed from the executable matrix.",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_integrity_only_tls13_tcp",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18147"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, unix/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "TLS 1.3 has no NULL/integrity-only cipher suite; integrity-only is TLS 1.2 only (SCG rejects it at config load, TRA #85). Over UDS the dead handshake surfaced as a send-spin the harness watchdog had to kill. Profile removed from the executable matrix.",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_integrity_only_tls13_uds",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-148.sock"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, shm/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "TLS 1.3 has no NULL/integrity-only cipher suite; integrity-only is TLS 1.2 only (SCG rejects it at config load, TRA #85). Over SHM the dead handshake surfaced as a send-spin the harness watchdog had to kill. Profile removed from the executable matrix.",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_integrity_only_tls13_shm",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-149"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, tproxy/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "TLS 1.3 has no NULL/integrity-only cipher suite; integrity-only is TLS 1.2 only (SCG rejects it at config load, TRA #85). Profile removed from the executable matrix.",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_integrity_only_tls13_tproxy",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18150"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, udp/wireguard, 1KB, 1 conn",
+      "disabled_reason": "WireGuard is a kernel-offload provider that needs CAP_NET_ADMIN, the wireguard module, and a peer network namespace; it is benchmarked by the privileged scripts/wg_bench.sh orchestration (see scripts/perf_gate.sh), outside the unified seshat run",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_wireguard_script_orchestrated",
+      "protocol": {
+        "type": "wireguard"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18151"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, tcp/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "subset146-psk is a pre-shared-key profile; PSK-only handshakes were removed in TLS 1.3, so SCG rejects subset146-psk on TLS 1.3 at config load: 'subset146-psk requires TLS 1.2 (PSK-only handshakes were removed in TLS 1.3)'. The PKI variant (subset146-pki) is TLS 1.3 capable and stays in the executable matrix. Profile removed from the executable matrix.",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_subset146_psk_tls13",
+      "protocol": {
+        "profile": "subset146-psk",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18152"
+      }
+    }
+  ],
+  "suite": {
+    "author": "SESHAT",
+    "description": "Generated minimal smoke matrix: every capability path once at the canonical size (no payload-size or connection sweep)",
+    "name": "SCG Generated Benchmark Matrix",
+    "version": "2.0.0"
+  }
+}

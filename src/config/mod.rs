@@ -1065,6 +1065,67 @@ mod tests {
     }
 
     #[test]
+    fn smoke_matrix_config_validates() {
+        // The generated minimal smoke matrix must parse and validate cleanly, so
+        // `seshat suite --tier smoke` never trips over its own bundled config.
+        let cfg = parse(include_str!("../../configs/smoke_matrix.json"));
+        let rep = validate(&cfg);
+        assert!(rep.ok(), "smoke matrix must validate cleanly: {rep:?}");
+        let enabled = cfg.scenarios.iter().filter(|s| s.enabled).count();
+        assert!(
+            enabled >= 120,
+            "smoke matrix should cover every capability path (enabled = {enabled})"
+        );
+        assert!(
+            cfg.scenarios
+                .iter()
+                .filter(|s| !s.enabled)
+                .all(|s| s.name.starts_with("blocked_")),
+            "every disabled smoke row must be a catalogued blocked_* limitation"
+        );
+        // Representative capability paths that must always appear.
+        for expected in [
+            "smoke_routing_tcp_tcp_direct",
+            "smoke_subset146_psk_tls12_tcp_tcp_direct",
+            "smoke_hotreload_rotate_cert",
+            "smoke_multistream",
+        ] {
+            assert!(
+                cfg.scenarios.iter().any(|s| s.name == expected),
+                "smoke matrix missing '{expected}'"
+            );
+        }
+    }
+
+    #[test]
+    fn everything_matrix_config_validates() {
+        // The exhaustive matrix is what `seshat suite --tier everything` runs; it
+        // must validate as a whole, and must still cover the subset146 profiles
+        // held out of canonical/nightly via `tiers: []`.
+        let cfg = parse(include_str!("../../configs/everything_matrix.json"));
+        let rep = validate(&cfg);
+        assert!(rep.ok(), "everything matrix must validate cleanly: {rep:?}");
+        let enabled = cfg.scenarios.iter().filter(|s| s.enabled).count();
+        assert!(
+            enabled >= 3000,
+            "everything matrix should be the exhaustive cross-product (enabled = {enabled})"
+        );
+        assert!(
+            cfg.scenarios
+                .iter()
+                .filter(|s| !s.enabled)
+                .all(|s| s.name.starts_with("blocked_")),
+            "every disabled everything row must be a catalogued blocked_* limitation"
+        );
+        assert!(
+            cfg.scenarios
+                .iter()
+                .any(|s| s.name.contains("subset146_psk_tls12_tcp")),
+            "everything matrix must cover the subset146 profiles"
+        );
+    }
+
+    #[test]
     fn unknown_field_rejected() {
         let err = serde_json::from_str::<Config>(
             r#"{ "suite": { "name": "t", "version": "1" }, "scenarios": [], "bogus": 1 }"#,
