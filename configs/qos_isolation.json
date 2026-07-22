@@ -1,0 +1,530 @@
+{
+  "$schema": "seshat-config-v1",
+  "suite": {
+    "name": "SCG QoS Isolation",
+    "description": "Thesis QoS-isolation campaign: does classifying a paced safety stream (traffic_class=safety -> per-class gateway rule pair with DSCP EF egress marking, SO_PRIORITY, and the safety worker pool) protect its latency against BE bulk saturation, and what does the classification buy versus running the identical stream unclassified? 3 protection modes (routing, TLS 1.3, kTLS 1.3) x 3 conditions (alone / contended-classified / contended-unclassified). Safety-stream latency is CO-corrected (scheduled-send stamping). Thread-priority elevation (nice -5) additionally requires CAP_SYS_NICE (run under sudo); without it the gateway logs a warning and DSCP/SO_PRIORITY marking still applies.",
+    "author": "SESHAT",
+    "version": "1.0.0"
+  },
+  "defaults": {
+    "runs": 3,
+    "duration_secs": 5,
+    "warmup_secs": 2,
+    "cooldown_secs": 1,
+    "scg_process_name": "gateway",
+    "collect_system_metrics": true,
+    "metrics_backend": "procfs",
+    "metrics_sample_rate_hz": 10,
+    "outlier_removal": "iqr",
+    "confidence_level": 0.95
+  },
+  "scenarios": [
+    {
+      "name": "qos_alone_routing",
+      "category": "scheduling",
+      "description": "Baseline: one paced safety stream (EF, 5000 msg/s) through plaintext routing, no contention.",
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "protocol": {
+        "type": "none"
+      },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11000",
+          "message_size_bytes": 256,
+          "pattern": "periodic",
+          "interval_us": 200,
+          "priority": {
+            "dscp_tag": "EF",
+            "traffic_class": "safety"
+          }
+        }
+      ]
+    },
+    {
+      "name": "qos_contended_routing",
+      "category": "scheduling",
+      "description": "Isolation: the same paced safety stream (traffic_class=safety -> dedicated safety rule pair, DSCP EF + SO_PRIORITY + safety pool) contending with 4x64KB BE bulk blast through plaintext routing.",
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "protocol": {
+        "type": "none"
+      },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11010",
+          "message_size_bytes": 256,
+          "pattern": "periodic",
+          "interval_us": 200,
+          "priority": {
+            "dscp_tag": "EF",
+            "traffic_class": "safety"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11010",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11010",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11010",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11010",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        }
+      ]
+    },
+    {
+      "name": "qos_unclassified_routing",
+      "category": "scheduling",
+      "description": "Control: identical contended setup but the paced stream is declared traffic_class=normal (shares the normal-class rule/pool), quantifying what safety classification buys under plaintext routing.",
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "protocol": {
+        "type": "none"
+      },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11020",
+          "message_size_bytes": 256,
+          "pattern": "periodic",
+          "interval_us": 200,
+          "priority": {
+            "dscp_tag": "EF",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11020",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11020",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11020",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11020",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        }
+      ]
+    },
+    {
+      "name": "qos_alone_tls",
+      "category": "scheduling",
+      "description": "Baseline: one paced safety stream (EF, 5000 msg/s) through userspace TLS 1.3, no contention.",
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11030",
+          "message_size_bytes": 256,
+          "pattern": "periodic",
+          "interval_us": 200,
+          "priority": {
+            "dscp_tag": "EF",
+            "traffic_class": "safety"
+          }
+        }
+      ]
+    },
+    {
+      "name": "qos_contended_tls",
+      "category": "scheduling",
+      "description": "Isolation: the same paced safety stream (traffic_class=safety -> dedicated safety rule pair, DSCP EF + SO_PRIORITY + safety pool) contending with 4x64KB BE bulk blast through userspace TLS 1.3.",
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11040",
+          "message_size_bytes": 256,
+          "pattern": "periodic",
+          "interval_us": 200,
+          "priority": {
+            "dscp_tag": "EF",
+            "traffic_class": "safety"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11040",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11040",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11040",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11040",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        }
+      ]
+    },
+    {
+      "name": "qos_unclassified_tls",
+      "category": "scheduling",
+      "description": "Control: identical contended setup but the paced stream is declared traffic_class=normal (shares the normal-class rule/pool), quantifying what safety classification buys under userspace TLS 1.3.",
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11050",
+          "message_size_bytes": 256,
+          "pattern": "periodic",
+          "interval_us": 200,
+          "priority": {
+            "dscp_tag": "EF",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11050",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11050",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11050",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11050",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        }
+      ]
+    },
+    {
+      "name": "qos_alone_ktls",
+      "category": "scheduling",
+      "description": "Baseline: one paced safety stream (EF, 5000 msg/s) through kernel TLS 1.3, no contention.",
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11060",
+          "message_size_bytes": 256,
+          "pattern": "periodic",
+          "interval_us": 200,
+          "priority": {
+            "dscp_tag": "EF",
+            "traffic_class": "safety"
+          }
+        }
+      ]
+    },
+    {
+      "name": "qos_contended_ktls",
+      "category": "scheduling",
+      "description": "Isolation: the same paced safety stream (traffic_class=safety -> dedicated safety rule pair, DSCP EF + SO_PRIORITY + safety pool) contending with 4x64KB BE bulk blast through kernel TLS 1.3.",
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11070",
+          "message_size_bytes": 256,
+          "pattern": "periodic",
+          "interval_us": 200,
+          "priority": {
+            "dscp_tag": "EF",
+            "traffic_class": "safety"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11070",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11070",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11070",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11070",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        }
+      ]
+    },
+    {
+      "name": "qos_unclassified_ktls",
+      "category": "scheduling",
+      "description": "Control: identical contended setup but the paced stream is declared traffic_class=normal (shares the normal-class rule/pool), quantifying what safety classification buys under kernel TLS 1.3.",
+      "gateway": {
+        "enabled": true,
+        "chain": "scg-direct"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3",
+        "kernel": true
+      },
+      "streams": [
+        {
+          "role": "safety",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11080",
+          "message_size_bytes": 256,
+          "pattern": "periodic",
+          "interval_us": 200,
+          "priority": {
+            "dscp_tag": "EF",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11080",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11080",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11080",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        },
+        {
+          "role": "bulk",
+          "interface": "tcp",
+          "target_addr": "127.0.0.1:11080",
+          "message_size_bytes": 65536,
+          "pattern": "sustained",
+          "priority": {
+            "dscp_tag": "BE",
+            "traffic_class": "normal"
+          }
+        }
+      ]
+    }
+  ]
+}

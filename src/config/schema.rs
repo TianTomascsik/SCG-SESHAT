@@ -680,12 +680,28 @@ pub enum StreamRole {
 pub struct Priority {
     /// DSCP tag (e.g. `EF`, `AF41`, `BE`, `CS0`..`CS7`).
     pub dscp_tag: String,
-    /// Traffic class label.
+    /// Traffic class label (canonicalised via [`canonical_traffic_class`]).
     pub traffic_class: String,
     /// Expected DSCP tag after SCG processing (for DSCP manipulation tests).
     /// If `None`, the tag should be preserved unchanged.
     #[serde(default)]
     pub expected_dscp: Option<String>,
+}
+
+/// Map a user-facing traffic-class label to the gateway's canonical vocabulary
+/// (`safety` | `normal`), or `None` when the label is unknown.
+///
+/// The gateway config only understands `safety`/`normal`, and the multi-stream
+/// safety aggregates (loss-free / p99 verdicts) key on the canonical string, so
+/// every label is funnelled through here at validation and at run wiring.
+/// Accepted aliases (case-insensitive): `safety`, `safety-critical` → `safety`;
+/// `normal`, `non-safety`, `bulk` → `normal`.
+pub fn canonical_traffic_class(raw: &str) -> Option<&'static str> {
+    match raw.trim().to_ascii_lowercase().as_str() {
+        "safety" | "safety-critical" => Some("safety"),
+        "normal" | "non-safety" | "bulk" => Some("normal"),
+        _ => None,
+    }
 }
 
 /// Hot-reload event (F-11).
@@ -898,12 +914,43 @@ impl TlsVersion {
     }
 }
 
+impl ProtocolType {
+    /// Lowercase protocol-kind label for validation messages and reports.
+    pub fn label(self) -> &'static str {
+        match self {
+            ProtocolType::None => "none",
+            ProtocolType::Tls => "tls",
+            ProtocolType::Dtls => "dtls",
+            ProtocolType::Wireguard => "wireguard",
+            ProtocolType::Ipsec => "ipsec",
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn scenario(json: &str) -> Scenario {
         serde_json::from_str(json).expect("scenario parses")
+    }
+
+    #[test]
+    fn canonical_traffic_class_accepts_known_aliases() {
+        assert_eq!(canonical_traffic_class("safety"), Some("safety"));
+        assert_eq!(canonical_traffic_class("Safety-Critical"), Some("safety"));
+        assert_eq!(canonical_traffic_class("  SAFETY  "), Some("safety"));
+        assert_eq!(canonical_traffic_class("normal"), Some("normal"));
+        assert_eq!(canonical_traffic_class("non-safety"), Some("normal"));
+        assert_eq!(canonical_traffic_class("Bulk"), Some("normal"));
+    }
+
+    #[test]
+    fn canonical_traffic_class_rejects_unknown_labels() {
+        assert_eq!(canonical_traffic_class(""), None);
+        assert_eq!(canonical_traffic_class("critical"), None);
+        assert_eq!(canonical_traffic_class("safety critical"), None);
+        assert_eq!(canonical_traffic_class("low"), None);
     }
 
     #[test]

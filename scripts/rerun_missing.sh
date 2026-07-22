@@ -94,5 +94,10 @@ done
 echo "== merged $merged recovered scenario(s) into $RUN/scenarios/ =="
 
 # 4. Rebuild the consolidated summary.csv / skipped.csv from the per-scenario files.
+#    `seshat report` only rebuilds these when the top-level summary.csv is ABSENT
+#    (it otherwise just re-renders the overview from the stale table), so drop the
+#    stale consolidated tables first — else the just-merged scenarios sit in
+#    scenarios/ but never reach summary.csv/skipped.csv.
+rm -f "$RUN/summary.csv" "$RUN/skipped.csv"
 "$BIN" report --input "$RUN"
 echo "== done: re-count skips with:  wc -l < '$RUN/skipped.csv' =="

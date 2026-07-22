@@ -54,7 +54,8 @@ trap cleanup EXIT
 # SCG encrypt gateway: relays plaintext UDP from the ingress port through the
 # kernel WireGuard tunnel (manage_interface=false → attaches to wg-scg-a).
 cat >"$WORK/encrypt.json" <<JSON
-{ "rules": [ {
+{ "policy": { "default_action": "allow", "whitelist": [] },
+  "rules": [ {
   "name": "wg-smoke-encrypt",
   "direction": "encrypt",
   "listen_addr": "127.0.0.1:$INGRESS_PORT",

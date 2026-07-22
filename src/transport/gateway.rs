@@ -37,8 +37,8 @@ use super::{
     RECV_POLL_TIMEOUT,
 };
 use crate::gateway::{
-    add_management_uds_template, build_path, reserve_local_port, start_path, RunningPath,
-    SecuritySpec, Topology,
+    add_management_uds_template, build_multi_class_path, build_path, reserve_local_port,
+    start_multi_class_path, start_path, RunningPath, SecuritySpec, Topology,
 };
 use crate::proto::wire::{encode_message, HEADER_LEN};
 use crate::time::monotonic_ns;
@@ -190,39 +190,47 @@ impl GatewayTcpTransport {
     /// skipping connections the gateway already closed (leftover readiness
     /// probes forwarded down the path).
     fn accept_forwarded(&self) -> io::Result<TcpStream> {
-        let deadline = Instant::now() + ACCEPT_TIMEOUT;
-        loop {
-            if Instant::now() >= deadline {
-                return Err(io::Error::new(
-                    io::ErrorKind::TimedOut,
-                    "gateway did not forward a live connection to the backend in time",
-                ));
-            }
-            match self.backend.accept() {
-                Ok((stream, _peer)) => {
-                    stream.set_nonblocking(false)?;
-                    stream.set_read_timeout(Some(LIVENESS_PROBE))?;
-                    let mut probe = [0u8; 1];
-                    match stream.peek(&mut probe) {
-                        // EOF: a closed readiness-probe connection — skip it.
-                        Ok(0) => continue,
-                        // Already carrying data, or open but idle (the real
-                        // sender connection, which has not sent yet): keep it.
-                        Ok(_) => return Ok(stream),
-                        Err(e)
-                            if e.kind() == io::ErrorKind::WouldBlock
-                                || e.kind() == io::ErrorKind::TimedOut =>
-                        {
-                            return Ok(stream)
-                        }
-                        Err(e) => return Err(e),
+        accept_forwarded_on(&self.backend)
+    }
+}
+
+/// Accept the next *live* forwarded connection on `backend` within
+/// [`ACCEPT_TIMEOUT`], skipping connections the gateway already closed
+/// (leftover readiness probes forwarded down the path). Shared by the
+/// single-path and per-class multi-stream gateway transports.
+fn accept_forwarded_on(backend: &TcpListener) -> io::Result<TcpStream> {
+    let deadline = Instant::now() + ACCEPT_TIMEOUT;
+    loop {
+        if Instant::now() >= deadline {
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "gateway did not forward a live connection to the backend in time",
+            ));
+        }
+        match backend.accept() {
+            Ok((stream, _peer)) => {
+                stream.set_nonblocking(false)?;
+                stream.set_read_timeout(Some(LIVENESS_PROBE))?;
+                let mut probe = [0u8; 1];
+                match stream.peek(&mut probe) {
+                    // EOF: a closed readiness-probe connection — skip it.
+                    Ok(0) => continue,
+                    // Already carrying data, or open but idle (the real
+                    // sender connection, which has not sent yet): keep it.
+                    Ok(_) => return Ok(stream),
+                    Err(e)
+                        if e.kind() == io::ErrorKind::WouldBlock
+                            || e.kind() == io::ErrorKind::TimedOut =>
+                    {
+                        return Ok(stream)
                     }
+                    Err(e) => return Err(e),
                 }
-                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
-                    thread::sleep(ACCEPT_POLL);
-                }
-                Err(e) => return Err(e),
             }
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                thread::sleep(ACCEPT_POLL);
+            }
+            Err(e) => return Err(e),
         }
     }
 }
@@ -244,6 +252,150 @@ fn drain_readiness_probes(backend: &TcpListener) -> io::Result<()> {
             }
             Err(e) => return Err(e),
         }
+    }
+}
+
+/// One traffic class's endpoints on a multi-class gateway path: the plaintext
+/// ingress the class's senders connect to and the backend listener its
+/// forwarded connections arrive on.
+struct ClassEntry {
+    class: String,
+    ingress_addr: String,
+    backend: TcpListener,
+}
+
+/// A multi-class gateway transport (multi-stream scheduling): the same wire
+/// model as [`GatewayTcpTransport`], but with one encrypt/decrypt rule pair —
+/// and thus one ingress + one backend listener — **per traffic class**, all
+/// served by the same gateway process(es). Streams of a class connect through
+/// that class's rules, so the gateway applies the class's QoS (safety pool,
+/// DSCP EF egress marking, `SO_PRIORITY`) while classes still contend for the
+/// shared DUT resources.
+pub struct GatewayMultiClassTransport {
+    name: &'static str,
+    entries: Vec<ClassEntry>,
+    running: Option<RunningPath>,
+}
+
+impl GatewayMultiClassTransport {
+    /// Start gateway process(es) with one rule pair per entry of `classes`
+    /// (canonical `safety`/`normal` labels, deduplicated by the caller). The
+    /// per-class backend listeners are bound before the gateway starts so every
+    /// path is reachable end-to-end the instant the gateway is ready.
+    #[allow(clippy::too_many_arguments)] // cohesive gateway-path constructor.
+    pub fn start(
+        name: &'static str,
+        spec: &SecuritySpec,
+        topology: Topology,
+        binary: &Path,
+        work_dir: &Path,
+        gateway_cores: &[usize],
+        classes: &[String],
+        connections: usize,
+    ) -> io::Result<Self> {
+        std::fs::create_dir_all(work_dir)?;
+
+        // Reserve one backend port per class and bind the real listeners
+        // before launching the gateway (same ordering as the single path).
+        let mut backends = Vec::with_capacity(classes.len());
+        let mut class_backends = Vec::with_capacity(classes.len());
+        for class in classes {
+            let backend_addr = format!("127.0.0.1:{}", reserve_local_port()?);
+            let backend = TcpListener::bind(&backend_addr)?;
+            backend.set_nonblocking(true)?;
+            backends.push(backend);
+            class_backends.push((class.clone(), backend_addr));
+        }
+
+        let plan = build_multi_class_path(spec, topology, &class_backends, connections)?;
+        let running =
+            start_multi_class_path(&plan, binary, work_dir, READY_TIMEOUT, gateway_cores)?;
+
+        // `plan.paths` preserves `class_backends` order, so zip re-associates
+        // each class's ingress with the listener bound for it above.
+        let mut entries = Vec::with_capacity(classes.len());
+        for (path, backend) in plan.paths.iter().zip(backends) {
+            drain_readiness_probes(&backend)?;
+            entries.push(ClassEntry {
+                class: path.class.clone(),
+                ingress_addr: path.ingress_addr.clone(),
+                backend,
+            });
+        }
+
+        Ok(GatewayMultiClassTransport {
+            name,
+            entries,
+            running: Some(running),
+        })
+    }
+
+    /// Short identifier for logs / results.
+    pub fn name(&self) -> &'static str {
+        self.name
+    }
+
+    /// OS pids of the gateway process(es), for `/proc/<pid>` system metrics.
+    pub fn pids(&self) -> Vec<i32> {
+        self.running
+            .as_ref()
+            .map(RunningPath::pids)
+            .unwrap_or_default()
+    }
+
+    /// Captured gateway log files, for post-run effective-protocol scanning.
+    pub fn log_paths(&self) -> Vec<PathBuf> {
+        self.running
+            .as_ref()
+            .map(RunningPath::log_paths)
+            .unwrap_or_default()
+    }
+
+    /// Establish one connected `(sink, source)` pair through `class`'s rule
+    /// pair. The class must be one the transport was started with — an unknown
+    /// class is an internal wiring bug and is reported, not silently remapped.
+    pub fn pair_for_class(
+        &self,
+        message_bytes: u32,
+        class: &str,
+    ) -> io::Result<(Box<dyn DataSink>, Box<dyn DataSource>)> {
+        let entry = self
+            .entries
+            .iter()
+            .find(|e| e.class == class)
+            .ok_or_else(|| {
+                io::Error::other(format!(
+                    "no gateway rule pair was provisioned for traffic class '{class}'"
+                ))
+            })?;
+
+        let addr = entry
+            .ingress_addr
+            .to_socket_addrs()?
+            .next()
+            .ok_or_else(|| io::Error::other("gateway ingress address did not resolve"))?;
+
+        // Connect the sender first; the gateway then forwards a connection to
+        // this class's backend listener, which we accept as the receiver.
+        let client = TcpStream::connect_timeout(&addr, CONNECT_TIMEOUT)?;
+        client.set_nodelay(true)?;
+
+        let server = accept_forwarded_on(&entry.backend)?;
+        server.set_nonblocking(false)?;
+        server.set_nodelay(true)?;
+        server.set_read_timeout(Some(RECV_POLL_TIMEOUT))?;
+
+        let sink = tcp::sink_from_stream(client);
+        let source = tcp::source_from_stream(server, message_bytes);
+        Ok((sink, source))
+    }
+
+    /// Gracefully stop the gateway process(es).
+    pub fn shutdown(mut self) -> io::Result<()> {
+        if let Some(running) = self.running.take() {
+            running.shutdown()?;
+        }
+        Ok(())
     }
 }
 

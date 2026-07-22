@@ -28,7 +28,9 @@ use crate::run::affinity;
 use crate::run::calibrate::{self, Calibration};
 use crate::run::engine::{self, RunMode, RunParams, RunStats};
 use crate::run::saturation::{self, SweepPlan, SweepResult};
-use crate::transport::gateway::{GatewayDut, GatewayTcpTransport, GatewayUdpTransport};
+use crate::transport::gateway::{
+    GatewayDut, GatewayMultiClassTransport, GatewayTcpTransport, GatewayUdpTransport,
+};
 use crate::transport::shm::GatewayShmTransport;
 use crate::transport::shm_null::ShmNullTransport;
 use crate::transport::uds::GatewayUdsTransport;
@@ -977,6 +979,77 @@ fn server_identity_for_scenario(
     )?)
 }
 
+/// Stage the second server identity a `rotate_cert` hot-reload swaps to.
+///
+/// mTLS scenarios get a leaf signed by the same work-dir CA the encrypt rule
+/// already trusts (`pki::issue_server_leaf`); plain-TLS scenarios (whose
+/// encrypt leg verifies nothing) get a fresh self-signed identity under
+/// `work_dir/swap`, with the key type matching the scenario's cipher-suite
+/// authentication.
+fn stage_swap_identity(
+    scenario: &Scenario,
+    work_dir: &Path,
+) -> Result<crate::pki::Identity, Box<dyn std::error::Error>> {
+    if !crate::pki::openssl_available() {
+        return Err(format!(
+            "scenario '{}' needs a swap certificate but the openssl CLI is unavailable",
+            scenario.name
+        )
+        .into());
+    }
+    if work_dir.join("ca.key").exists() {
+        Ok(crate::pki::issue_server_leaf(work_dir, "server-swap", 2)?)
+    } else {
+        let key_type = server_key_type_for_scenario(scenario);
+        Ok(crate::pki::generate_self_signed_with(
+            &work_dir.join("swap"),
+            2,
+            key_type,
+        )?)
+    }
+}
+
+/// Rewrite the running gateway's config so every decrypt-side rule that
+/// presents a server identity points at `identity` instead.
+///
+/// The *path change* is what makes the swap visible: the SCG reload diff
+/// compares `provider_params` strings (no file-content hash), so an in-place
+/// content overwrite would be classified `unchanged` and the old cert would
+/// keep serving (TRA #86). Written atomically (tmp + rename) so the SIGHUP'd
+/// gateway never reads a torn file. Returns whether any rule was rewritten.
+fn rewrite_cert_paths(
+    config_path: &Path,
+    identity: &crate::pki::Identity,
+) -> std::io::Result<bool> {
+    let raw = std::fs::read_to_string(config_path)?;
+    let mut cfg: serde_json::Value = serde_json::from_str(&raw)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    let mut swapped = false;
+    if let Some(rules) = cfg
+        .get_mut("rules")
+        .and_then(serde_json::Value::as_array_mut)
+    {
+        for rule in rules {
+            let is_decrypt =
+                rule.get("direction").and_then(serde_json::Value::as_str) == Some("decrypt");
+            if is_decrypt && rule.get("cert_path").is_some() {
+                rule["cert_path"] =
+                    serde_json::Value::from(identity.cert.to_string_lossy().into_owned());
+                rule["key_path"] =
+                    serde_json::Value::from(identity.key.to_string_lossy().into_owned());
+                swapped = true;
+            }
+        }
+    }
+    if !swapped {
+        return Ok(false);
+    }
+    let tmp = config_path.with_extension("json.tmp");
+    std::fs::write(&tmp, serde_json::to_string_pretty(&cfg)?)?;
+    std::fs::rename(&tmp, config_path)?;
+    Ok(true)
+}
+
 /// Pick the generated server cert's key algorithm so it satisfies the scenario's
 /// cipher-suite authentication: `ECDHE-RSA` (TLS 1.2) suites require an RSA cert,
 /// everything else (ECDHE-ECDSA, auth-agnostic TLS 1.3) uses EC P-256.
@@ -1088,9 +1161,10 @@ fn build_security_spec(
     Ok(apply_protocol_security_overrides(spec, scenario))
 }
 
-/// Build a `SecuritySpec` for multi-stream scenarios. Uses routing by default
-/// (each stream routes through the same gateway rules), but honors the scenario-
-/// level protocol selection when specified.
+/// Build a `SecuritySpec` for multi-stream scenarios: the scenario-level
+/// protocol (routing when `none`), exactly as for single-stream gateway runs.
+/// The per-class rule generation clones this spec once per traffic class
+/// (`SecuritySpec::with_traffic_class`), so class is deliberately not set here.
 fn build_multistream_spec(
     plan: &GatewayPlan,
     scenario: &Scenario,
@@ -1125,11 +1199,13 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
         GatewayChain::ScgScg => gateway::Topology::ScgToScg,
     };
 
-    // Multi-stream scenarios: we just need routing through the gateway. The
-    // per-stream transport pairs are provisioned separately.
+    // Multi-stream scenarios honour the scenario-level protocol (validation
+    // restricts them to TCP-based providers and warns on per-stream protocol
+    // overrides, which are not supported — the scenario protocol applies to
+    // every stream). The per-class transport pairs are provisioned separately.
     if !s.streams.is_empty() {
         return Some(GatewayPlan {
-            security: GwSecurity::Routing,
+            security: resolve_security(s),
             topology,
             transport_name: "scg-multistream",
         });
@@ -1289,6 +1365,17 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
 /// (`<runtime_dir>/<app_id>.<class>.<direction>.<id>.sock`), and that path is
 /// capped by `SUN_LEN` (~108 bytes). The longest matrix-latency scenario names —
 /// e.g. `matrix_lat_integrity_tls13_shm_shm_1KB_direct_1c` — overflow it and the
+/// Pipeline budget for the pre-provisioned local transports (UDS/SHM): one
+/// pipeline per data connection per repetition of the engine's runs loop.
+///
+/// The engine opens `connections` fresh pairs in every `run_once` call and the
+/// transport's connection counter is monotonic across runs, so a budget of
+/// `connections` alone starves the second repetition (the 20260717 campaign
+/// skipped all 1080 UDS/SHM scenarios this way).
+fn provisioned_pipelines(connections: usize, runs: usize) -> usize {
+    connections.max(1) * runs.max(1)
+}
+
 /// endpoint provisioning fails, silently dropping several protocols from the
 /// UDS/SHM latency grid. Names that fit are used verbatim (readable in gateway
 /// logs); longer ones fall back to a readable head plus a stable, deterministic
@@ -1492,6 +1579,16 @@ fn run_gateway_scenario(
     let is_tproxy = plan.transport_name == "scg-tproxy";
     let is_ale_raw = matches!(plan.transport_name, "scg-udp-ale" | "scg-udp-raw");
 
+    // UDS/SHM pre-provision one gateway pipeline per data connection, and the
+    // engine opens a fresh set of pairs for every repetition of the runs loop
+    // (`next_conn` is monotonic across runs, mirroring TCP's fresh sockets per
+    // run). The pipeline budget must therefore cover connections × runs, not
+    // connections alone — provisioning only `connections` starves run 2 and
+    // skips the scenario with "connection N requested but only N pipeline(s)
+    // provisioned". Offered-load sweeps would need one set per sweep point;
+    // no UDS/SHM scenario sweeps today.
+    let pipelines = provisioned_pipelines(params.connections, params.runs);
+
     let dut = if is_uds {
         let app_id = scenario_app_id(&scenario.name);
         match GatewayUdsTransport::start(
@@ -1502,7 +1599,7 @@ fn run_gateway_scenario(
             &work_dir,
             &cores.gateway,
             &app_id,
-            params.connections,
+            pipelines,
         ) {
             Ok(t) => GatewayDut::Uds(t),
             Err(e) => {
@@ -1571,7 +1668,7 @@ fn run_gateway_scenario(
             &work_dir,
             &cores.gateway,
             &app_id,
-            params.connections,
+            pipelines,
             ring_capacity,
             &shm_tuning,
         ) {
@@ -1660,7 +1757,7 @@ fn run_gateway_scenario(
         .filter(|_| !dut.pids().is_empty())
         .map(|hz| SystemSampler::start(dut.pids(), hz));
 
-    let perf_sampler = start_perf_sampler(defaults, scenario, &dut, &work_dir);
+    let perf_sampler = start_perf_sampler(defaults, scenario, &dut.pids(), &work_dir);
     let mem_copy_sampler = start_mem_copy_sampler(defaults, scenario, &dut, &work_dir);
 
     // Per-scenario watchdog (defence in depth): a single scenario must never be
@@ -1910,9 +2007,12 @@ fn run_gateway_scenario(
 
 /// Run a multi-stream scheduling scenario through the gateway.
 ///
-/// Each stream in the config becomes a separate transport pair through the same
-/// gateway instance, running concurrently. Per-stream metrics are collected and
-/// the aggregate result (fairness, safety starvation) is recorded.
+/// The gateway is started with one encrypt/decrypt rule pair **per traffic
+/// class** (each rule carrying that class, so the gateway's safety QoS
+/// engages), and every stream becomes a transport pair through its class's
+/// rules — all inside the same gateway process(es), running concurrently.
+/// Per-stream metrics are collected and the aggregate result (fairness,
+/// safety starvation) is recorded.
 #[allow(clippy::too_many_arguments)]
 fn run_multistream_scenario(
     scenario: &Scenario,
@@ -1923,24 +2023,58 @@ fn run_multistream_scenario(
     sys_rate: Option<u32>,
     cores: &CorePlan,
 ) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    use crate::workload::dscp::parse_dscp_tag;
     use crate::workload::streams::{self, MultiStreamResult, StreamConfig};
+
+    // Validation restricts multi-stream scenarios to TCP-based protocols;
+    // guard here too so a stale config cannot silently run something else.
+    if matches!(
+        plan.security,
+        GwSecurity::Dtls { .. } | GwSecurity::RoutingUdp
+    ) {
+        return Ok(Some(
+            "multi-stream scheduling requires a TCP-based protocol".to_string(),
+        ));
+    }
 
     let work_dir = rdir.root().join("gateway").join(sanitize(&scenario.name));
     std::fs::create_dir_all(&work_dir)?;
 
-    // Build the gateway SecuritySpec from the plan (respects per-scenario
-    // protocol selection instead of always hardcoding routing).
+    // Canonicalise every stream's class once (aligned with `scenario.streams`),
+    // then derive the ordered, deduplicated class list — one rule pair each.
+    let mut stream_classes: Vec<&'static str> = Vec::with_capacity(scenario.streams.len());
+    for stream in &scenario.streams {
+        let class =
+            config::canonical_traffic_class(&stream.priority.traffic_class).ok_or_else(|| {
+                format!(
+                    "stream traffic_class '{}' is not recognised (validation should have \
+                     rejected this scenario)",
+                    stream.priority.traffic_class
+                )
+            })?;
+        stream_classes.push(class);
+    }
+    let mut classes: Vec<String> = Vec::new();
+    for class in &stream_classes {
+        if !classes.iter().any(|c| c == class) {
+            classes.push(class.to_string());
+        }
+    }
+
+    // Build the gateway SecuritySpec from the plan (the scenario-level
+    // protocol; per-class rule generation stamps each class onto its pair).
     let spec = build_multistream_spec(plan, scenario, &work_dir)?;
-    let dut = match GatewayTcpTransport::start(
+    let dut = match GatewayMultiClassTransport::start(
         plan.transport_name,
         &spec,
         plan.topology,
         binary,
         &work_dir,
         &cores.gateway,
+        &classes,
         scenario.streams.len(),
     ) {
-        Ok(t) => GatewayDut::Tcp(t),
+        Ok(t) => t,
         Err(e) => {
             log::warn!(
                 "scenario '{}': gateway failed to start ({e}); skipping",
@@ -1964,32 +2098,25 @@ fn run_multistream_scenario(
 
     for (i, stream) in scenario.streams.iter().enumerate() {
         let msg_bytes = stream.message_size_bytes.max(HEADER_LEN as u32);
-        let rate_limit = match stream.pattern {
-            config::Pattern::Periodic => stream.interval_us.map(|iv| {
-                let bits_per_msg = msg_bytes as f64 * 8.0;
-                let msgs_per_sec = 1_000_000.0 / iv as f64;
-                (bits_per_msg * msgs_per_sec) / 1_000_000.0
-            }),
+        let class = stream_classes[i];
+        let interval_us = match stream.pattern {
+            config::Pattern::Periodic => stream.interval_us,
             _ => None,
         };
 
         configs.push(StreamConfig {
             name: format!("{:?}-{}", stream.role, i),
-            traffic_class: stream.priority.traffic_class.clone(),
-            priority: i as i32,
-            dscp_tag: dscp_from_tag(&stream.priority.dscp_tag),
+            traffic_class: class.to_string(),
+            dscp_label: stream.priority.dscp_tag.to_uppercase(),
+            dscp_tag: parse_dscp_tag(&stream.priority.dscp_tag),
             message_bytes: msg_bytes,
-            rate_limit_mbps: rate_limit,
+            interval_us,
             sender_cores: cores.sender.clone(),
             receiver_cores: cores.receiver.clone(),
         });
 
-        // Create a transport pair through the gateway for this stream, keeping
-        // the declared traffic class for transports that provision class-
-        // specific local endpoints.
-        let pair = dut
-            .as_transport()
-            .loopback_pair_for_class(msg_bytes, &stream.priority.traffic_class)?;
+        // Connect this stream through its class's gateway rule pair.
+        let pair = dut.pair_for_class(msg_bytes, class)?;
         pairs.push(pair);
     }
 
@@ -2009,7 +2136,7 @@ fn run_multistream_scenario(
     let sampler = sys_rate
         .filter(|_| !dut.pids().is_empty())
         .map(|hz| SystemSampler::start(dut.pids(), hz));
-    let perf_sampler = start_perf_sampler(defaults, scenario, &dut, &work_dir);
+    let perf_sampler = start_perf_sampler(defaults, scenario, &dut.pids(), &work_dir);
 
     let result: MultiStreamResult = streams::run_multi_stream(&configs, pairs, warmup, measure)?;
 
@@ -2056,10 +2183,10 @@ fn run_multistream_scenario(
                 .partial_cmp(&b.summary.throughput_gbps)
                 .unwrap_or(std::cmp::Ordering::Equal)
         })
-        .map(|s| s.summary.clone());
+        .cloned();
 
     let stats = if let Some(best) = best {
-        if best.messages == 0 {
+        if best.summary.messages == 0 {
             log::warn!(
                 "scenario '{}': no multi-stream messages reached a receiver; skipping invalid zero-metric result",
                 scenario.name
@@ -2071,22 +2198,23 @@ fn run_multistream_scenario(
         }
         use crate::metrics::stats::summarize;
         RunStats {
-            runs: vec![best.clone()],
-            throughput_gbps: summarize(&[best.throughput_gbps]),
-            latency_mean_us: summarize(&[best.latency_us.mean]),
-            latency_p99_us: summarize(&[best.latency_us.p99]),
+            runs: vec![best.summary.clone()],
+            throughput_gbps: summarize(&[best.summary.throughput_gbps]),
+            latency_mean_us: summarize(&[best.summary.latency_us.mean]),
+            latency_p99_us: summarize(&[best.summary.latency_us.p99]),
             handshake_us: summarize(&[0.0]),
-            total_lost: best.integrity.lost,
-            loss_pct: best.loss_pct,
+            total_lost: best.summary.integrity.lost,
+            loss_pct: best.summary.loss_pct,
             mode: RunMode::Throughput,
             rtt: None,
             conn: None,
-            // The multi-stream senders stamp actual send time (not the scheduled
-            // one), so their per-stream latency is not coordinated-omission-
-            // corrected. Report that honestly rather than overclaiming.
-            co_corrected: false,
-            send_lag_mean_us: 0.0,
-            send_lag_max_us: 0.0,
+            // The summary row reflects the best-throughput stream: paced
+            // streams stamp scheduled send times (CO-corrected, with send-lag
+            // accounted); blast streams stamp actual send time. Per-stream
+            // flags/lags live in streams.csv.
+            co_corrected: best.paced,
+            send_lag_mean_us: best.send_lag_mean_us,
+            send_lag_max_us: best.send_lag_max_us,
         }
     } else {
         log::warn!("scenario '{}': no stream results; skipping", scenario.name);
@@ -2094,9 +2222,16 @@ fn run_multistream_scenario(
         return Ok(Some("no multi-stream results were produced".to_string()));
     };
 
+    // Scan the flushed gateway logs for an effective-protocol fallback (e.g.
+    // kTLS that silently ran in userspace), exactly as single-stream runs do.
+    let kernel_requested = matches!(
+        plan.security,
+        GwSecurity::Tls { ktls: true, .. } | GwSecurity::Mtls { ktls: true, .. }
+    );
     let log_paths = dut.log_paths();
     dut.shutdown()?;
-    let effective = logscan::scan_effective(&log_paths, false);
+    let effective = logscan::scan_effective(&log_paths, kernel_requested);
+    warn_if_protocol_fallback(scenario, &effective);
 
     // Build a RunParams suitable for recording (multi-stream doesn't use the
     // standard single-sender model, so we construct a minimal params).
@@ -2183,18 +2318,17 @@ fn reload_timing(
 ///
 /// The gateway itself now applies same-name field changes: `GatewayConfig::diff`
 /// has a `changed` bucket (`RuleConfig::reload_differs`) that restarts a listener
-/// whose provider/upstream/profile/`verify`/cert/class/QoS changed. But SESHAT's
-/// `UpdateTlsProfile`/`RotateCert` actions only send SIGHUP *without rewriting the
+/// whose provider/upstream/profile/`verify`/cert/class/QoS changed. SESHAT's
+/// `UpdateTlsProfile` action still only sends SIGHUP *without rewriting the
 /// config file*, so no diff is produced and nothing is re-applied — a harness-side
-/// no-op. A "zero drops" result for these actions therefore still proves nothing
-/// (the config never changed). Add/remove connection (gRPC) and invalid-config
-/// rollback do take effect and must stay zero-drop. To actually exercise the
-/// gateway's new in-place reload, the action must write a modified same-name rule.
+/// no-op whose "zero drops" result proves nothing. `RotateCert` is no longer a
+/// no-op: it rewrites the decrypt rule's cert/key paths to a pre-staged second
+/// identity before the SIGHUP, which lands the rule in the `changed` bucket and
+/// restarts it (severing that rule's established connections by design).
+/// Add/remove connection (gRPC) and invalid-config rollback take effect and
+/// must stay zero-drop.
 fn reload_is_noop_on_scg(action: config::ReloadAction) -> bool {
-    matches!(
-        action,
-        config::ReloadAction::UpdateTlsProfile | config::ReloadAction::RotateCert
-    )
+    matches!(action, config::ReloadAction::UpdateTlsProfile)
 }
 
 /// Run a hot-reload scenario: measure before, inject reload, measure after.
@@ -2278,7 +2412,7 @@ fn run_hotreload_scenario(
     let sampler = sys_rate
         .filter(|_| !dut.pids().is_empty())
         .map(|hz| SystemSampler::start(dut.pids(), hz));
-    let perf_sampler = start_perf_sampler(defaults, scenario, &dut, &work_dir);
+    let perf_sampler = start_perf_sampler(defaults, scenario, &dut.pids(), &work_dir);
 
     // Run the measurement with a reload injected mid-flight. The engine
     // establishes every connection *serially* before warmup/measure begin, so at
@@ -2318,6 +2452,21 @@ fn run_hotreload_scenario(
     let pid_for_reload = gw_pid;
     let action = reload_event.action;
     let mgmt_socket = dut.mgmt_socket_path();
+    // A rotate_cert action swaps to a pre-staged second identity, so the timer
+    // thread only rewrites the config and signals; certificate generation never
+    // races the measurement window.
+    let swap_identity = if action == config::ReloadAction::RotateCert {
+        match stage_swap_identity(scenario, &work_dir) {
+            Ok(identity) => Some(identity),
+            Err(e) => {
+                log::warn!("scenario '{}': {e}; skipping", scenario.name);
+                dut.shutdown()?;
+                return Ok(Some(format!("swap identity staging failed: {e}")));
+            }
+        }
+    } else {
+        None
+    };
     let reload_thread = std::thread::spawn(move || {
         use crate::config::ReloadAction;
         std::thread::sleep(reload_trigger_dur);
@@ -2424,9 +2573,52 @@ fn run_hotreload_scenario(
                     false
                 }
             }
-            ReloadAction::UpdateTlsProfile | ReloadAction::RotateCert => {
+            ReloadAction::RotateCert => {
+                // Real key-material rotation: rewrite the running config so the
+                // decrypt rule's cert_path/key_path point at the pre-staged swap
+                // identity (a PATH change — the SCG diff compares provider_params
+                // strings, so an in-place content overwrite would be invisible,
+                // TRA #86), then SIGHUP. The changed-bucket restart severs the
+                // rule's established connections by design, so drops are
+                // expected and the scenario must not assert zero drops.
+                if let (Some(path), Some(pid), Some(identity)) =
+                    (&config_path, pid_for_reload, &swap_identity)
+                {
+                    match rewrite_cert_paths(path, identity) {
+                        Ok(true) => {
+                            // SAFETY: `kill` is an FFI call with no memory-safety
+                            // preconditions; `pid` is the PID of the live gateway
+                            // child process spawned and owned by `dut`, and
+                            // `libc::SIGHUP` is a valid signal number. The return
+                            // value is intentionally discarded — a failed signal
+                            // only means the reload was not delivered, which shows
+                            // up as `change_applied=false` in the artifact.
+                            let _ = unsafe { libc::kill(pid, libc::SIGHUP) };
+                            log::info!(
+                                "hot-reload: cert swap written + SIGHUP at {}s (new cert: {})",
+                                trigger_secs,
+                                identity.cert.display()
+                            );
+                            true
+                        }
+                        Ok(false) => {
+                            log::warn!(
+                                "hot-reload: no decrypt rule with cert_path found; cert swap not applied"
+                            );
+                            false
+                        }
+                        Err(e) => {
+                            log::warn!("hot-reload: cert swap rewrite failed: {e}");
+                            false
+                        }
+                    }
+                } else {
+                    false
+                }
+            }
+            ReloadAction::UpdateTlsProfile => {
                 // Config-swap + SIGHUP: new connections get new config.
-                if let (Some(_path), Some(pid)) = (config_path, pid_for_reload) {
+                if let (Some(_path), Some(pid)) = (&config_path, pid_for_reload) {
                     // SAFETY: `kill` is an FFI call with no memory-safety
                     // preconditions; `pid` is the PID of the live gateway child
                     // process spawned and owned by `dut` (from
@@ -2524,7 +2716,15 @@ fn run_hotreload_scenario(
     // not rewrite the file to trigger it.) Report honestly: a zero-drop result
     // here is not proof of seamless reload. `change_applied = Some(false)` flags it.
     let noop_on_scg = reload_is_noop_on_scg(reload_event.action);
-    let change_applied = if noop_on_scg { Some(false) } else { None };
+    let change_applied = if noop_on_scg {
+        Some(false)
+    } else if matches!(reload_event.action, config::ReloadAction::RotateCert) {
+        // The rotate arm reports truthfully: the swap either rewrote a
+        // cert-bearing decrypt rule and signalled the gateway, or it did not.
+        Some(reload_action_succeeded)
+    } else {
+        None
+    };
     if let Some(run) = stats.runs.first() {
         let drops = run.integrity.lost;
         console::kv("  Drops", &drops.to_string(), 16);
@@ -2705,14 +2905,13 @@ fn watchdog_cap(warmup: Duration, measure: Duration, cooldown: Duration, runs: u
 fn start_perf_sampler(
     defaults: &Defaults,
     scenario: &Scenario,
-    dut: &GatewayDut,
+    pids: &[i32],
     work_dir: &Path,
 ) -> Option<system::PerfSampler> {
     if !defaults.collect_system_metrics || defaults.metrics_backend != MetricsBackend::Perf {
         return None;
     }
-    let pids = dut.pids();
-    match system::PerfSampler::start(&pids, work_dir) {
+    match system::PerfSampler::start(pids, work_dir) {
         Some(sampler) => Some(sampler),
         None => {
             log::warn!(
@@ -3543,34 +3742,6 @@ fn human_bytes(n: u32) -> String {
     }
 }
 
-/// Parse a DSCP tag name (e.g. "EF", "AF41", "BE", "CS3") to its numeric value.
-fn dscp_from_tag(tag: &str) -> Option<u8> {
-    match tag.to_uppercase().as_str() {
-        "BE" | "CS0" => Some(0),
-        "CS1" => Some(8),
-        "AF11" => Some(10),
-        "AF12" => Some(12),
-        "AF13" => Some(14),
-        "CS2" => Some(16),
-        "AF21" => Some(18),
-        "AF22" => Some(20),
-        "AF23" => Some(22),
-        "CS3" => Some(24),
-        "AF31" => Some(26),
-        "AF32" => Some(28),
-        "AF33" => Some(30),
-        "CS4" => Some(32),
-        "AF41" => Some(34),
-        "AF42" => Some(36),
-        "AF43" => Some(38),
-        "CS5" => Some(40),
-        "EF" => Some(46),
-        "CS6" => Some(48),
-        "CS7" => Some(56),
-        _ => tag.parse().ok(),
-    }
-}
-
 fn sysinfo(args: SysinfoArgs) -> CmdResult {
     let info = crate::sysinfo::SysInfo::collect();
     match args.format {
@@ -3789,6 +3960,21 @@ mod tests {
     use super::*;
     use crate::cli::MetricsBackendArg;
     use crate::config::Suite;
+
+    #[test]
+    fn pipeline_budget_covers_every_repetition() {
+        // Regression pin for the 20260717 campaign: the engine opens
+        // `connections` fresh pairs per run and never resets the transport's
+        // connection counter, so the UDS/SHM pipeline budget must be
+        // connections × runs. Provisioning `connections` alone fails run 2's
+        // first pair ("connection N requested but only N pipeline(s)
+        // provisioned") and skipped all 1080 UDS/SHM scenarios.
+        assert_eq!(provisioned_pipelines(1, 3), 3);
+        assert_eq!(provisioned_pipelines(64, 3), 192);
+        // Degenerate inputs clamp to one, matching the engine's `.max(1)` loops.
+        assert_eq!(provisioned_pipelines(0, 0), 1);
+        assert_eq!(provisioned_pipelines(4, 1), 4);
+    }
 
     #[test]
     fn watchdog_cap_is_generous_and_floored() {
@@ -4025,13 +4211,60 @@ mod tests {
     #[test]
     fn reload_noop_classification_matches_scg_name_keyed_diff() {
         use crate::config::ReloadAction;
-        // Same-name parameter changes the SCG diff ignores (no-op).
+        // UpdateTlsProfile still only SIGHUPs the unchanged file (no-op).
         assert!(reload_is_noop_on_scg(ReloadAction::UpdateTlsProfile));
-        assert!(reload_is_noop_on_scg(ReloadAction::RotateCert));
-        // Actions that genuinely take effect must stay zero-drop, not no-op.
+        // Actions that genuinely take effect are not no-ops. RotateCert now
+        // rewrites the decrypt rule's cert/key paths before the SIGHUP.
+        assert!(!reload_is_noop_on_scg(ReloadAction::RotateCert));
         assert!(!reload_is_noop_on_scg(ReloadAction::AddConnection));
         assert!(!reload_is_noop_on_scg(ReloadAction::RemoveConnection));
         assert!(!reload_is_noop_on_scg(ReloadAction::InvalidConfig));
+    }
+
+    #[test]
+    fn rewrite_cert_paths_swaps_decrypt_rules_only() {
+        let dir = std::env::temp_dir().join(format!("seshat-certswap-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let cfg_path = dir.join("gw.json");
+        std::fs::write(
+            &cfg_path,
+            r#"{ "rules": [
+                { "name": "enc", "direction": "encrypt", "cert_path": "/old/client.crt",
+                  "key_path": "/old/client.key" },
+                { "name": "dec", "direction": "decrypt", "cert_path": "/old/server.crt",
+                  "key_path": "/old/server.key" },
+                { "name": "plain", "direction": "decrypt" }
+            ] }"#,
+        )
+        .unwrap();
+        let identity = crate::pki::Identity {
+            cert: dir.join("new.crt"),
+            key: dir.join("new.key"),
+        };
+        assert!(rewrite_cert_paths(&cfg_path, &identity).unwrap());
+        let cfg: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&cfg_path).unwrap()).unwrap();
+        let rules = cfg["rules"].as_array().unwrap();
+        // Encrypt rule keeps its client identity; decrypt rule is swapped;
+        // cert-less rule untouched.
+        assert_eq!(rules[0]["cert_path"], "/old/client.crt");
+        assert_eq!(
+            rules[1]["cert_path"],
+            identity.cert.to_string_lossy().as_ref()
+        );
+        assert_eq!(
+            rules[1]["key_path"],
+            identity.key.to_string_lossy().as_ref()
+        );
+        assert!(rules[2].get("cert_path").is_none());
+        // A config with no cert-bearing decrypt rule reports no swap.
+        std::fs::write(
+            &cfg_path,
+            r#"{ "rules": [ { "name": "p", "direction": "decrypt" } ] }"#,
+        )
+        .unwrap();
+        assert!(!rewrite_cert_paths(&cfg_path, &identity).unwrap());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     fn base_config() -> Config {

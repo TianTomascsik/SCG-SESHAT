@@ -188,6 +188,10 @@ impl DataSink for TcpSink {
         self.stream.write_all(buf)
     }
 
+    fn raw_fd(&self) -> Option<i32> {
+        Some(self.stream.as_raw_fd())
+    }
+
     /// Push the whole batch with as few `writev` syscalls as possible, so the
     /// stream blast path is bounded by the socket rather than per-message
     /// syscall overhead (NFR-PERF).

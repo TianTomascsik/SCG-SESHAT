@@ -543,7 +543,9 @@ impl ResultDir {
     /// Persist per-stream scheduling results rather than reducing a scheduling
     /// run to a synthetic best-flow summary.  The normal `summary.csv` remains
     /// compatible while this artifact carries the evidence for safety/bulk
-    /// isolation and DSCP checks.
+    /// isolation, per-stream CO correction, and DSCP declarations
+    /// (`dscp_preserved` stays empty on the TCP path — see
+    /// [`crate::workload::streams`] — rather than fabricating a verdict).
     pub fn record_stream_results(
         &self,
         scenario: &Scenario,
@@ -553,7 +555,7 @@ impl ResultDir {
         let mut streams = Csv::new(&[
             "stream",
             "traffic_class",
-            "priority",
+            "dscp_tag",
             "throughput_gbps",
             "latency_mean_us",
             "latency_p50_us",
@@ -564,13 +566,16 @@ impl ResultDir {
             "lost",
             "duplicate",
             "reordered",
+            "co_corrected",
+            "send_lag_mean_us",
+            "send_lag_max_us",
             "dscp_preserved",
         ]);
         for stream in &result.streams {
             streams.row(vec![
                 stream.name.clone(),
                 stream.traffic_class.clone(),
-                stream.priority.to_string(),
+                stream.dscp_label.clone(),
                 num(stream.summary.throughput_gbps, 4),
                 num(stream.summary.latency_us.mean, 3),
                 num(stream.summary.latency_us.p50, 3),
@@ -581,6 +586,9 @@ impl ResultDir {
                 stream.summary.integrity.lost.to_string(),
                 stream.summary.integrity.duplicate.to_string(),
                 stream.summary.integrity.reordered.to_string(),
+                stream.paced.to_string(),
+                num(stream.send_lag_mean_us, 3),
+                num(stream.send_lag_max_us, 3),
                 stream
                     .dscp_preserved
                     .map(|value| value.to_string())

@@ -28,7 +28,7 @@ with a non-zero inter-message gap; *blast* = an unthrottled open-loop sender.
 | Reproducibility capture: governor, **turbo**, SMT, isolcpus, **NUMA**, THP, **git hashes** + preflight warnings | **Implemented** | `src/sysinfo.rs` (`preflight_warnings`) |
 | DTLS/UDP **multi-connection** per-connection metrics | **Not measured (scoped)** | gateway demuxes by peer but forwards to one backend; see §4 |
 | Hot-reload **TLS-profile swap on active connection** | **Gateway field-aware; harness no-op** | SCG `diff` now restarts changed same-name rules; SESHAT reload action doesn't yet rewrite the file. See §4 |
-| WireGuard in the **unified `seshat run`** table | **Out of unified run** | script-orchestrated `scripts/wg_*.sh`; see §4 |
+| WireGuard in the **unified `seshat run`** table | **Out of unified run (explicit blocked row)** | script-orchestrated `scripts/wg_*.sh`; every generated matrix tier carries a disabled `blocked_wireguard_script_orchestrated` row; see §4 |
 | IPSec/IKEv2 | **Not implemented (SCG stub)** | disabled scenarios |
 
 ---
@@ -284,7 +284,12 @@ are deterministic; CSV-only, per-run output enables independent re-analysis.
    not netns-aware and the distributed sender/receiver are TCP-only. WG is
    measured by the privileged script harness (`scripts/wg_*.sh`, `wg_probe.py`)
    and reported separately. Folding it in needs a netns-aware `GatewayProcess`
-   and a UDP distributed engine (future work).
+   and a UDP distributed engine (future work). So that no unified run silently
+   omits this, every generated matrix tier (`matrix_catalog.json`,
+   `full_matrix.json`, `canonical_matrix.json`) carries an explicit disabled
+   `blocked_wireguard_script_orchestrated` row whose `disabled_reason` points
+   at the `scripts/wg_bench.sh` / `scripts/perf_gate.sh` orchestration; the
+   runner never executes disabled rows, so the row is a pure coverage signal.
 7. **Loopback dominance.** Most scenarios run on loopback; the physical-NIC and
    veth/netns topologies are supported but a loopback ceiling can mask real-NIC
    effects. Use the netem-impaired and veth topologies for path realism. A

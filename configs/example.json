@@ -76,22 +76,22 @@
       "streams": [
         {
           "role": "safety",
-          "interface": "udp",
+          "interface": "tcp",
           "target_addr": "127.0.0.1:10030",
           "connections": 1,
           "message_size_bytes": 128,
           "pattern": "periodic",
           "interval_us": 1000,
-          "priority": { "dscp_tag": "EF", "traffic_class": "safety-critical" }
+          "priority": { "dscp_tag": "EF", "traffic_class": "safety" }
         },
         {
           "role": "bulk",
           "interface": "tcp",
           "target_addr": "127.0.0.1:10040",
-          "connections": 32,
+          "connections": 1,
           "message_size_bytes": 65536,
           "pattern": "sustained",
-          "priority": { "dscp_tag": "BE", "traffic_class": "non-safety" }
+          "priority": { "dscp_tag": "BE", "traffic_class": "normal" }
         }
       ]
     },

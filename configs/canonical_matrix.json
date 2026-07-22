@@ -2788,6 +2788,859 @@
     {
       "category": "matrix",
       "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-114"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-115"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_shmslot_shm_4096B_scg_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-116"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-117"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-118"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_shmslot_shm_4096B_scg_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-119"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-120"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-121"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_shmslot_shm_4096B_scg_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-122"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls12_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-123"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls12_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-124"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls12_shmslot_shm_4096B_scg_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-125"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls12_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-126"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_mtls12_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-127"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls12_shmslot_shm_4096B_scg_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-128"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls13_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-129"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_mtls13_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-130"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_mtls13_shmslot_shm_4096B_scg_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-131"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls12_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-132"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls12_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-133"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls12_shmslot_shm_4096B_scg_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-134"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls12_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-135"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_mtls12_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-136"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls12_shmslot_shm_4096B_scg_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-137"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls13_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-138"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_ktls_mtls13_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-139"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_ktls_mtls13_shmslot_shm_4096B_scg_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "kernel": true,
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-140"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls12_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-141"
+      }
+    },
+    {
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_integrity_tls12_shmslot_shm_4096B_direct_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-142"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-scg, shm/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_integrity_tls12_shmslot_shm_4096B_scg_1c",
+      "optimization_flags": {
+        "shm_g2c_notify": "futex",
+        "shm_ring_kind": "slot"
+      },
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-143"
+      }
+    },
+    {
+      "category": "matrix",
+      "connections": 1,
       "description": "matrix: SCG scg-direct, tproxy/plain, 4096B, 1 conn",
       "gateway": {
         "chain": "scg-direct",
@@ -2805,7 +3658,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18114"
+        "target_addr": "127.0.0.1:18144"
       }
     },
     {
@@ -2829,7 +3682,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18115"
+        "target_addr": "127.0.0.1:18145"
       }
     },
     {
@@ -2853,7 +3706,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18116"
+        "target_addr": "127.0.0.1:18146"
       }
     },
     {
@@ -2878,7 +3731,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18117"
+        "target_addr": "127.0.0.1:18147"
       }
     },
     {
@@ -2902,7 +3755,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18118"
+        "target_addr": "127.0.0.1:18148"
       }
     },
     {
@@ -2926,7 +3779,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18119"
+        "target_addr": "127.0.0.1:18149"
       }
     },
     {
@@ -2951,7 +3804,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18120"
+        "target_addr": "127.0.0.1:18150"
       }
     },
     {
@@ -2975,7 +3828,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18121"
+        "target_addr": "127.0.0.1:18151"
       }
     },
     {
@@ -3000,7 +3853,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18122"
+        "target_addr": "127.0.0.1:18152"
       }
     },
     {
@@ -3026,7 +3879,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18123"
+        "target_addr": "127.0.0.1:18153"
       }
     },
     {
@@ -3051,7 +3904,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18124"
+        "target_addr": "127.0.0.1:18154"
       }
     },
     {
@@ -3076,7 +3929,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18125"
+        "target_addr": "127.0.0.1:18155"
       }
     },
     {
@@ -3102,7 +3955,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18126"
+        "target_addr": "127.0.0.1:18156"
       }
     },
     {
@@ -3127,7 +3980,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18127"
+        "target_addr": "127.0.0.1:18157"
       }
     },
     {
@@ -3153,7 +4006,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18128"
+        "target_addr": "127.0.0.1:18158"
       }
     },
     {
@@ -3180,7 +4033,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18129"
+        "target_addr": "127.0.0.1:18159"
       }
     },
     {
@@ -3206,7 +4059,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18130"
+        "target_addr": "127.0.0.1:18160"
       }
     },
     {
@@ -3232,7 +4085,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18131"
+        "target_addr": "127.0.0.1:18161"
       }
     },
     {
@@ -3259,7 +4112,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18132"
+        "target_addr": "127.0.0.1:18162"
       }
     },
     {
@@ -3285,7 +4138,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18133"
+        "target_addr": "127.0.0.1:18163"
       }
     },
     {
@@ -3312,7 +4165,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18134"
+        "target_addr": "127.0.0.1:18164"
       }
     },
     {
@@ -3340,7 +4193,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18135"
+        "target_addr": "127.0.0.1:18165"
       }
     },
     {
@@ -3367,7 +4220,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18136"
+        "target_addr": "127.0.0.1:18166"
       }
     },
     {
@@ -3394,7 +4247,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18137"
+        "target_addr": "127.0.0.1:18167"
       }
     },
     {
@@ -3422,7 +4275,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18138"
+        "target_addr": "127.0.0.1:18168"
       }
     },
     {
@@ -3449,7 +4302,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18139"
+        "target_addr": "127.0.0.1:18169"
       }
     },
     {
@@ -3474,7 +4327,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18140"
+        "target_addr": "127.0.0.1:18170"
       }
     },
     {
@@ -3500,7 +4353,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18141"
+        "target_addr": "127.0.0.1:18171"
       }
     },
     {
@@ -3525,7 +4378,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18142"
+        "target_addr": "127.0.0.1:18172"
       }
     },
     {
@@ -3549,7 +4402,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18143"
+        "target_addr": "127.0.0.1:18173"
       }
     },
     {
@@ -3575,7 +4428,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18144"
+        "target_addr": "127.0.0.1:18174"
       }
     },
     {
@@ -3599,7 +4452,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18145"
+        "target_addr": "127.0.0.1:18175"
       }
     },
     {
@@ -3625,7 +4478,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18146"
+        "target_addr": "127.0.0.1:18176"
       }
     },
     {
@@ -3649,7 +4502,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18147"
+        "target_addr": "127.0.0.1:18177"
       }
     },
     {
@@ -3674,7 +4527,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18148"
+        "target_addr": "127.0.0.1:18178"
       }
     },
     {
@@ -3699,7 +4552,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18149"
+        "target_addr": "127.0.0.1:18179"
       }
     },
     {
@@ -3725,7 +4578,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18150"
+        "target_addr": "127.0.0.1:18180"
       }
     },
     {
@@ -3751,13 +4604,200 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18151"
+        "target_addr": "127.0.0.1:18181"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, udp/dtls1.2, 1KB, 1 conn",
+      "disabled_reason": "The DTLS gateway transport has one shared backend datagram flow and cannot report independent parallel connections correctly",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_dtls_multi_connection",
+      "protocol": {
+        "type": "dtls",
+        "version": "1.2"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18182"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, tcp/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "SCG reload currently diffs rules by name, so a same-name TLS profile change is not applied to the listener lifecycle and has no control-plane acknowledgement; profile-update measurements are withheld",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_tls_profile_reload_ack",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18183"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, tcp/plain, 1KB, 1 conn",
+      "disabled_reason": "RSS/PSS and analytical encapsulation overhead are reported, but SCG does not expose owned framing/TLS/SHM copy, splice, zero-copy-success, or fallback counters; physical copy claims are withheld",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_gateway_copy_accounting",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18184"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, tcp/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "TLS 1.3 has no NULL/integrity-only cipher suite; OpenSSL does not implement the draft TLS_SHA256_SHA256/TLS_SHA384_SHA384 codepoints, so an integrity-only TLS 1.3 handshake negotiates zero ciphersuites and never completes. Integrity-only is TLS 1.2 only — SCG now rejects the combination at config load (TRA #85). Profile removed from the executable matrix.",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_integrity_only_tls13_tcp",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18185"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, unix/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "TLS 1.3 has no NULL/integrity-only cipher suite; integrity-only is TLS 1.2 only (SCG rejects it at config load, TRA #85). Over UDS the dead handshake surfaced as a send-spin the harness watchdog had to kill. Profile removed from the executable matrix.",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_integrity_only_tls13_uds",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "unix",
+        "pattern": "sustained",
+        "target_addr": "/tmp/seshat-matrix-186.sock"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, shm/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "TLS 1.3 has no NULL/integrity-only cipher suite; integrity-only is TLS 1.2 only (SCG rejects it at config load, TRA #85). Over SHM the dead handshake surfaced as a send-spin the harness watchdog had to kill. Profile removed from the executable matrix.",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_integrity_only_tls13_shm",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "shm",
+        "pattern": "sustained",
+        "target_addr": "shm:///seshat-matrix-187"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, tproxy/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "TLS 1.3 has no NULL/integrity-only cipher suite; integrity-only is TLS 1.2 only (SCG rejects it at config load, TRA #85). Profile removed from the executable matrix.",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_integrity_only_tls13_tproxy",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18188"
+      }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-direct, udp/wireguard, 1KB, 1 conn",
+      "disabled_reason": "WireGuard is a kernel-offload provider that needs CAP_NET_ADMIN, the wireguard module, and a peer network namespace; it is benchmarked by the privileged scripts/wg_bench.sh orchestration (see scripts/perf_gate.sh), outside the unified seshat run",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_wireguard_script_orchestrated",
+      "protocol": {
+        "type": "wireguard"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18189"
       }
     }
   ],
   "suite": {
     "author": "SESHAT",
-    "description": "Generated compact canonical benchmark matrix",
+    "description": "Generated compact canonical benchmark matrix (disabled blocked_* rows document deliberate non-coverage)",
     "name": "SCG Generated Benchmark Matrix",
     "version": "2.0.0"
   }

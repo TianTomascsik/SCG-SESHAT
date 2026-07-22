@@ -33,7 +33,7 @@ use crate::transport::{
     BatchOutcome, ConnFactory, DataSource, DuplexEnd, RecvOutcome, Transport, BATCH_ABS_MAX,
 };
 use crate::workload::receiver;
-use crate::workload::sender::{BatchBuilder, MessageBuilder, Pacer};
+use crate::workload::sender::{BatchBuilder, MessageBuilder, Pacer, SendLag};
 
 use super::affinity;
 
@@ -126,47 +126,6 @@ pub struct RunStats {
     pub send_lag_mean_us: f64,
     /// Worst single send-lag observed during the measure window (µs).
     pub send_lag_max_us: f64,
-}
-
-/// Accumulates how far behind schedule a paced sender woke for each message —
-/// the coordinated-omission magnitude. Off the hot path: one branch + three adds
-/// per message, recorded only during the measure window.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct SendLag {
-    count: u64,
-    sum_ns: u128,
-    max_ns: u64,
-}
-
-impl SendLag {
-    #[inline]
-    fn record(&mut self, ns: u64) {
-        self.count += 1;
-        self.sum_ns += ns as u128;
-        if ns > self.max_ns {
-            self.max_ns = ns;
-        }
-    }
-
-    fn merge(&mut self, other: &SendLag) {
-        self.count += other.count;
-        self.sum_ns += other.sum_ns;
-        if other.max_ns > self.max_ns {
-            self.max_ns = other.max_ns;
-        }
-    }
-
-    fn mean_us(&self) -> f64 {
-        if self.count == 0 {
-            0.0
-        } else {
-            (self.sum_ns as f64 / self.count as f64) / 1000.0
-        }
-    }
-
-    fn max_us(&self) -> f64 {
-        self.max_ns as f64 / 1000.0
-    }
 }
 
 /// Closed-loop round-trip statistics (Phase F), aggregated across runs. Each

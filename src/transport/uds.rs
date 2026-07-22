@@ -214,7 +214,9 @@ pub struct GatewayUdsTransport {
     decrypt_mgmt_socket: PathBuf,
     /// Base management app-id; connection `i` provisions under `conn_app_id(app_id, i)`.
     app_id: String,
-    /// Number of independent per-connection pipelines provisioned at start.
+    /// Number of independent pipelines provisioned at start. Sized by the
+    /// caller as connections × runs, since every repetition of the engine's
+    /// runs loop opens a fresh set of pairs (`next_conn` never resets).
     connections: usize,
     /// Hands out the next connection index to `loopback_pair`/`pingpong_pair`, so each
     /// call provisions its own `(app_id, upstream port)` pair and the gateway does not

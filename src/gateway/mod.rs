@@ -478,6 +478,14 @@ impl SecuritySpec {
         self
     }
 
+    /// Set the gateway traffic class (`normal` | `safety`) both rules of a path
+    /// inherit. Safety engages the gateway's QoS: DSCP EF egress marking,
+    /// `SO_PRIORITY`, and relay-thread priority.
+    pub fn with_traffic_class(mut self, class: &str) -> Self {
+        self.traffic_class = class.to_string();
+        self
+    }
+
     /// Set PSK identity and key material (for subset146-psk profile).
     pub fn with_psk(mut self, identity: &str, hex_key: &str) -> Self {
         self.psk_identity = Some(identity.to_string());
@@ -703,6 +711,61 @@ pub struct PathPlan {
     pub gateways: Vec<NamedGateway>,
 }
 
+/// Build one encrypt/decrypt rule pair for `spec` — `ingress → mid → backend`
+/// — with the per-direction proto overrides for asymmetric paths (ALE/RAW)
+/// applied. Shared by the single-path and per-class multi-stream builders.
+fn build_rule_pair(
+    spec: &SecuritySpec,
+    encrypt_name: &str,
+    decrypt_name: &str,
+    ingress: &str,
+    mid: &str,
+    backend_addr: &str,
+) -> (RuleConfig, RuleConfig) {
+    let mut encrypt = spec.apply_encrypt(RuleConfig::new(encrypt_name, "encrypt", ingress, mid));
+    let mut decrypt =
+        spec.apply_decrypt(RuleConfig::new(decrypt_name, "decrypt", mid, backend_addr));
+
+    if let Some(lp) = &spec.encrypt_listen_proto {
+        encrypt = encrypt.listen_proto(lp);
+    }
+    if let Some(up) = &spec.encrypt_upstream_proto {
+        encrypt = encrypt.upstream_proto(up);
+    }
+    if let Some(lp) = &spec.decrypt_listen_proto {
+        decrypt = decrypt.listen_proto(lp);
+    }
+    if let Some(up) = &spec.decrypt_upstream_proto {
+        decrypt = decrypt.upstream_proto(up);
+    }
+    (encrypt, decrypt)
+}
+
+/// Split rules into per-topology gateway configs: one process owning the whole
+/// path, or an encrypt-side and a decrypt-side process (SCG↔SCG).
+fn gateways_for_topology(
+    topology: Topology,
+    encrypts: Vec<RuleConfig>,
+    decrypts: Vec<RuleConfig>,
+    connections: usize,
+) -> Vec<NamedGateway> {
+    let named = |label: &str, rules: Vec<RuleConfig>| NamedGateway {
+        label: label.to_string(),
+        config: GatewayConfig::new(rules)
+            .log_level("info")
+            .allow_all()
+            .pool_for_connections(connections),
+    };
+    match topology {
+        Topology::SingleGateway => {
+            let mut rules = encrypts;
+            rules.extend(decrypts);
+            vec![named("scg", rules)]
+        }
+        Topology::ScgToScg => vec![named("scg-a", encrypts), named("scg-b", decrypts)],
+    }
+}
+
 /// Wire ports and rules for `topology`, forwarding plaintext to `backend_addr`
 /// (where the SESHAT receiver must already be listening). `connections` is the
 /// number of concurrent connections the run will open; it sizes each gateway's
@@ -716,60 +779,86 @@ pub fn build_path(
     let ingress = format!("127.0.0.1:{}", reserve_local_port()?);
     let mid = format!("127.0.0.1:{}", reserve_local_port()?);
 
-    let mut encrypt =
-        spec.apply_encrypt(RuleConfig::new("seshat-encrypt", "encrypt", &ingress, &mid));
-    let mut decrypt = spec.apply_decrypt(RuleConfig::new(
+    let (encrypt, decrypt) = build_rule_pair(
+        spec,
+        "seshat-encrypt",
         "seshat-decrypt",
-        "decrypt",
+        &ingress,
         &mid,
         backend_addr,
-    ));
-
-    // Apply per-direction proto overrides for asymmetric paths (ALE/RAW).
-    if let Some(lp) = &spec.encrypt_listen_proto {
-        encrypt = encrypt.listen_proto(lp);
-    }
-    if let Some(up) = &spec.encrypt_upstream_proto {
-        encrypt = encrypt.upstream_proto(up);
-    }
-    if let Some(lp) = &spec.decrypt_listen_proto {
-        decrypt = decrypt.listen_proto(lp);
-    }
-    if let Some(up) = &spec.decrypt_upstream_proto {
-        decrypt = decrypt.upstream_proto(up);
-    }
-
-    let gateways = match topology {
-        Topology::SingleGateway => vec![NamedGateway {
-            label: "scg".to_string(),
-            config: GatewayConfig::new(vec![encrypt, decrypt])
-                .log_level("info")
-                .allow_all()
-                .pool_for_connections(connections),
-        }],
-        Topology::ScgToScg => vec![
-            NamedGateway {
-                label: "scg-a".to_string(),
-                config: GatewayConfig::new(vec![encrypt])
-                    .log_level("info")
-                    .allow_all()
-                    .pool_for_connections(connections),
-            },
-            NamedGateway {
-                label: "scg-b".to_string(),
-                config: GatewayConfig::new(vec![decrypt])
-                    .log_level("info")
-                    .allow_all()
-                    .pool_for_connections(connections),
-            },
-        ],
-    };
+    );
+    let gateways = gateways_for_topology(topology, vec![encrypt], vec![decrypt], connections);
 
     Ok(PathPlan {
         ingress_addr: ingress,
         backend_addr: backend_addr.to_string(),
         gateways,
     })
+}
+
+/// One per-class slice of a multi-class path: the canonical traffic class and
+/// the plaintext ingress/egress addresses of its dedicated rule pair.
+#[derive(Debug, Clone)]
+pub struct ClassPath {
+    pub class: String,
+    pub ingress_addr: String,
+    pub backend_addr: String,
+}
+
+/// A multi-class secured path (multi-stream scheduling): one encrypt/decrypt
+/// rule pair **per traffic class**, all served by the same gateway process(es)
+/// so classes contend for the same DUT resources while each class's rules carry
+/// its own `traffic_class` — the knob that engages the gateway's safety QoS
+/// (DSCP EF egress marking, `SO_PRIORITY`, relay-thread priority).
+#[derive(Debug, Clone)]
+pub struct MultiClassPathPlan {
+    pub paths: Vec<ClassPath>,
+    pub gateways: Vec<NamedGateway>,
+}
+
+/// Wire one rule pair per `(class, backend_addr)` entry for `topology`. Every
+/// class gets its own ingress/mid ports (rule names `seshat-encrypt-<class>` /
+/// `seshat-decrypt-<class>`, matching the UDS/SHM per-class naming), while all
+/// pairs share the same gateway process(es) and connection pool.
+pub fn build_multi_class_path(
+    spec: &SecuritySpec,
+    topology: Topology,
+    class_backends: &[(String, String)],
+    connections: usize,
+) -> io::Result<MultiClassPathPlan> {
+    if class_backends.is_empty() {
+        return Err(io::Error::other(
+            "multi-class path needs at least one traffic class",
+        ));
+    }
+
+    let mut paths = Vec::with_capacity(class_backends.len());
+    let mut encrypts = Vec::with_capacity(class_backends.len());
+    let mut decrypts = Vec::with_capacity(class_backends.len());
+
+    for (class, backend_addr) in class_backends {
+        let ingress = format!("127.0.0.1:{}", reserve_local_port()?);
+        let mid = format!("127.0.0.1:{}", reserve_local_port()?);
+        let class_spec = spec.clone().with_traffic_class(class);
+        let (encrypt, decrypt) = build_rule_pair(
+            &class_spec,
+            &format!("seshat-encrypt-{class}"),
+            &format!("seshat-decrypt-{class}"),
+            &ingress,
+            &mid,
+            backend_addr,
+        );
+        encrypts.push(encrypt);
+        decrypts.push(decrypt);
+        paths.push(ClassPath {
+            class: class.clone(),
+            ingress_addr: ingress,
+            backend_addr: backend_addr.clone(),
+        });
+    }
+
+    let gateways = gateways_for_topology(topology, encrypts, decrypts, connections);
+    Ok(MultiClassPathPlan { paths, gateways })
 }
 
 /// Add the control-plane pieces needed to exercise dynamic local-endpoint
@@ -882,8 +971,61 @@ pub fn start_path(
     ready_timeout: Duration,
     gateway_cores: &[usize],
 ) -> io::Result<RunningPath> {
-    let mut processes = Vec::with_capacity(plan.gateways.len());
-    for named in plan.gateways.iter().rev() {
+    let processes = start_gateways(
+        &plan.gateways,
+        binary,
+        work_dir,
+        ready_timeout,
+        gateway_cores,
+    )?;
+    Ok(RunningPath {
+        ingress_addr: plan.ingress_addr.clone(),
+        backend_addr: plan.backend_addr.clone(),
+        processes,
+    })
+}
+
+/// Spawn the gateway(s) for a multi-class plan (multi-stream scheduling).
+///
+/// Same downstream-first startup as [`start_path`]; the returned
+/// [`RunningPath`]'s `ingress_addr`/`backend_addr` are those of the plan's
+/// **first** class path (callers address per-class endpoints via
+/// [`MultiClassPathPlan::paths`], not via these fields).
+pub fn start_multi_class_path(
+    plan: &MultiClassPathPlan,
+    binary: &Path,
+    work_dir: &Path,
+    ready_timeout: Duration,
+    gateway_cores: &[usize],
+) -> io::Result<RunningPath> {
+    let first = plan
+        .paths
+        .first()
+        .ok_or_else(|| io::Error::other("multi-class plan has no class paths"))?;
+    let processes = start_gateways(
+        &plan.gateways,
+        binary,
+        work_dir,
+        ready_timeout,
+        gateway_cores,
+    )?;
+    Ok(RunningPath {
+        ingress_addr: first.ingress_addr.clone(),
+        backend_addr: first.backend_addr.clone(),
+        processes,
+    })
+}
+
+/// Spawn and readiness-gate one process per [`NamedGateway`], downstream-first.
+fn start_gateways(
+    gateways: &[NamedGateway],
+    binary: &Path,
+    work_dir: &Path,
+    ready_timeout: Duration,
+    gateway_cores: &[usize],
+) -> io::Result<Vec<GatewayProcess>> {
+    let mut processes = Vec::with_capacity(gateways.len());
+    for named in gateways.iter().rev() {
         let config = ensure_readiness_api(&named.config)?;
         let mut proc = GatewayProcess::spawn(binary, &config, work_dir, &named.label, "info")?;
         if !gateway_cores.is_empty() && !crate::run::affinity::pin_pid(proc.pid(), gateway_cores) {
@@ -897,11 +1039,7 @@ pub fn start_path(
         proc.wait_ready(ready_timeout)?;
         processes.push(proc);
     }
-    Ok(RunningPath {
-        ingress_addr: plan.ingress_addr.clone(),
-        backend_addr: plan.backend_addr.clone(),
-        processes,
-    })
+    Ok(processes)
 }
 
 /// Ensure a gateway config exposes a readiness signal. TCP/ALE paths are probed
@@ -1072,6 +1210,76 @@ mod tests {
         assert_eq!(plan.gateways[1].config.rules.len(), 1);
         assert_eq!(plan.gateways[0].config.rules[0].direction, "encrypt");
         assert_eq!(plan.gateways[1].config.rules[0].direction, "decrypt");
+    }
+
+    #[test]
+    fn multi_class_path_emits_one_rule_pair_per_class() {
+        let spec = SecuritySpec::routing_tcp();
+        let classes = vec![
+            ("safety".to_string(), "127.0.0.1:65010".to_string()),
+            ("normal".to_string(), "127.0.0.1:65011".to_string()),
+        ];
+        let plan = build_multi_class_path(&spec, Topology::SingleGateway, &classes, 2).unwrap();
+
+        // One gateway process, one encrypt+decrypt pair per class.
+        assert_eq!(plan.gateways.len(), 1);
+        let rules = &plan.gateways[0].config.rules;
+        assert_eq!(rules.len(), 4);
+        assert_eq!(plan.paths.len(), 2);
+
+        // Each class's rules carry its traffic_class and are wired
+        // ingress → mid → that class's backend.
+        for path in &plan.paths {
+            let enc = rules
+                .iter()
+                .find(|r| r.name == format!("seshat-encrypt-{}", path.class))
+                .expect("encrypt rule for class");
+            let dec = rules
+                .iter()
+                .find(|r| r.name == format!("seshat-decrypt-{}", path.class))
+                .expect("decrypt rule for class");
+            assert_eq!(enc.traffic_class, path.class);
+            assert_eq!(dec.traffic_class, path.class);
+            assert_eq!(enc.listen_addr, path.ingress_addr);
+            assert_eq!(enc.upstream_addr, dec.listen_addr);
+            assert_eq!(dec.upstream_addr, path.backend_addr);
+        }
+
+        // Distinct ports everywhere: the two ingresses differ, and no class's
+        // mid hop collides with another's.
+        let mut listens: Vec<&str> = rules.iter().map(|r| r.listen_addr.as_str()).collect();
+        listens.sort_unstable();
+        listens.dedup();
+        assert_eq!(listens.len(), 4, "listen addresses must be distinct");
+    }
+
+    #[test]
+    fn multi_class_path_scg_to_scg_splits_directions() {
+        let spec = SecuritySpec::routing_tcp();
+        let classes = vec![
+            ("safety".to_string(), "127.0.0.1:65012".to_string()),
+            ("normal".to_string(), "127.0.0.1:65013".to_string()),
+        ];
+        let plan = build_multi_class_path(&spec, Topology::ScgToScg, &classes, 2).unwrap();
+        assert_eq!(plan.gateways.len(), 2);
+        assert!(plan.gateways[0]
+            .config
+            .rules
+            .iter()
+            .all(|r| r.direction == "encrypt"));
+        assert!(plan.gateways[1]
+            .config
+            .rules
+            .iter()
+            .all(|r| r.direction == "decrypt"));
+        assert_eq!(plan.gateways[0].config.rules.len(), 2);
+        assert_eq!(plan.gateways[1].config.rules.len(), 2);
+    }
+
+    #[test]
+    fn multi_class_path_rejects_empty_class_list() {
+        let spec = SecuritySpec::routing_tcp();
+        assert!(build_multi_class_path(&spec, Topology::SingleGateway, &[], 1).is_err());
     }
 
     #[test]

@@ -792,6 +792,37 @@
       }
     },
     {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_rotate_cert_sub_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18027"
+      }
+    },
+    {
       "category": "hotreload-saturation",
       "connections": 1,
       "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
@@ -818,7 +849,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18027"
+        "target_addr": "127.0.0.1:18028"
       }
     },
     {
@@ -848,7 +879,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18028"
+        "target_addr": "127.0.0.1:18029"
       }
     },
     {
@@ -878,7 +909,37 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18029"
+        "target_addr": "127.0.0.1:18030"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_rotate_cert_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18031"
       }
     },
     {
@@ -909,7 +970,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18030"
+        "target_addr": "127.0.0.1:18032"
       }
     },
     {
@@ -940,7 +1001,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18031"
+        "target_addr": "127.0.0.1:18033"
       }
     },
     {
@@ -971,7 +1032,38 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18032"
+        "target_addr": "127.0.0.1:18034"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_rotate_cert_sub_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18035"
       }
     },
     {
@@ -1001,7 +1093,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18033"
+        "target_addr": "127.0.0.1:18036"
       }
     },
     {
@@ -1031,7 +1123,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18034"
+        "target_addr": "127.0.0.1:18037"
       }
     },
     {
@@ -1061,7 +1153,37 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18035"
+        "target_addr": "127.0.0.1:18038"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_rotate_cert_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18039"
       }
     },
     {
@@ -1092,7 +1214,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18036"
+        "target_addr": "127.0.0.1:18040"
       }
     },
     {
@@ -1123,7 +1245,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18037"
+        "target_addr": "127.0.0.1:18041"
       }
     },
     {
@@ -1154,7 +1276,38 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18038"
+        "target_addr": "127.0.0.1:18042"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_rotate_cert_sub_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18043"
       }
     },
     {
@@ -1184,7 +1337,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18039"
+        "target_addr": "127.0.0.1:18044"
       }
     },
     {
@@ -1214,7 +1367,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18040"
+        "target_addr": "127.0.0.1:18045"
       }
     },
     {
@@ -1244,7 +1397,37 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18041"
+        "target_addr": "127.0.0.1:18046"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_rotate_cert_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18047"
       }
     },
     {
@@ -1275,7 +1458,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18042"
+        "target_addr": "127.0.0.1:18048"
       }
     },
     {
@@ -1306,7 +1489,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18043"
+        "target_addr": "127.0.0.1:18049"
       }
     },
     {
@@ -1337,7 +1520,38 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18044"
+        "target_addr": "127.0.0.1:18050"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_rotate_cert_sub_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18051"
       }
     },
     {
@@ -1367,7 +1581,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18045"
+        "target_addr": "127.0.0.1:18052"
       }
     },
     {
@@ -1397,7 +1611,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18046"
+        "target_addr": "127.0.0.1:18053"
       }
     },
     {
@@ -1427,7 +1641,37 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18047"
+        "target_addr": "127.0.0.1:18054"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls12_tcp_rotate_cert_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18055"
       }
     },
     {
@@ -1458,7 +1702,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18048"
+        "target_addr": "127.0.0.1:18056"
       }
     },
     {
@@ -1489,7 +1733,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18049"
+        "target_addr": "127.0.0.1:18057"
       }
     },
     {
@@ -1520,7 +1764,38 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18050"
+        "target_addr": "127.0.0.1:18058"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_rotate_cert_sub_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18059"
       }
     },
     {
@@ -1550,7 +1825,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18051"
+        "target_addr": "127.0.0.1:18060"
       }
     },
     {
@@ -1580,7 +1855,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18052"
+        "target_addr": "127.0.0.1:18061"
       }
     },
     {
@@ -1610,7 +1885,37 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18053"
+        "target_addr": "127.0.0.1:18062"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_rotate_cert_saturation_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18063"
       }
     },
     {
@@ -1641,7 +1946,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18054"
+        "target_addr": "127.0.0.1:18064"
       }
     },
     {
@@ -1672,7 +1977,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18055"
+        "target_addr": "127.0.0.1:18065"
       }
     },
     {
@@ -1703,7 +2008,38 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18056"
+        "target_addr": "127.0.0.1:18066"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_rotate_cert_sub_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18067"
       }
     },
     {
@@ -1733,7 +2069,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18057"
+        "target_addr": "127.0.0.1:18068"
       }
     },
     {
@@ -1763,7 +2099,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18058"
+        "target_addr": "127.0.0.1:18069"
       }
     },
     {
@@ -1793,7 +2129,37 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18059"
+        "target_addr": "127.0.0.1:18070"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_rotate_cert_saturation_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18071"
       }
     },
     {
@@ -1824,7 +2190,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18060"
+        "target_addr": "127.0.0.1:18072"
       }
     },
     {
@@ -1855,7 +2221,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18061"
+        "target_addr": "127.0.0.1:18073"
       }
     },
     {
@@ -1886,7 +2252,38 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18062"
+        "target_addr": "127.0.0.1:18074"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_rotate_cert_sub_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18075"
       }
     },
     {
@@ -1916,7 +2313,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18063"
+        "target_addr": "127.0.0.1:18076"
       }
     },
     {
@@ -1946,7 +2343,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18064"
+        "target_addr": "127.0.0.1:18077"
       }
     },
     {
@@ -1976,7 +2373,37 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18065"
+        "target_addr": "127.0.0.1:18078"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_rotate_cert_saturation_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18079"
       }
     },
     {
@@ -2007,7 +2434,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18066"
+        "target_addr": "127.0.0.1:18080"
       }
     },
     {
@@ -2038,7 +2465,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18067"
+        "target_addr": "127.0.0.1:18081"
       }
     },
     {
@@ -2069,7 +2496,38 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18068"
+        "target_addr": "127.0.0.1:18082"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_rotate_cert_sub_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18083"
       }
     },
     {
@@ -2099,7 +2557,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18069"
+        "target_addr": "127.0.0.1:18084"
       }
     },
     {
@@ -2129,7 +2587,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18070"
+        "target_addr": "127.0.0.1:18085"
       }
     },
     {
@@ -2159,7 +2617,37 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18071"
+        "target_addr": "127.0.0.1:18086"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_tls13_tcp_rotate_cert_saturation_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18087"
       }
     },
     {
@@ -2191,7 +2679,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18072"
+        "target_addr": "127.0.0.1:18088"
       }
     },
     {
@@ -2223,7 +2711,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18073"
+        "target_addr": "127.0.0.1:18089"
       }
     },
     {
@@ -2255,7 +2743,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18074"
+        "target_addr": "127.0.0.1:18090"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_rotate_cert_sub_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18091"
       }
     },
     {
@@ -2286,7 +2806,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18075"
+        "target_addr": "127.0.0.1:18092"
       }
     },
     {
@@ -2317,7 +2837,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18076"
+        "target_addr": "127.0.0.1:18093"
       }
     },
     {
@@ -2348,7 +2868,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18077"
+        "target_addr": "127.0.0.1:18094"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_rotate_cert_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18095"
       }
     },
     {
@@ -2380,7 +2931,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18078"
+        "target_addr": "127.0.0.1:18096"
       }
     },
     {
@@ -2412,7 +2963,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18079"
+        "target_addr": "127.0.0.1:18097"
       }
     },
     {
@@ -2444,7 +2995,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18080"
+        "target_addr": "127.0.0.1:18098"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_rotate_cert_sub_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18099"
       }
     },
     {
@@ -2475,7 +3058,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18081"
+        "target_addr": "127.0.0.1:18100"
       }
     },
     {
@@ -2506,7 +3089,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18082"
+        "target_addr": "127.0.0.1:18101"
       }
     },
     {
@@ -2537,7 +3120,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18083"
+        "target_addr": "127.0.0.1:18102"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_rotate_cert_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18103"
       }
     },
     {
@@ -2569,7 +3183,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18084"
+        "target_addr": "127.0.0.1:18104"
       }
     },
     {
@@ -2601,7 +3215,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18085"
+        "target_addr": "127.0.0.1:18105"
       }
     },
     {
@@ -2633,7 +3247,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18086"
+        "target_addr": "127.0.0.1:18106"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_rotate_cert_sub_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18107"
       }
     },
     {
@@ -2664,7 +3310,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18087"
+        "target_addr": "127.0.0.1:18108"
       }
     },
     {
@@ -2695,7 +3341,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18088"
+        "target_addr": "127.0.0.1:18109"
       }
     },
     {
@@ -2726,7 +3372,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18089"
+        "target_addr": "127.0.0.1:18110"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_rotate_cert_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18111"
       }
     },
     {
@@ -2758,7 +3435,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18090"
+        "target_addr": "127.0.0.1:18112"
       }
     },
     {
@@ -2790,7 +3467,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18091"
+        "target_addr": "127.0.0.1:18113"
       }
     },
     {
@@ -2822,7 +3499,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18092"
+        "target_addr": "127.0.0.1:18114"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_rotate_cert_sub_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18115"
       }
     },
     {
@@ -2853,7 +3562,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18093"
+        "target_addr": "127.0.0.1:18116"
       }
     },
     {
@@ -2884,7 +3593,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18094"
+        "target_addr": "127.0.0.1:18117"
       }
     },
     {
@@ -2915,7 +3624,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18095"
+        "target_addr": "127.0.0.1:18118"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls12_tcp_rotate_cert_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18119"
       }
     },
     {
@@ -2947,7 +3687,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18096"
+        "target_addr": "127.0.0.1:18120"
       }
     },
     {
@@ -2979,7 +3719,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18097"
+        "target_addr": "127.0.0.1:18121"
       }
     },
     {
@@ -3011,7 +3751,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18098"
+        "target_addr": "127.0.0.1:18122"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_rotate_cert_sub_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18123"
       }
     },
     {
@@ -3042,7 +3814,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18099"
+        "target_addr": "127.0.0.1:18124"
       }
     },
     {
@@ -3073,7 +3845,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18100"
+        "target_addr": "127.0.0.1:18125"
       }
     },
     {
@@ -3104,7 +3876,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18101"
+        "target_addr": "127.0.0.1:18126"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_rotate_cert_saturation_1c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18127"
       }
     },
     {
@@ -3136,7 +3939,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18102"
+        "target_addr": "127.0.0.1:18128"
       }
     },
     {
@@ -3168,7 +3971,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18103"
+        "target_addr": "127.0.0.1:18129"
       }
     },
     {
@@ -3200,7 +4003,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18104"
+        "target_addr": "127.0.0.1:18130"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_rotate_cert_sub_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18131"
       }
     },
     {
@@ -3231,7 +4066,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18105"
+        "target_addr": "127.0.0.1:18132"
       }
     },
     {
@@ -3262,7 +4097,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18106"
+        "target_addr": "127.0.0.1:18133"
       }
     },
     {
@@ -3293,7 +4128,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18107"
+        "target_addr": "127.0.0.1:18134"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_rotate_cert_saturation_4c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18135"
       }
     },
     {
@@ -3325,7 +4191,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18108"
+        "target_addr": "127.0.0.1:18136"
       }
     },
     {
@@ -3357,7 +4223,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18109"
+        "target_addr": "127.0.0.1:18137"
       }
     },
     {
@@ -3389,7 +4255,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18110"
+        "target_addr": "127.0.0.1:18138"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_rotate_cert_sub_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18139"
       }
     },
     {
@@ -3420,7 +4318,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18111"
+        "target_addr": "127.0.0.1:18140"
       }
     },
     {
@@ -3451,7 +4349,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18112"
+        "target_addr": "127.0.0.1:18141"
       }
     },
     {
@@ -3482,7 +4380,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18113"
+        "target_addr": "127.0.0.1:18142"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_rotate_cert_saturation_16c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18143"
       }
     },
     {
@@ -3514,7 +4443,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18114"
+        "target_addr": "127.0.0.1:18144"
       }
     },
     {
@@ -3546,7 +4475,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18115"
+        "target_addr": "127.0.0.1:18145"
       }
     },
     {
@@ -3578,7 +4507,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18116"
+        "target_addr": "127.0.0.1:18146"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_rotate_cert_sub_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18147"
       }
     },
     {
@@ -3609,7 +4570,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18117"
+        "target_addr": "127.0.0.1:18148"
       }
     },
     {
@@ -3640,7 +4601,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18118"
+        "target_addr": "127.0.0.1:18149"
       }
     },
     {
@@ -3671,7 +4632,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18119"
+        "target_addr": "127.0.0.1:18150"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_mtls13_tcp_rotate_cert_saturation_64c",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18151"
       }
     },
     {
@@ -3704,7 +4696,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18120"
+        "target_addr": "127.0.0.1:18152"
       }
     },
     {
@@ -3737,7 +4729,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18121"
+        "target_addr": "127.0.0.1:18153"
       }
     },
     {
@@ -3770,7 +4762,40 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18122"
+        "target_addr": "127.0.0.1:18154"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_rotate_cert_sub_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18155"
       }
     },
     {
@@ -3802,7 +4827,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18123"
+        "target_addr": "127.0.0.1:18156"
       }
     },
     {
@@ -3834,7 +4859,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18124"
+        "target_addr": "127.0.0.1:18157"
       }
     },
     {
@@ -3866,7 +4891,39 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18125"
+        "target_addr": "127.0.0.1:18158"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_rotate_cert_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18159"
       }
     },
     {
@@ -3899,7 +4956,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18126"
+        "target_addr": "127.0.0.1:18160"
       }
     },
     {
@@ -3932,7 +4989,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18127"
+        "target_addr": "127.0.0.1:18161"
       }
     },
     {
@@ -3965,7 +5022,40 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18128"
+        "target_addr": "127.0.0.1:18162"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_rotate_cert_sub_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18163"
       }
     },
     {
@@ -3997,7 +5087,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18129"
+        "target_addr": "127.0.0.1:18164"
       }
     },
     {
@@ -4029,7 +5119,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18130"
+        "target_addr": "127.0.0.1:18165"
       }
     },
     {
@@ -4061,7 +5151,39 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18131"
+        "target_addr": "127.0.0.1:18166"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_rotate_cert_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18167"
       }
     },
     {
@@ -4094,7 +5216,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18132"
+        "target_addr": "127.0.0.1:18168"
       }
     },
     {
@@ -4127,7 +5249,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18133"
+        "target_addr": "127.0.0.1:18169"
       }
     },
     {
@@ -4160,7 +5282,40 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18134"
+        "target_addr": "127.0.0.1:18170"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_rotate_cert_sub_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18171"
       }
     },
     {
@@ -4192,7 +5347,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18135"
+        "target_addr": "127.0.0.1:18172"
       }
     },
     {
@@ -4224,7 +5379,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18136"
+        "target_addr": "127.0.0.1:18173"
       }
     },
     {
@@ -4256,7 +5411,39 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18137"
+        "target_addr": "127.0.0.1:18174"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_rotate_cert_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18175"
       }
     },
     {
@@ -4289,7 +5476,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18138"
+        "target_addr": "127.0.0.1:18176"
       }
     },
     {
@@ -4322,7 +5509,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18139"
+        "target_addr": "127.0.0.1:18177"
       }
     },
     {
@@ -4355,7 +5542,40 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18140"
+        "target_addr": "127.0.0.1:18178"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_rotate_cert_sub_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18179"
       }
     },
     {
@@ -4387,7 +5607,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18141"
+        "target_addr": "127.0.0.1:18180"
       }
     },
     {
@@ -4419,7 +5639,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18142"
+        "target_addr": "127.0.0.1:18181"
       }
     },
     {
@@ -4451,7 +5671,39 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18143"
+        "target_addr": "127.0.0.1:18182"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.2, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls12_tcp_rotate_cert_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18183"
       }
     },
     {
@@ -4484,7 +5736,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18144"
+        "target_addr": "127.0.0.1:18184"
       }
     },
     {
@@ -4517,7 +5769,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18145"
+        "target_addr": "127.0.0.1:18185"
       }
     },
     {
@@ -4550,7 +5802,40 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18146"
+        "target_addr": "127.0.0.1:18186"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_rotate_cert_sub_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18187"
       }
     },
     {
@@ -4582,7 +5867,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18147"
+        "target_addr": "127.0.0.1:18188"
       }
     },
     {
@@ -4614,7 +5899,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18148"
+        "target_addr": "127.0.0.1:18189"
       }
     },
     {
@@ -4646,7 +5931,39 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18149"
+        "target_addr": "127.0.0.1:18190"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_rotate_cert_saturation_1c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18191"
       }
     },
     {
@@ -4679,7 +5996,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18150"
+        "target_addr": "127.0.0.1:18192"
       }
     },
     {
@@ -4712,7 +6029,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18151"
+        "target_addr": "127.0.0.1:18193"
       }
     },
     {
@@ -4745,7 +6062,40 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18152"
+        "target_addr": "127.0.0.1:18194"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_rotate_cert_sub_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18195"
       }
     },
     {
@@ -4777,7 +6127,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18153"
+        "target_addr": "127.0.0.1:18196"
       }
     },
     {
@@ -4809,7 +6159,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18154"
+        "target_addr": "127.0.0.1:18197"
       }
     },
     {
@@ -4841,7 +6191,39 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18155"
+        "target_addr": "127.0.0.1:18198"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_rotate_cert_saturation_4c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18199"
       }
     },
     {
@@ -4874,7 +6256,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18156"
+        "target_addr": "127.0.0.1:18200"
       }
     },
     {
@@ -4907,7 +6289,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18157"
+        "target_addr": "127.0.0.1:18201"
       }
     },
     {
@@ -4940,7 +6322,40 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18158"
+        "target_addr": "127.0.0.1:18202"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_rotate_cert_sub_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18203"
       }
     },
     {
@@ -4972,7 +6387,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18159"
+        "target_addr": "127.0.0.1:18204"
       }
     },
     {
@@ -5004,7 +6419,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18160"
+        "target_addr": "127.0.0.1:18205"
       }
     },
     {
@@ -5036,7 +6451,39 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18161"
+        "target_addr": "127.0.0.1:18206"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_rotate_cert_saturation_16c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18207"
       }
     },
     {
@@ -5069,7 +6516,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18162"
+        "target_addr": "127.0.0.1:18208"
       }
     },
     {
@@ -5102,7 +6549,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18163"
+        "target_addr": "127.0.0.1:18209"
       }
     },
     {
@@ -5135,7 +6582,40 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18164"
+        "target_addr": "127.0.0.1:18210"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_rotate_cert_sub_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18211"
       }
     },
     {
@@ -5167,7 +6647,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18165"
+        "target_addr": "127.0.0.1:18212"
       }
     },
     {
@@ -5199,7 +6679,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18166"
+        "target_addr": "127.0.0.1:18213"
       }
     },
     {
@@ -5231,7 +6711,39 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18167"
+        "target_addr": "127.0.0.1:18214"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/ktls1.3, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_ktls13_tcp_rotate_cert_saturation_64c",
+      "protocol": {
+        "kernel": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "ktls": true,
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18215"
       }
     },
     {
@@ -5263,7 +6775,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18168"
+        "target_addr": "127.0.0.1:18216"
       }
     },
     {
@@ -5295,7 +6807,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18169"
+        "target_addr": "127.0.0.1:18217"
       }
     },
     {
@@ -5327,7 +6839,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18170"
+        "target_addr": "127.0.0.1:18218"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 1,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_rotate_cert_sub_saturation_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18219"
       }
     },
     {
@@ -5358,7 +6902,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18171"
+        "target_addr": "127.0.0.1:18220"
       }
     },
     {
@@ -5389,7 +6933,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18172"
+        "target_addr": "127.0.0.1:18221"
       }
     },
     {
@@ -5420,7 +6964,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18173"
+        "target_addr": "127.0.0.1:18222"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 1,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_rotate_cert_saturation_1c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18223"
       }
     },
     {
@@ -5452,7 +7027,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18174"
+        "target_addr": "127.0.0.1:18224"
       }
     },
     {
@@ -5484,7 +7059,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18175"
+        "target_addr": "127.0.0.1:18225"
       }
     },
     {
@@ -5516,7 +7091,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18176"
+        "target_addr": "127.0.0.1:18226"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 4,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_rotate_cert_sub_saturation_4c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18227"
       }
     },
     {
@@ -5547,7 +7154,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18177"
+        "target_addr": "127.0.0.1:18228"
       }
     },
     {
@@ -5578,7 +7185,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18178"
+        "target_addr": "127.0.0.1:18229"
       }
     },
     {
@@ -5609,7 +7216,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18179"
+        "target_addr": "127.0.0.1:18230"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 4,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_rotate_cert_saturation_4c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18231"
       }
     },
     {
@@ -5641,7 +7279,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18180"
+        "target_addr": "127.0.0.1:18232"
       }
     },
     {
@@ -5673,7 +7311,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18181"
+        "target_addr": "127.0.0.1:18233"
       }
     },
     {
@@ -5705,7 +7343,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18182"
+        "target_addr": "127.0.0.1:18234"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 16,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_rotate_cert_sub_saturation_16c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18235"
       }
     },
     {
@@ -5736,7 +7406,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18183"
+        "target_addr": "127.0.0.1:18236"
       }
     },
     {
@@ -5767,7 +7437,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18184"
+        "target_addr": "127.0.0.1:18237"
       }
     },
     {
@@ -5798,7 +7468,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18185"
+        "target_addr": "127.0.0.1:18238"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 16,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_rotate_cert_saturation_16c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18239"
       }
     },
     {
@@ -5830,7 +7531,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18186"
+        "target_addr": "127.0.0.1:18240"
       }
     },
     {
@@ -5862,7 +7563,7 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18187"
+        "target_addr": "127.0.0.1:18241"
       }
     },
     {
@@ -5894,7 +7595,39 @@
         "interface": "tcp",
         "pattern": "sustained",
         "rate_limit_mbps": 100.0,
-        "target_addr": "127.0.0.1:18188"
+        "target_addr": "127.0.0.1:18242"
+      }
+    },
+    {
+      "category": "hotreload-sub-saturation",
+      "connections": 64,
+      "description": "hotreload-sub-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_rotate_cert_sub_saturation_64c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "rate_limit_mbps": 100.0,
+        "target_addr": "127.0.0.1:18243"
       }
     },
     {
@@ -5925,7 +7658,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18189"
+        "target_addr": "127.0.0.1:18244"
       }
     },
     {
@@ -5956,7 +7689,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18190"
+        "target_addr": "127.0.0.1:18245"
       }
     },
     {
@@ -5987,7 +7720,38 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18191"
+        "target_addr": "127.0.0.1:18246"
+      }
+    },
+    {
+      "category": "hotreload-saturation",
+      "connections": 64,
+      "description": "hotreload-saturation: SCG scg-direct, tcp/tls1.2, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "hotreload_integrity_tls12_tcp_rotate_cert_saturation_64c",
+      "protocol": {
+        "protection_mode": "integrity-only",
+        "type": "tls",
+        "version": "1.2"
+      },
+      "reload_event": {
+        "action": "rotate_cert",
+        "expect_zero_drops": false,
+        "measure_window_after_secs": 5,
+        "measure_window_before_secs": 2,
+        "trigger_at_secs": 3
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18247"
       }
     }
   ],

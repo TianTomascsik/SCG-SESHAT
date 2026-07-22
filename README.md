@@ -132,7 +132,12 @@ Ready-made configs ship in [`configs/`](configs):
 - [`configs/full_matrix.json`](configs/full_matrix.json) — generated nightly
   matrix across compatible protocols, sizes, chains, and connection sweeps.
 - [`configs/matrix_catalog.json`](configs/matrix_catalog.json) — generated
-  catalog including explicitly disabled technical limitations.
+  catalog including explicitly disabled technical limitations. Every generated
+  matrix tier (catalog, full, canonical) also carries the disabled `blocked_*`
+  limitation rows — including `blocked_wireguard_script_orchestrated`, which
+  records that WireGuard is benchmarked only by the privileged
+  `scripts/wg_bench.sh` orchestration — so deliberate non-coverage is visible
+  in the suite definition itself; the runner never executes disabled rows.
 - [`configs/interface_comparison.json`](configs/interface_comparison.json) —
   matched direct TCP loopback, SCG TCP, TPROXY, UDS, and SHM measurements.
 - [`configs/hotreload_matrix.json`](configs/hotreload_matrix.json) — generated
@@ -234,9 +239,13 @@ The groups below make the scenario names and intent visible at a glance.
 The generated catalog explicitly marks technical limitations that would
 otherwise misrepresent a result: DTLS multi-connection reporting (the gateway
 demuxes by peer, but all sessions share one backend socket so the harness cannot
-attribute per-connection metrics), kTLS+mTLS (SCG falls back to userspace TLS),
-and TLS-profile reload (the SCG config diff is name-keyed, so a same-name profile
-change is a no-op — the harness flags `change_applied=false`). Session resumption
+attribute per-connection metrics) and TLS-profile reload (the gateway's config
+diff is field-aware, but the harness reload action only sends SIGHUP without
+rewriting the config file, so the swap is a harness-side no-op — flagged
+`change_applied=false`). kTLS+mTLS is fully benchmarked (handshake concerns
+complete before kTLS activates); if kTLS cannot be enabled at runtime the
+gateway falls back to userspace TLS and the row is labelled via
+`effective_protocol`. Session resumption
 *is* now reported as ground truth via the gateway's `resumed=` log
 (`resumed_fraction`). IPSec is outside the benchmark scope. A missing gateway
 binary, OpenSSL, kTLS, perf permission, or required privileges produces a

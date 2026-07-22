@@ -167,6 +167,52 @@ impl Pacer {
     }
 }
 
+/// Accumulates how far behind schedule a paced sender woke for each message —
+/// the coordinated-omission magnitude. Off the hot path: one branch + three adds
+/// per message, recorded only during the measure window. Shared by the run
+/// engine and the multi-stream scheduler so both report identical lag stats.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SendLag {
+    count: u64,
+    sum_ns: u128,
+    max_ns: u64,
+}
+
+impl SendLag {
+    /// Record one message's wake-up lag (actual send minus scheduled deadline).
+    #[inline]
+    pub(crate) fn record(&mut self, ns: u64) {
+        self.count += 1;
+        self.sum_ns += ns as u128;
+        if ns > self.max_ns {
+            self.max_ns = ns;
+        }
+    }
+
+    /// Fold another sender thread's lag account into this one.
+    pub(crate) fn merge(&mut self, other: &SendLag) {
+        self.count += other.count;
+        self.sum_ns += other.sum_ns;
+        if other.max_ns > self.max_ns {
+            self.max_ns = other.max_ns;
+        }
+    }
+
+    /// Mean lag in microseconds (0 when nothing was recorded).
+    pub(crate) fn mean_us(&self) -> f64 {
+        if self.count == 0 {
+            0.0
+        } else {
+            (self.sum_ns as f64 / self.count as f64) / 1000.0
+        }
+    }
+
+    /// Worst-case lag in microseconds.
+    pub(crate) fn max_us(&self) -> f64 {
+        self.max_ns as f64 / 1000.0
+    }
+}
+
 /// Builds successive on-wire messages into one reusable buffer.
 #[derive(Debug)]
 pub struct MessageBuilder {

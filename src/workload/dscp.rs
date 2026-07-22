@@ -1,4 +1,4 @@
-//! DSCP tag verification utilities (F-10, F-13a).
+//! DSCP tag utilities (F-10, F-13a).
 //!
 //! Provides helpers to:
 //! 1. Parse DSCP tag names (EF, AF41, BE, CS0..CS7) to numeric values.
@@ -7,6 +7,13 @@
 //!
 //! DSCP occupies bits 2–7 of the IP TOS byte (the 6 most-significant bits of
 //! the DS field). The low 2 bits are ECN and ignored for DSCP purposes.
+//!
+//! Future work: the `IP_RECVTOS` observation helpers (`enable_recvtos`,
+//! `recv_one_with_tos`, `get_tos`) are currently unused — Linux only delivers
+//! ancillary TOS data for datagram sockets, so the TCP multi-stream path
+//! cannot verify DSCP preservation end-to-end from userspace and must not
+//! fabricate a verdict (see `workload::streams`). They are kept for a future
+//! UDP multi-stream or pcap-based verifier.
 #![allow(dead_code)]
 
 use std::io;

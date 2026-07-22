@@ -247,8 +247,58 @@ fn validate_scenario(s: &Scenario) -> ScenarioReport {
                 .push(format!("streams[{i}] periodic pattern needs interval_us"));
         }
         validate_dscp(&stream.priority.dscp_tag, &format!("streams[{i}]"), &mut r);
+
+        // The multi-stream scheduler provisions per-class TCP pairs through the
+        // gateway; anything it cannot honour must fail validation rather than
+        // silently run something else than the config claims.
+        if canonical_traffic_class(&stream.priority.traffic_class).is_none() {
+            r.errors.push(format!(
+                "streams[{i}].priority.traffic_class '{}' is not recognised; use \
+                 safety|safety-critical or normal|non-safety|bulk",
+                stream.priority.traffic_class
+            ));
+        }
+        if stream.interface != Interface::Tcp {
+            r.errors.push(format!(
+                "streams[{i}].interface must be tcp (multi-stream scheduling runs \
+                 over the gateway's TCP path; got {})",
+                stream.interface.label()
+            ));
+        }
+        if stream.connections != 1 {
+            r.errors.push(format!(
+                "streams[{i}].connections must be 1 (the scheduler opens exactly one \
+                 connection per stream; add more streams instead)"
+            ));
+        }
+        if stream.protocol.kind != ProtocolType::None && stream.protocol.kind != s.protocol.kind {
+            r.warnings.push(format!(
+                "streams[{i}].protocol ({}) differs from the scenario protocol ({}); \
+                 per-stream protocol overrides are not supported — the scenario-level \
+                 protocol applies to every stream",
+                stream.protocol.kind.label(),
+                s.protocol.kind.label()
+            ));
+        }
     }
     if has_streams {
+        if !s.gateway.enabled {
+            r.errors.push(
+                "multi-stream scenarios require gateway.enabled=true (streams are \
+                 scheduled through per-class gateway rules)"
+                    .to_string(),
+            );
+        }
+        if matches!(
+            s.protocol.kind,
+            ProtocolType::Dtls | ProtocolType::Wireguard | ProtocolType::Ipsec
+        ) {
+            r.errors.push(format!(
+                "multi-stream scenarios support TCP-based protocols only \
+                 (none/tls/mtls/integrity-only); got {}",
+                s.protocol.kind.label()
+            ));
+        }
         r.notes.push(format!("streams: {}", s.streams.len()));
     }
 
@@ -287,10 +337,9 @@ fn validate_scenario(s: &Scenario) -> ScenarioReport {
             r.errors
                 .push("reload_event requires gateway.enabled=true".to_string());
         }
-        if matches!(
-            reload.action,
-            ReloadAction::UpdateTlsProfile | ReloadAction::RotateCert
-        ) && reload.payload_file.is_none()
+        // RotateCert stages its own swap identity at run time and needs no
+        // payload_file; only the (still no-op) profile update warns.
+        if matches!(reload.action, ReloadAction::UpdateTlsProfile) && reload.payload_file.is_none()
         {
             r.warnings.push(format!(
                 "reload_event action {:?} usually needs a payload_file",
@@ -634,6 +683,120 @@ mod tests {
                 ] }"#,
         );
         assert!(!validate(&cfg).ok());
+    }
+
+    /// A syntactically complete multi-stream scenario the stream-validation
+    /// tests below perturb one field at a time.
+    fn multistream_json(streams: &str, protocol: &str, gateway_enabled: bool) -> String {
+        format!(
+            r#"{{ "suite": {{ "name": "t", "version": "1" }}, "scenarios": [
+                {{ "name": "ms", "gateway": {{ "enabled": {gateway_enabled} }},
+                   "protocol": {protocol},
+                   "streams": [{streams}] }}
+            ] }}"#
+        )
+    }
+
+    const SAFETY_STREAM: &str = r#"{ "role": "safety", "interface": "tcp",
+        "target_addr": "127.0.0.1:1", "message_size_bytes": 256,
+        "priority": { "dscp_tag": "EF", "traffic_class": "safety" } }"#;
+
+    #[test]
+    fn multistream_canonical_and_alias_classes_accepted() {
+        let bulk = r#"{ "role": "bulk", "interface": "tcp",
+            "target_addr": "127.0.0.1:1", "message_size_bytes": 1024,
+            "priority": { "dscp_tag": "BE", "traffic_class": "non-safety" } }"#;
+        let cfg = parse(&multistream_json(
+            &format!("{SAFETY_STREAM}, {bulk}"),
+            r#"{ "type": "none" }"#,
+            true,
+        ));
+        let rep = validate(&cfg);
+        assert!(rep.ok(), "expected valid, got {rep:?}");
+    }
+
+    #[test]
+    fn multistream_unknown_class_rejected() {
+        let bad = r#"{ "role": "bulk", "interface": "tcp",
+            "target_addr": "127.0.0.1:1", "message_size_bytes": 1024,
+            "priority": { "dscp_tag": "BE", "traffic_class": "low" } }"#;
+        let cfg = parse(&multistream_json(bad, r#"{ "type": "none" }"#, true));
+        let rep = validate(&cfg);
+        assert!(!rep.ok());
+        assert!(rep.scenarios[0]
+            .errors
+            .iter()
+            .any(|e| e.contains("traffic_class 'low'")));
+    }
+
+    #[test]
+    fn multistream_non_tcp_interface_rejected() {
+        let udp = r#"{ "role": "safety", "interface": "udp",
+            "target_addr": "127.0.0.1:1", "message_size_bytes": 256,
+            "priority": { "dscp_tag": "EF", "traffic_class": "safety" } }"#;
+        let cfg = parse(&multistream_json(udp, r#"{ "type": "none" }"#, true));
+        let rep = validate(&cfg);
+        assert!(!rep.ok());
+        assert!(rep.scenarios[0]
+            .errors
+            .iter()
+            .any(|e| e.contains("interface must be tcp")));
+    }
+
+    #[test]
+    fn multistream_multi_connection_stream_rejected() {
+        let multi = r#"{ "role": "bulk", "interface": "tcp",
+            "target_addr": "127.0.0.1:1", "connections": 32, "message_size_bytes": 1024,
+            "priority": { "dscp_tag": "BE", "traffic_class": "normal" } }"#;
+        let cfg = parse(&multistream_json(multi, r#"{ "type": "none" }"#, true));
+        let rep = validate(&cfg);
+        assert!(!rep.ok());
+        assert!(rep.scenarios[0]
+            .errors
+            .iter()
+            .any(|e| e.contains("connections must be 1")));
+    }
+
+    #[test]
+    fn multistream_requires_gateway_and_tcp_protocol() {
+        let no_gw = parse(&multistream_json(
+            SAFETY_STREAM,
+            r#"{ "type": "none" }"#,
+            false,
+        ));
+        let rep = validate(&no_gw);
+        assert!(!rep.ok());
+        assert!(rep.scenarios[0]
+            .errors
+            .iter()
+            .any(|e| e.contains("require gateway.enabled=true")));
+
+        let dtls = parse(&multistream_json(
+            SAFETY_STREAM,
+            r#"{ "type": "dtls", "version": "1.2" }"#,
+            true,
+        ));
+        let rep = validate(&dtls);
+        assert!(!rep.ok());
+        assert!(rep.scenarios[0]
+            .errors
+            .iter()
+            .any(|e| e.contains("TCP-based protocols only")));
+    }
+
+    #[test]
+    fn multistream_per_stream_protocol_mismatch_warns() {
+        let tls_stream = r#"{ "role": "safety", "interface": "tcp",
+            "target_addr": "127.0.0.1:1", "message_size_bytes": 256,
+            "protocol": { "type": "tls", "version": "1.3" },
+            "priority": { "dscp_tag": "EF", "traffic_class": "safety" } }"#;
+        let cfg = parse(&multistream_json(tls_stream, r#"{ "type": "none" }"#, true));
+        let rep = validate(&cfg);
+        assert!(rep.ok(), "mismatch is a warning, not an error: {rep:?}");
+        assert!(rep.scenarios[0]
+            .warnings
+            .iter()
+            .any(|w| w.contains("per-stream protocol overrides are not supported")));
     }
 
     #[test]

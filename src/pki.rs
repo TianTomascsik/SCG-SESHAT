@@ -159,6 +159,32 @@ pub fn generate_mtls_bundle(dir: &Path, days: u32) -> io::Result<CaBundle> {
     })
 }
 
+/// Issue an additional CA-signed server leaf (`<name>.crt` / `<name>.key`)
+/// under `dir`, chained to the `generate_mtls_bundle` CA already present there
+/// (`ca.crt` / `ca.key`). Used by the hot-reload cert swap to stage a second,
+/// distinct server identity that the encrypt side's trust anchor already
+/// accepts.
+pub fn issue_server_leaf(dir: &Path, name: &str, days: u32) -> io::Result<Identity> {
+    let ca_cert = dir.join("ca.crt");
+    let ca_key = dir.join("ca.key");
+    if !ca_cert.exists() || !ca_key.exists() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "no ca.crt/ca.key under dir (generate_mtls_bundle must run first)",
+        ));
+    }
+    let days = days.to_string();
+    sign_leaf(
+        dir,
+        name,
+        "localhost",
+        &ca_cert,
+        &ca_key,
+        "serverAuth",
+        &days,
+    )
+}
+
 /// Generate an EC leaf key + CSR and sign it with the CA, attaching a SAN and
 /// the given extended-key-usage (`serverAuth` or `clientAuth`).
 fn sign_leaf(

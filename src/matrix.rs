@@ -92,6 +92,13 @@ struct Profile {
     /// runs from exploding into an impractical suite.
     #[serde(default)]
     scalability: bool,
+    /// SCG optimization flags stamped onto every scenario this profile emits
+    /// (e.g. `{ "shm_ring_kind": "slot" }` for the fixed-slot SHM ring variant).
+    /// Passed through verbatim and validated against `OptimizationFlags` when the
+    /// generated scenario is loaded; empty (the default) leaves rows untouched so
+    /// flag-less profiles stay byte-for-byte identical.
+    #[serde(default)]
+    optimization_flags: Value,
 }
 
 fn stream_class() -> String {
@@ -169,13 +176,17 @@ pub fn generate(spec_path: &Path, out_dir: &Path) -> Result<Generated, Box<dyn s
         ),
         (
             "full_matrix.json",
-            suite_document(&spec, "Generated executable nightly benchmark matrix", full),
+            suite_document(
+                &spec,
+                "Generated executable nightly benchmark matrix (disabled blocked_* rows document deliberate non-coverage)",
+                full,
+            ),
         ),
         (
             "canonical_matrix.json",
             suite_document(
                 &spec,
-                "Generated compact canonical benchmark matrix",
+                "Generated compact canonical benchmark matrix (disabled blocked_* rows document deliberate non-coverage)",
                 canonical,
             ),
         ),
@@ -231,14 +242,22 @@ fn expand_hotreload(spec: &MatrixSpec) -> Result<Value, Box<dyn std::error::Erro
         {
             continue;
         }
-        // Do not emit a TLS-profile reload scenario yet.  The SCG gateway now
-        // restarts a changed same-name data-plane rule (its `diff` gained a
-        // `changed` bucket / `reload_differs`), so the changed-rule lifecycle
-        // exists.  What is still missing here is the harness side: the reload
-        // action must rewrite the config file with a modified same-name rule (and
-        // ideally read back a reload-acknowledgement) before this can be measured
-        // honestly; until then it stays disabled.
-        let actions = ["add_connection", "remove_connection", "invalid_config"];
+        // A TLS-profile reload scenario is still not emitted: that action only
+        // SIGHUPs the unchanged file (a harness no-op). rotate_cert IS emitted
+        // for cert-bearing profiles — the executor now stages a second identity,
+        // rewrites the decrypt rule's cert/key paths (a path change, so the SCG
+        // diff's `changed` bucket restarts the rule) and SIGHUPs. The restart
+        // severs that rule's established connections by design, so rotate_cert
+        // scenarios expect drops rather than asserting zero.
+        let mut actions = vec!["add_connection", "remove_connection", "invalid_config"];
+        let has_server_cert = profile
+            .protocol
+            .get("type")
+            .and_then(Value::as_str)
+            .is_some_and(|t| t == "tls");
+        if has_server_cert {
+            actions.push("rotate_cert");
+        }
         for &connections in &[1_u32, 4, 16, 64] {
             for &load in &["sub-saturation", "saturation"] {
                 for action in &actions {
@@ -273,7 +292,9 @@ fn expand_hotreload(spec: &MatrixSpec) -> Result<Value, Box<dyn std::error::Erro
                     row["reload_event"] = json!({
                         "trigger_at_secs": 3,
                         "action": action,
-                        "expect_zero_drops": true,
+                        // The rotated rule's established connections are severed
+                        // by the changed-bucket restart, so drops are expected.
+                        "expect_zero_drops": *action != "rotate_cert",
                         "measure_window_before_secs": 2,
                         "measure_window_after_secs": 5,
                     });
@@ -588,24 +609,21 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
                             connections
                         );
                         let ordinal = scenarios.len();
-                        push_unique(
-                            &mut scenarios,
-                            &mut names,
-                            name,
-                            scenario(
-                                &profile.id,
-                                "matrix",
-                                interface,
-                                &profile.protocol,
-                                true,
-                                chain,
-                                size,
-                                connections,
-                                &profile.requirements,
-                                None,
-                                ordinal,
-                            ),
-                        )?;
+                        let mut row = scenario(
+                            &profile.id,
+                            "matrix",
+                            interface,
+                            &profile.protocol,
+                            true,
+                            chain,
+                            size,
+                            connections,
+                            &profile.requirements,
+                            None,
+                            ordinal,
+                        );
+                        stamp_optimization_flags(&mut row, &profile.optimization_flags);
+                        push_unique(&mut scenarios, &mut names, name, row)?;
                     }
                     // Also emit a closed-loop ping-pong LATENCY scenario for this
                     // (protocol, interface, size) at 1 connection on the scg-direct path, so
@@ -639,6 +657,7 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
                             ordinal,
                         );
                         lat_row["mode"] = Value::String("pingpong".to_string());
+                        stamp_optimization_flags(&mut lat_row, &profile.optimization_flags);
                         push_unique(&mut scenarios, &mut names, lat_name, lat_row)?;
                     }
                 }
@@ -649,27 +668,35 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
     append_cipher_scenarios(&mut scenarios, &mut names, spec, tier)?;
     append_handshake_scenarios(&mut scenarios, &mut names, tier)?;
 
-    if tier == Tier::Catalog {
-        for limitation in &spec.limitations {
-            let name = format!("blocked_{}", limitation.name);
-            let mut row = scenario(
-                "blocked",
-                "unsupported",
-                &limitation.interface,
-                &limitation.protocol,
-                true,
-                &limitation.chain,
-                1024,
-                1,
-                &[],
-                None,
-                scenarios.len(),
-            );
-            row["name"] = Value::String(name.clone());
-            row["enabled"] = Value::Bool(false);
-            row["disabled_reason"] = Value::String(limitation.reason.clone());
-            push_unique(&mut scenarios, &mut names, name, row)?;
-        }
+    // Emit the catalogued limitations as explicit disabled `blocked_*` rows in
+    // *every* generated tier, not only the reference catalog, so a canonical or
+    // nightly suite config self-documents what is deliberately not covered
+    // (e.g. WireGuard, which is benchmarked only by the privileged
+    // scripts/wg_bench.sh orchestration via scripts/perf_gate.sh). This is
+    // execution-safe: the runner, the progress/duplicate accounting, and the
+    // wall-time estimate all filter on `enabled` (src/commands.rs,
+    // config::estimate_total_secs), validation short-circuits disabled rows
+    // into a SKIP note, and executed/skipped report totals are rebuilt from
+    // on-disk scenario directories that disabled rows never create.
+    for limitation in &spec.limitations {
+        let name = format!("blocked_{}", limitation.name);
+        let mut row = scenario(
+            "blocked",
+            "unsupported",
+            &limitation.interface,
+            &limitation.protocol,
+            true,
+            &limitation.chain,
+            1024,
+            1,
+            &[],
+            None,
+            scenarios.len(),
+        );
+        row["name"] = Value::String(name.clone());
+        row["enabled"] = Value::Bool(false);
+        row["disabled_reason"] = Value::String(limitation.reason.clone());
+        push_unique(&mut scenarios, &mut names, name, row)?;
     }
 
     Ok(Value::Array(scenarios))
@@ -886,6 +913,19 @@ fn scenario(
         )),
     );
     row
+}
+
+/// Stamp a profile's `optimization_flags` onto a generated scenario row when the
+/// profile declares any (a non-empty JSON object). No-op otherwise, so profiles
+/// without flags produce byte-for-byte identical rows.
+fn stamp_optimization_flags(row: &mut Value, flags: &Value) {
+    if let Some(map) = flags.as_object() {
+        if !map.is_empty() {
+            if let Some(obj) = row.as_object_mut() {
+                obj.insert("optimization_flags".to_string(), flags.clone());
+            }
+        }
+    }
 }
 
 /// Compose a one-line, explicit description for a generated scenario from its
@@ -1227,6 +1267,41 @@ mod tests {
     }
 
     #[test]
+    fn limitations_are_emitted_as_blocked_rows_in_every_tier() {
+        let spec = production_spec();
+        for tier in [Tier::Catalog, Tier::Nightly, Tier::Canonical] {
+            let expanded = expand_profiles(&spec, tier).unwrap();
+            let blocked: Vec<&Value> = rows(&expanded)
+                .iter()
+                .filter(|row| row["enabled"] == Value::Bool(false))
+                .collect();
+            assert_eq!(
+                blocked.len(),
+                spec.limitations.len(),
+                "every catalogued limitation must surface as a disabled row in {tier:?}"
+            );
+            for row in &blocked {
+                assert!(row["name"].as_str().unwrap().starts_with("blocked_"));
+                assert!(row["disabled_reason"]
+                    .as_str()
+                    .is_some_and(|reason| !reason.is_empty()));
+            }
+
+            // WireGuard is deliberately outside the unified run (privileged
+            // scripts/wg_bench.sh orchestration); its blocked row must say so.
+            let wg = blocked
+                .iter()
+                .find(|row| row["name"] == "blocked_wireguard_script_orchestrated")
+                .unwrap_or_else(|| panic!("{tier:?} must carry the wireguard blocked row"));
+            assert_eq!(wg["protocol"]["type"], "wireguard");
+            assert_eq!(wg["sender"]["interface"], "udp");
+            assert!(wg["disabled_reason"]
+                .as_str()
+                .is_some_and(|reason| reason.contains("wg_bench.sh")));
+        }
+    }
+
+    #[test]
     fn interface_comparison_groups_have_matched_references() {
         let spec = production_spec();
         let comparison = expand_interface_comparison(&spec).unwrap();
@@ -1266,5 +1341,58 @@ mod tests {
         )
         .unwrap();
         assert!(push_unique(&mut scenarios, &mut names, "duplicate".to_string(), row).is_err());
+    }
+
+    #[test]
+    fn profile_optimization_flags_are_stamped_only_when_present() {
+        // A profile that declares `optimization_flags` (e.g. the fixed-slot SHM
+        // ring) stamps them onto every scenario it emits — throughput and
+        // latency — while a flag-less profile stays byte-for-byte clean.
+        let spec: MatrixSpec = serde_json::from_value(json!({
+            "suite": { "name": "x" },
+            "dimensions": {
+                "stream_message_sizes": [64], "datagram_message_sizes": [64],
+                "canonical_connections": [1], "nightly_connections": [1],
+                "scalability_connections": [1], "catalog_connections": [1],
+                "canonical_stream_message_size": 64, "canonical_datagram_message_size": 64
+            },
+            "profiles": [
+                {
+                    "id": "routing_shmslot",
+                    "protocol": { "type": "none", "protection_mode": "routing-only" },
+                    "interfaces": ["shm"], "chains": ["scg-direct"], "tiers": ["nightly"],
+                    "optimization_flags": { "shm_ring_kind": "slot", "shm_g2c_notify": "futex" }
+                },
+                {
+                    "id": "routing_shm",
+                    "protocol": { "type": "none", "protection_mode": "routing-only" },
+                    "interfaces": ["shm"], "chains": ["scg-direct"], "tiers": ["nightly"]
+                }
+            ],
+            "interface_comparison": { "paths": [{ "id":"tcp", "interface":"tcp", "gateway":false }, { "id":"scg", "interface":"tcp", "gateway":true }], "throughput_message_sizes": [64], "throughput_connections": [1], "latency_message_sizes": [64], "latency_connections": [1] }
+        }))
+        .unwrap();
+        let nightly = expand_profiles(&spec, Tier::Nightly).unwrap();
+        let (mut slot_seen, mut plain_seen) = (0, 0);
+        for row in rows(&nightly) {
+            let name = row["name"].as_str().unwrap_or("");
+            if name.contains("shmslot") {
+                slot_seen += 1;
+                assert_eq!(row["optimization_flags"]["shm_ring_kind"], "slot");
+                assert_eq!(row["optimization_flags"]["shm_g2c_notify"], "futex");
+            } else if name.contains("routing_shm") {
+                plain_seen += 1;
+                assert!(
+                    row.get("optimization_flags").is_none(),
+                    "flag-less profile carries no optimization_flags key: {name}"
+                );
+            }
+        }
+        // Both throughput and latency rows for the slot profile must be stamped.
+        assert!(
+            slot_seen >= 2,
+            "slot profile emits stamped throughput + latency rows"
+        );
+        assert!(plain_seen >= 1, "byte-stream profile emits clean rows");
     }
 }

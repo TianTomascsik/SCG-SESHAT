@@ -111,6 +111,11 @@ pub enum BatchOutcome {
 pub trait DataSink: Send {
     /// Send one complete message. Must transmit the whole buffer.
     fn send_msg(&mut self, buf: &[u8]) -> io::Result<()>;
+    /// Return the underlying OS file descriptor, if applicable. Used for
+    /// egress DSCP/TOS marking (`IP_TOS`) on QoS streams.
+    fn raw_fd(&self) -> Option<i32> {
+        None
+    }
     /// Send a batch of complete messages, in as few syscalls as the transport
     /// allows. Returns the number of messages actually sent (`< msgs.len()`
     /// only on a partial batch send). The default sends them one at a time;
