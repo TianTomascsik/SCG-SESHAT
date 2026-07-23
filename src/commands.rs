@@ -1611,7 +1611,8 @@ fn run_gateway_scenario(
     // DTLS and plaintext UDP routing both run over `GatewayUdpTransport` (native
     // datagrams); the ALE/RAW UDP-over-TLS tunnels are handled by `is_ale_raw`.
     let is_udp = matches!(plan.security, GwSecurity::Dtls { .. })
-        || plan.transport_name == "scg-udp-routing";
+        || plan.transport_name == "scg-udp-routing"
+        || plan.transport_name == "scg-custom-udp";
     let is_uds = plan.transport_name == "scg-uds";
     let is_shm = plan.transport_name == "scg-shm";
     let is_tproxy = plan.transport_name == "scg-tproxy";
