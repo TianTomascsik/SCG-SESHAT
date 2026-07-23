@@ -468,7 +468,7 @@ metrics:
 
 ```jsonc
 "protocol": {
-  "type": "tls",            // none | tls | dtls | wireguard | ipsec
+  "type": "tls",            // none | tls | dtls | wireguard | ipsec | custom
   "version": "1.3",         // TLS: 1.2 | 1.3; DTLS: 1.0 | 1.2
   "kernel": false,          // true → kTLS (kernel TLS)
   "mutual_auth": false,     // true → mTLS / mutual DTLS
@@ -476,6 +476,8 @@ metrics:
   "app_protocol": "none",   // none | ale | raw   (UDP-over-TLS framing)
   "cipher_suite": null,
   "resumption": false,
+  "security_provider": null, // required when type=custom (see Customizing SESHAT)
+  "provider_params": {},     // custom-provider params, passed through verbatim
   "certificates": {
     "server_cert": "/path/server.pem",
     "server_key": "/path/server.key",
@@ -493,6 +495,50 @@ metrics:
 | `tls` | tcp | Userspace TLS 1.2/1.3; `kernel:true` → kTLS; `mutual_auth` → mTLS; `protection_mode:integrity-only` → NULL-cipher authenticated TLS |
 | `dtls` | udp | DTLS 1.0/1.2, server-auth or `mutual_auth`; single logical flow |
 | `wireguard` / `ipsec` | — | **Disabled** (SCG provides stubs only); kept for forward-compat |
+| `custom` | udp *(tcp)* | Any out-of-tree crypto provider, named via `security_provider` — see [Customizing SESHAT](#customizing-seshat-benchmarking-a-new-provider) |
+
+### Customizing SESHAT: benchmarking a new provider
+
+SESHAT knows the built-in gateway providers by name (`tls`, `dtls`, `ktls`,
+`routing`, …). To benchmark a provider it does **not** know about — for example a
+provider registered out-of-tree via `gateway::run(extra_crypto, …)` — use the
+generic `custom` protocol type instead of adding a new enum variant:
+
+```jsonc
+{
+  "name": "myprovider_udp_throughput_1400B",
+  "category": "protocol",
+  "message_size_bytes": 1400,
+  "connections": 1,
+  "gateway": { "enabled": true, "chain": "scg-scg" },
+  "protocol": {
+    "type": "custom",
+    "security_provider": "myprovider",     // becomes the rule's security_provider
+    "provider_params": {                    // flattened into the rule verbatim
+      "my_key_hex": "00112233…",             // string
+      "my_window_ms": 60000,                 // integer
+      "my_flag": true                        // boolean
+    }
+  },
+  "sender": { "interface": "udp", "target_addr": "127.0.0.1:12300", "pattern": "sustained" }
+}
+```
+
+How it maps to the gateway config:
+
+- `security_provider` → the rule's `security_provider` string. The gateway binary
+  you run **must** have a provider registered under that exact name (point SESHAT
+  at it with `SCG_GATEWAY_BIN=/path/to/your-gateway`).
+- `provider_params` → flattened into the rule's top-level params (the same channel
+  `cert_path`, `verify`, `max_sessions`, … use). Values may be strings, integers,
+  or booleans.
+- `sender.interface` picks the transport: `udp` → a UDP rule (the usual case for
+  datagram providers), anything else → a TCP rule. UDS/SHM/TPROXY interfaces also
+  work and route through the same custom provider.
+
+This keeps proprietary provider *names and parameters* out of the open harness:
+the hook is generic, and the specifics live only in your own suite JSON (see the
+internal `your own internal suite` repo for a worked vendor-udp example).
 
 ---
 

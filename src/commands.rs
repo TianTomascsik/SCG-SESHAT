@@ -859,6 +859,9 @@ enum GwSecurity {
     IntegrityOnly { version: &'static str },
     /// DTLS over UDP, optionally mutually authenticated.
     Dtls { version: &'static str, mutual: bool },
+    /// Out-of-tree custom crypto provider named by `protocol.security_provider`;
+    /// the provider name and `provider_params` are read from the scenario.
+    Custom,
 }
 
 /// Convert the validated SESHAT version into SCG's TLS spelling.  Validation
@@ -931,6 +934,7 @@ fn resolve_security(s: &Scenario) -> GwSecurity {
                 mutual,
             }
         }
+        ProtocolType::Custom => GwSecurity::Custom,
         _ => GwSecurity::Routing,
     }
 }
@@ -1156,6 +1160,24 @@ fn build_security_spec(
                 SecuritySpec::dtls_server(version, &id.cert, &id.key)
             }
         }
+        GwSecurity::Custom => {
+            let provider = scenario
+                .protocol
+                .security_provider
+                .clone()
+                .ok_or("protocol.type=custom requires protocol.security_provider")?;
+            let proto = match scenario.sender.as_ref().map(|snd| snd.interface) {
+                Some(Interface::Udp) => "udp",
+                _ => "tcp",
+            };
+            let params = scenario
+                .protocol
+                .provider_params
+                .iter()
+                .map(|(k, v)| (k.clone(), v.to_json()))
+                .collect();
+            SecuritySpec::custom(&provider, proto, params)
+        }
     };
 
     Ok(apply_protocol_security_overrides(spec, scenario))
@@ -1297,6 +1319,17 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
         });
     }
 
+    // Custom out-of-tree crypto provider over UDP datagrams (e.g. a proprietary
+    // provider registered via `gateway::run`). The provider name + params come
+    // from the scenario; SESHAT passes them through verbatim.
+    if sender.interface == Interface::Udp && s.protocol.kind == ProtocolType::Custom {
+        return Some(GatewayPlan {
+            security: GwSecurity::Custom,
+            topology,
+            transport_name: "scg-custom-udp",
+        });
+    }
+
     if sender.interface != Interface::Tcp {
         return None;
     }
@@ -1355,6 +1388,11 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
             })
         }
         // DTLS is handled above (UDP); WireGuard and IPSec are disabled paths.
+        ProtocolType::Custom => Some(GatewayPlan {
+            security: GwSecurity::Custom,
+            topology,
+            transport_name: "scg-custom",
+        }),
         _ => None,
     }
 }

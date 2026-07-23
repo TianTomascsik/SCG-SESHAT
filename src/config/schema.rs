@@ -12,6 +12,7 @@
 #![allow(dead_code)]
 
 use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 /// Top-level config document.
@@ -420,6 +421,41 @@ pub struct Protocol {
     /// Certificate material to use instead of SESHAT's generated benchmark PKI.
     #[serde(default)]
     pub certificates: CertificateSelection,
+    /// Crypto-provider name for `type = "custom"` — passed through verbatim as
+    /// the gateway rule's `security_provider`, so an out-of-tree provider (e.g.
+    /// a proprietary one registered via `gateway::run`) can be benchmarked
+    /// without SESHAT needing to know about it. Ignored for the built-in types.
+    #[serde(default)]
+    pub security_provider: Option<String>,
+    /// Extra `provider_params` for `type = "custom"`, passed through verbatim to
+    /// the gateway rule. Keys/values are provider-specific and opaque to SESHAT.
+    #[serde(default)]
+    pub provider_params: BTreeMap<String, ProviderParam>,
+}
+
+/// A single custom-provider parameter value. Deliberately limited to
+/// string / integer / boolean so [`Protocol`] can stay `Eq`; each maps 1:1 onto
+/// the gateway rule's JSON `provider_params`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(untagged)]
+pub enum ProviderParam {
+    /// Boolean flag (e.g. a toggle).
+    Bool(bool),
+    /// Integer (e.g. a window size in ms).
+    Int(i64),
+    /// String (e.g. a hex-encoded key or identity).
+    Str(String),
+}
+
+impl ProviderParam {
+    /// Convert to the JSON value the gateway rule expects.
+    pub fn to_json(&self) -> serde_json::Value {
+        match self {
+            ProviderParam::Bool(b) => serde_json::Value::Bool(*b),
+            ProviderParam::Int(i) => serde_json::Value::from(*i),
+            ProviderParam::Str(s) => serde_json::Value::String(s.clone()),
+        }
+    }
 }
 
 /// TLS/DTLS certificate material selected by a scenario.
@@ -484,6 +520,11 @@ pub enum ProtocolType {
     /// IPSec/IKEv2 (SCG stub — disabled).
     #[serde(rename = "ipsec")]
     Ipsec,
+    /// Out-of-tree custom crypto provider, named via `security_provider`.
+    /// Lets internal/proprietary providers be benchmarked without SESHAT
+    /// knowing their specifics.
+    #[serde(rename = "custom")]
+    Custom,
 }
 
 /// Security protocol version.  TLS supports 1.2/1.3; DTLS supports 1.0/1.2.
@@ -839,6 +880,11 @@ impl Scenario {
             }
             ProtocolType::Wireguard => "wireguard".to_string(),
             ProtocolType::Ipsec => "ipsec".to_string(),
+            ProtocolType::Custom => self
+                .protocol
+                .security_provider
+                .clone()
+                .unwrap_or_else(|| "custom".to_string()),
         }
     }
 
@@ -923,6 +969,7 @@ impl ProtocolType {
             ProtocolType::Dtls => "dtls",
             ProtocolType::Wireguard => "wireguard",
             ProtocolType::Ipsec => "ipsec",
+            ProtocolType::Custom => "custom",
         }
     }
 }

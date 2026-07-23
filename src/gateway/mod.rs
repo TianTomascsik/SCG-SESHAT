@@ -18,6 +18,7 @@ pub mod process;
 pub mod reload;
 
 use std::io;
+use std::collections::BTreeMap;
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU16, AtomicU64, Ordering};
@@ -201,6 +202,9 @@ pub struct SecuritySpec {
     pub busy_poll_us: Option<u32>,
     pub bdp_adaptive: bool,
     pub bdp_queue_budget_us: Option<u64>,
+    /// Extra provider params passed through verbatim for custom (out-of-tree)
+    /// crypto providers. Empty for all built-in providers.
+    pub extra_params: BTreeMap<String, serde_json::Value>,
 }
 
 impl std::fmt::Debug for SecuritySpec {
@@ -243,6 +247,7 @@ impl std::fmt::Debug for SecuritySpec {
             .field("busy_poll_us", &self.busy_poll_us)
             .field("bdp_adaptive", &self.bdp_adaptive)
             .field("bdp_queue_budget_us", &self.bdp_queue_budget_us)
+            .field("extra_params", &self.extra_params)
             .finish()
     }
 }
@@ -255,6 +260,7 @@ impl SecuritySpec {
             proto: "tcp".to_string(),
             protocol_version: None,
             verify: None,
+            extra_params: BTreeMap::new(),
             server_name: None,
             server_cert: None,
             server_key: None,
@@ -297,6 +303,20 @@ impl SecuritySpec {
         }
     }
 
+    /// A custom out-of-tree crypto provider (for `protocol.type = "custom"`).
+    /// `provider` is passed through verbatim as the gateway rule's
+    /// `security_provider`; `params` become flattened `provider_params`. This is
+    /// the generic escape hatch that lets internal/proprietary providers be
+    /// benchmarked without teaching SESHAT their specifics.
+    pub fn custom(provider: &str, proto: &str, params: BTreeMap<String, serde_json::Value>) -> Self {
+        SecuritySpec {
+            provider: provider.to_string(),
+            proto: proto.to_string(),
+            extra_params: params,
+            ..Self::routing_tcp()
+        }
+    }
+
     /// One-way TLS over TCP: the decrypt side presents `cert`/`key`; the encrypt
     /// side connects without verifying the peer (`verify=none`). `version` is a
     /// gateway TLS version string such as `tls1.2` or `tls1.3`.
@@ -306,6 +326,7 @@ impl SecuritySpec {
             proto: "tcp".to_string(),
             protocol_version: Some(version.to_string()),
             verify: Some("none".to_string()),
+            extra_params: BTreeMap::new(),
             server_name: None,
             server_cert: Some(cert.to_path_buf()),
             server_key: Some(key.to_path_buf()),
@@ -348,6 +369,7 @@ impl SecuritySpec {
             proto: "tcp".to_string(),
             protocol_version: Some(version.to_string()),
             verify: Some("mutual".to_string()),
+            extra_params: BTreeMap::new(),
             server_name: Some("localhost".to_string()),
             server_cert: Some(bundle.server.cert.clone()),
             server_key: Some(bundle.server.key.clone()),
@@ -390,6 +412,7 @@ impl SecuritySpec {
             proto: "udp".to_string(),
             protocol_version: Some(version.to_string()),
             verify: Some("none".to_string()),
+            extra_params: BTreeMap::new(),
             server_name: None,
             server_cert: Some(cert.to_path_buf()),
             server_key: Some(key.to_path_buf()),
@@ -432,6 +455,7 @@ impl SecuritySpec {
             proto: "udp".to_string(),
             protocol_version: Some(version.to_string()),
             verify: Some("mutual".to_string()),
+            extra_params: BTreeMap::new(),
             server_name: Some("localhost".to_string()),
             server_cert: Some(bundle.server.cert.clone()),
             server_key: Some(bundle.server.key.clone()),
@@ -618,6 +642,10 @@ impl SecuritySpec {
         }
         if self.resumption {
             rule = rule.param("resumption", true);
+        }
+        // Pass through any custom-provider params verbatim.
+        for (k, v) in &self.extra_params {
+            rule = rule.param(k, v.clone());
         }
         // Optimization flags (F1/F2/perf_profile).
         rule.zero_copy = self.zero_copy;
@@ -1183,6 +1211,35 @@ mod tests {
         assert_eq!(json["zero_copy"], true);
         assert_eq!(json["pipe_size"], 65_536);
         assert_eq!(json["perf_profile"], "throughput");
+    }
+
+    #[test]
+    fn custom_provider_flattens_name_and_params() {
+        // The generic `custom` hook: an out-of-tree provider name and its
+        // provider_params must reach the emitted rule verbatim so the SCG (or an
+        // internal build registering that provider) can consume them.
+        let mut params = BTreeMap::new();
+        params.insert(
+            "vendor_key_hex".to_string(),
+            serde_json::Value::String("00112233".to_string()),
+        );
+        params.insert(
+            "vendor_accept_window_ms".to_string(),
+            serde_json::Value::from(60_000),
+        );
+        let spec = SecuritySpec::custom("vendor-udp", "udp", params);
+        let rule = spec.apply_encrypt(RuleConfig::new(
+            "r",
+            "encrypt",
+            "127.0.0.1:1",
+            "127.0.0.1:2",
+        ));
+        let json = serde_json::to_value(&rule).unwrap();
+        assert_eq!(json["security_provider"], "vendor-udp");
+        assert_eq!(json["listen_proto"], "udp");
+        // provider_params are flattened to the rule's top level.
+        assert_eq!(json["vendor_key_hex"], "00112233");
+        assert_eq!(json["vendor_accept_window_ms"], 60_000);
     }
 
     #[test]

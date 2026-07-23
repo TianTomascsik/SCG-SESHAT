@@ -172,6 +172,20 @@ fn validate_scenario(s: &Scenario) -> ScenarioReport {
         ProtocolType::Ipsec => r
             .errors
             .push("protocol.type=ipsec is an SCG stub; set enabled=false (see WP6.1)".to_string()),
+        ProtocolType::Custom => {
+            if s.protocol
+                .security_provider
+                .as_deref()
+                .map(str::trim)
+                .unwrap_or("")
+                .is_empty()
+            {
+                r.errors.push(
+                    "protocol.type=custom requires a non-empty protocol.security_provider"
+                        .to_string(),
+                );
+            }
+        }
         _ => {}
     }
 
@@ -683,6 +697,40 @@ mod tests {
                 ] }"#,
         );
         assert!(!validate(&cfg).ok());
+    }
+
+    #[test]
+    fn custom_provider_accepted_with_name() {
+        // The generic custom hook: a named out-of-tree provider validates.
+        let cfg = parse(
+            r#"{ "suite": { "name": "t", "version": "1" },
+                "scenarios": [
+                  { "name": "custom", "gateway": { "enabled": true },
+                    "protocol": { "type": "custom", "security_provider": "vendor-udp",
+                                  "provider_params": { "k_hex": "0011", "win_ms": 60000 } },
+                    "sender": { "interface": "udp", "target_addr": "127.0.0.1:1" } }
+                ] }"#,
+        );
+        assert!(validate(&cfg).ok());
+    }
+
+    #[test]
+    fn custom_provider_without_name_rejected() {
+        // type=custom requires a non-empty security_provider.
+        let cfg = parse(
+            r#"{ "suite": { "name": "t", "version": "1" },
+                "scenarios": [
+                  { "name": "custom", "gateway": { "enabled": true },
+                    "protocol": { "type": "custom" },
+                    "sender": { "interface": "udp", "target_addr": "127.0.0.1:1" } }
+                ] }"#,
+        );
+        let rep = validate(&cfg);
+        assert!(!rep.ok());
+        assert!(rep.scenarios[0]
+            .errors
+            .iter()
+            .any(|e| e.contains("security_provider")));
     }
 
     /// A syntactically complete multi-stream scenario the stream-validation
