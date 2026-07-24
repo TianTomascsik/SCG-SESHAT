@@ -21,7 +21,7 @@
 # (e.g. 'routing_shmslot|tls13_shmslot|ktls_shmslot').
 set -uo pipefail
 
-SESHAT="${SESHAT:-<repo>/SCG-SESHAT}"
+SESHAT="${SESHAT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 BIN="${SCG_SESHAT_BIN:-$SESHAT/target/release/seshat}"
 FULL="$SESHAT/configs/full_matrix.json"
 FILTER="${SLOT_FILTER:-shmslot}"   # scenario-name substring selecting the slot rows

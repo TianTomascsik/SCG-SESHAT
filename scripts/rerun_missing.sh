@@ -24,7 +24,7 @@
 # skip.csv as "already recorded" and would re-skip these, never retrying them.
 set -uo pipefail
 
-SESHAT="${SESHAT:-<repo>/SCG-SESHAT}"
+SESHAT="${SESHAT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 BIN="${SCG_SESHAT_BIN:-$SESHAT/target/release/seshat}"
 MASTER_CFG="$SESHAT/configs/full_matrix.json"
 
