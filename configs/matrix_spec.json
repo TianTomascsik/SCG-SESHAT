@@ -89,6 +89,25 @@
       "scalability": true
     },
     {
+      "id": "routing_tcp_geodelay",
+      "protocol": {
+        "type": "none",
+        "protection_mode": "routing-only"
+      },
+      "interfaces": [
+        "tcp"
+      ],
+      "chains": [
+        "scg-direct"
+      ],
+      "tiers": [
+        "canonical"
+      ],
+      "optimization_flags": {
+        "simulated_delay_ms": 50
+      }
+    },
+    {
       "id": "tls12_tcp",
       "protocol": {
         "type": "tls",

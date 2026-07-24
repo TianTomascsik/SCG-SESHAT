@@ -282,6 +282,11 @@ pub struct RuleConfig {
     pub bdp_adaptive: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bdp_queue_budget_us: Option<u64>,
+    /// Development-mode simulated per-hop delay in milliseconds. The gateway
+    /// sleeps this long before each upstream send (geo-location / WAN latency
+    /// simulation). Omitted from the emitted JSON when unset (0 is a no-op).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub simulated_delay_ms: Option<u64>,
 }
 
 impl RuleConfig {
@@ -311,6 +316,7 @@ impl RuleConfig {
             busy_poll_us: 0,
             bdp_adaptive: false,
             bdp_queue_budget_us: None,
+            simulated_delay_ms: None,
         }
     }
 

@@ -810,6 +810,11 @@ pub struct OptimizationFlags {
     pub bdp_adaptive: bool,
     /// Target queueing budget for BDP-adaptive sizing.
     pub bdp_queue_budget_us: Option<u64>,
+    /// Development-mode simulated per-hop network delay in milliseconds
+    /// (geo-location / WAN latency simulation). Emitted onto the gateway rule
+    /// as `simulated_delay_ms`; the gateway sleeps this long before each
+    /// upstream send. `None`/`0` is a no-op (the key is omitted).
+    pub simulated_delay_ms: Option<u64>,
     /// Number of buffer slots.
     pub buffer_slots: Option<usize>,
     /// Buffer slot size.

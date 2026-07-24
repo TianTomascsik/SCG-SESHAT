@@ -63,6 +63,37 @@
       }
     },
     {
+      "name": "lat_scg_routing_tcp_1KB_geodelay50",
+      "description": "Dev-mode geo delay: closed-loop RTT through the SCG in plaintext TCP routing with simulated_delay_ms=50. Paired with lat_scg_routing_tcp_1KB_pingpong; the mean round-trip latency must exceed that baseline by ~50 ms, proving the gateway applies the configured per-hop delay (the geo-delay requirement). Measured closed-loop (pingpong) because the delay is a per-send sleep on the relay hot path — an open-loop paced sender would queue behind it (bufferbloat) instead of showing the added per-message latency.",
+      "category": "latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "mode": "pingpong",
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "optimization_flags": { "simulated_delay_ms": 50 },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:12011",
+        "pattern": "sustained"
+      }
+    },
+    {
+      "name": "lat_scg_routing_tcp_1KB_pingpong",
+      "description": "Closed-loop RTT baseline through the SCG in plaintext TCP routing (no geo delay). Reference for lat_scg_routing_tcp_1KB_geodelay50.",
+      "category": "latency",
+      "message_size_bytes": 1024,
+      "connections": 1,
+      "mode": "pingpong",
+      "gateway": { "enabled": true, "chain": "scg-direct" },
+      "protocol": { "type": "none" },
+      "sender": {
+        "interface": "tcp",
+        "target_addr": "127.0.0.1:12012",
+        "pattern": "sustained"
+      }
+    },
+    {
       "name": "lat_scg_tls13_tcp_1KB",
       "description": "One-way latency through the SCG with TLS 1.3 encryption.",
       "category": "latency",

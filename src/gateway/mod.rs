@@ -202,6 +202,9 @@ pub struct SecuritySpec {
     pub busy_poll_us: Option<u32>,
     pub bdp_adaptive: bool,
     pub bdp_queue_budget_us: Option<u64>,
+    /// Development-mode simulated per-hop network delay in milliseconds
+    /// (geo-location / WAN latency simulation). `0` is a no-op.
+    pub simulated_delay_ms: u64,
     /// Extra provider params passed through verbatim for custom (out-of-tree)
     /// crypto providers. Empty for all built-in providers.
     pub extra_params: BTreeMap<String, serde_json::Value>,
@@ -247,6 +250,7 @@ impl std::fmt::Debug for SecuritySpec {
             .field("busy_poll_us", &self.busy_poll_us)
             .field("bdp_adaptive", &self.bdp_adaptive)
             .field("bdp_queue_budget_us", &self.bdp_queue_budget_us)
+            .field("simulated_delay_ms", &self.simulated_delay_ms)
             .field("extra_params", &self.extra_params)
             .finish()
     }
@@ -261,6 +265,7 @@ impl SecuritySpec {
             protocol_version: None,
             verify: None,
             extra_params: BTreeMap::new(),
+            simulated_delay_ms: 0,
             server_name: None,
             server_cert: None,
             server_key: None,
@@ -327,6 +332,7 @@ impl SecuritySpec {
             protocol_version: Some(version.to_string()),
             verify: Some("none".to_string()),
             extra_params: BTreeMap::new(),
+            simulated_delay_ms: 0,
             server_name: None,
             server_cert: Some(cert.to_path_buf()),
             server_key: Some(key.to_path_buf()),
@@ -370,6 +376,7 @@ impl SecuritySpec {
             protocol_version: Some(version.to_string()),
             verify: Some("mutual".to_string()),
             extra_params: BTreeMap::new(),
+            simulated_delay_ms: 0,
             server_name: Some("localhost".to_string()),
             server_cert: Some(bundle.server.cert.clone()),
             server_key: Some(bundle.server.key.clone()),
@@ -413,6 +420,7 @@ impl SecuritySpec {
             protocol_version: Some(version.to_string()),
             verify: Some("none".to_string()),
             extra_params: BTreeMap::new(),
+            simulated_delay_ms: 0,
             server_name: None,
             server_cert: Some(cert.to_path_buf()),
             server_key: Some(key.to_path_buf()),
@@ -456,6 +464,7 @@ impl SecuritySpec {
             protocol_version: Some(version.to_string()),
             verify: Some("mutual".to_string()),
             extra_params: BTreeMap::new(),
+            simulated_delay_ms: 0,
             server_name: Some("localhost".to_string()),
             server_cert: Some(bundle.server.cert.clone()),
             server_key: Some(bundle.server.key.clone()),
@@ -607,6 +616,7 @@ impl SecuritySpec {
         self.busy_poll_us = flags.busy_poll_us;
         self.bdp_adaptive = flags.bdp_adaptive;
         self.bdp_queue_budget_us = flags.bdp_queue_budget_us;
+        self.simulated_delay_ms = flags.simulated_delay_ms.unwrap_or(0);
         self
     }
 
@@ -658,6 +668,9 @@ impl SecuritySpec {
         rule.busy_poll_us = self.busy_poll_us.unwrap_or(0);
         rule.bdp_adaptive = self.bdp_adaptive;
         rule.bdp_queue_budget_us = self.bdp_queue_budget_us;
+        // Dev-mode geo delay: emit the key only when a delay is requested so
+        // baseline rules stay byte-identical to before this knob existed.
+        rule.simulated_delay_ms = (self.simulated_delay_ms > 0).then_some(self.simulated_delay_ms);
         rule
     }
 
@@ -1211,6 +1224,36 @@ mod tests {
         assert_eq!(json["zero_copy"], true);
         assert_eq!(json["pipe_size"], 65_536);
         assert_eq!(json["perf_profile"], "throughput");
+    }
+
+    #[test]
+    fn geo_delay_flag_reaches_emitted_rule() {
+        use crate::config::schema::OptimizationFlags;
+        // A configured dev-mode geo delay must surface as `simulated_delay_ms`
+        // on the emitted rule JSON (this drives the gateway's apply_geo_delay).
+        let flags = OptimizationFlags {
+            simulated_delay_ms: Some(50),
+            ..Default::default()
+        };
+        let spec = SecuritySpec::routing_tcp().with_optimizations(&flags);
+        assert_eq!(spec.simulated_delay_ms, 50);
+        let rule = spec.apply_encrypt(RuleConfig::new(
+            "r",
+            "encrypt",
+            "127.0.0.1:1",
+            "127.0.0.1:2",
+        ));
+        assert_eq!(rule.simulated_delay_ms, Some(50));
+        let json = serde_json::to_value(&rule).unwrap();
+        assert_eq!(json["simulated_delay_ms"], 50);
+
+        // Absent/zero delay must omit the key entirely, keeping baseline rules
+        // byte-identical to before the knob existed.
+        let baseline = SecuritySpec::routing_tcp()
+            .apply_encrypt(RuleConfig::new("r", "encrypt", "127.0.0.1:1", "127.0.0.1:2"));
+        assert_eq!(baseline.simulated_delay_ms, None);
+        let baseline_json = serde_json::to_value(&baseline).unwrap();
+        assert!(baseline_json.get("simulated_delay_ms").is_none());
     }
 
     #[test]
