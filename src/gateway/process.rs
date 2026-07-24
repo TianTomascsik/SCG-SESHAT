@@ -5,6 +5,11 @@
 //! scraping logs), captures stdout/stderr to a log file, and tears the process
 //! down with `SIGTERM` (escalating to `SIGKILL`). The [`Drop`] impl guarantees
 //! the child is killed and the config file removed even on panic.
+//!
+//! The harness passes the generated config with the single-file `--config`
+//! flag. That unsigned flat loader is a development-only build feature of the
+//! gateway (production builds accept only the signed `--config-dir`; SCG-TRA
+//! #87), so the located `gateway` binary must be built with `--features dev`.
 #![allow(dead_code)] // lifecycle surface is consumed across Phase 2 work packages.
 
 use std::fs::{File, OpenOptions};

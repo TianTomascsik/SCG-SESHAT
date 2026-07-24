@@ -34,7 +34,7 @@ command -v python3 >/dev/null 2>&1 || {
 }
 if [[ ! -x "$GATEWAY_BIN" ]]; then
   wg_err "gateway binary not found at $GATEWAY_BIN"
-  wg_err "build it: (cd ../SCG && cargo build --release -p gateway)"
+  wg_err "build it: (cd ../SCG && cargo build --release -p gateway --features dev)"
   exit 2
 fi
 

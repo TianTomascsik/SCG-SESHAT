@@ -96,6 +96,16 @@ The gateway binary is auto-detected from `SCG/gateway/target/{release,debug}` or
 variable. SCG scenarios are skipped (not failed) when no suitable binary or
 `openssl` is available.
 
+> **Build the gateway with `--features dev`.** The harness drives the gateway
+> with the unsigned single-file `--config`, which is a development-only build
+> feature. A default (production) gateway build accepts only the signed
+> `--config-dir` configuration and will refuse the harness's config. Build the
+> gateway you point SESHAT at with:
+>
+> ```bash
+> (cd ../SCG && cargo build --release -p gateway --features dev)
+> ```
+
 ---
 
 ## Quick start
