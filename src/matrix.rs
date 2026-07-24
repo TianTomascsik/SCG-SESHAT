@@ -99,7 +99,20 @@ struct Profile {
     /// flag-less profiles stay byte-for-byte identical.
     #[serde(default)]
     optimization_flags: Value,
+    /// IP address family (`ipv4` / `ipv6`) stamped onto every scenario this
+    /// profile emits, threading through to the gateway path's bind/connect
+    /// addresses. `ipv4` (the default) leaves rows byte-for-byte unchanged;
+    /// `ipv6` stamps `address_family` and rewrites loopback sender targets to
+    /// bracketed `[::1]:port` form. Only meaningful for IP interfaces
+    /// (tcp/udp/tproxy).
+    #[serde(default = "ipv4_family")]
+    address_family: String,
 }
+
+fn ipv4_family() -> String {
+    "ipv4".to_string()
+}
+
 
 fn stream_class() -> String {
     "stream".to_string()
@@ -673,6 +686,7 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
                             ordinal,
                         );
                         stamp_optimization_flags(&mut row, &profile.optimization_flags);
+                        stamp_address_family(&mut row, &profile.address_family);
                         push_unique(&mut scenarios, &mut names, name, row)?;
                     }
                     // Also emit a closed-loop ping-pong LATENCY scenario for this
@@ -708,6 +722,7 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
                         );
                         lat_row["mode"] = Value::String("pingpong".to_string());
                         stamp_optimization_flags(&mut lat_row, &profile.optimization_flags);
+                        stamp_address_family(&mut lat_row, &profile.address_family);
                         push_unique(&mut scenarios, &mut names, lat_name, lat_row)?;
                     }
                 }
@@ -801,6 +816,7 @@ fn expand_smoke(spec: &MatrixSpec) -> Result<Value, Box<dyn std::error::Error>> 
                     ordinal,
                 );
                 stamp_optimization_flags(&mut row, &profile.optimization_flags);
+                stamp_address_family(&mut row, &profile.address_family);
                 push_unique(&mut scenarios, &mut names, name, row)?;
             }
         }
@@ -839,6 +855,7 @@ fn expand_smoke(spec: &MatrixSpec) -> Result<Value, Box<dyn std::error::Error>> 
         );
         row["mode"] = Value::String("pingpong".to_string());
         stamp_optimization_flags(&mut row, &profile.optimization_flags);
+        stamp_address_family(&mut row, &profile.address_family);
         push_unique(&mut scenarios, &mut names, format!("smoke_lat_{id}"), row)?;
     }
 
@@ -1305,6 +1322,36 @@ fn stamp_optimization_flags(row: &mut Value, flags: &Value) {
         if !map.is_empty() {
             if let Some(obj) = row.as_object_mut() {
                 obj.insert("optimization_flags".to_string(), flags.clone());
+            }
+        }
+    }
+}
+
+/// Stamp a profile's IP address `family` onto a generated scenario row.
+///
+/// The default `ipv4` is a no-op so v4 rows stay byte-for-byte identical. For
+/// `ipv6` it inserts `"address_family": "ipv6"` and rewrites an IP sender's
+/// `127.0.0.1:port` loopback target to bracketed `[::1]:port` form so the loaded
+/// scenario validates and drives a v6 path end to end. UDS/SHM targets (which
+/// contain no `127.0.0.1:` prefix) are left untouched.
+fn stamp_address_family(row: &mut Value, family: &str) {
+    if family != "ipv6" {
+        return;
+    }
+    let Some(obj) = row.as_object_mut() else {
+        return;
+    };
+    obj.insert(
+        "address_family".to_string(),
+        Value::String("ipv6".to_string()),
+    );
+    if let Some(sender) = obj.get_mut("sender").and_then(Value::as_object_mut) {
+        if let Some(target) = sender.get("target_addr").and_then(Value::as_str) {
+            if let Some(port) = target.strip_prefix("127.0.0.1:") {
+                sender.insert(
+                    "target_addr".to_string(),
+                    Value::String(format!("[::1]:{port}")),
+                );
             }
         }
     }
@@ -1856,4 +1903,65 @@ mod tests {
         );
         assert!(plain_seen >= 1, "byte-stream profile emits clean rows");
     }
+
+    #[test]
+    fn profile_address_family_is_stamped_only_for_ipv6() {
+        // An `ipv6` profile stamps `address_family` and rewrites its IP sender's
+        // loopback target to bracketed `[::1]:port`; the default-`ipv4` profile
+        // stays byte-for-byte clean (no key, `127.0.0.1` target).
+        let spec: MatrixSpec = serde_json::from_value(json!({
+            "suite": { "name": "x" },
+            "dimensions": {
+                "stream_message_sizes": [64], "datagram_message_sizes": [64],
+                "canonical_connections": [1], "nightly_connections": [1],
+                "scalability_connections": [1], "catalog_connections": [1],
+                "canonical_stream_message_size": 64, "canonical_datagram_message_size": 64
+            },
+            "profiles": [
+                {
+                    "id": "routing_tcp_v6",
+                    "protocol": { "type": "none", "protection_mode": "routing-only" },
+                    "interfaces": ["tcp"], "chains": ["scg-direct"], "tiers": ["nightly"],
+                    "address_family": "ipv6"
+                },
+                {
+                    "id": "routing_tcp",
+                    "protocol": { "type": "none", "protection_mode": "routing-only" },
+                    "interfaces": ["tcp"], "chains": ["scg-direct"], "tiers": ["nightly"]
+                }
+            ],
+            "interface_comparison": { "paths": [{ "id":"tcp", "interface":"tcp", "gateway":false }, { "id":"scg", "interface":"tcp", "gateway":true }], "throughput_message_sizes": [64], "throughput_connections": [1], "latency_message_sizes": [64], "latency_connections": [1] }
+        }))
+        .unwrap();
+        let nightly = expand_profiles(&spec, Tier::Nightly).unwrap();
+        let (mut v6_seen, mut v4_seen) = (0, 0);
+        for row in rows(&nightly) {
+            let name = row["name"].as_str().unwrap_or("");
+            let target = row["sender"]["target_addr"].as_str().unwrap_or("");
+            if name.contains("_v6") {
+                v6_seen += 1;
+                assert_eq!(row["address_family"], "ipv6");
+                assert!(
+                    target.starts_with("[::1]:"),
+                    "ipv6 sender target must be bracketed: {target}"
+                );
+            } else {
+                v4_seen += 1;
+                assert!(
+                    row.get("address_family").is_none(),
+                    "ipv4 profile carries no address_family key: {name}"
+                );
+                assert!(
+                    target.starts_with("127.0.0.1:"),
+                    "ipv4 sender target stays v4: {target}"
+                );
+            }
+        }
+        assert!(
+            v6_seen >= 2,
+            "ipv6 profile emits stamped throughput + latency rows"
+        );
+        assert!(v4_seen >= 1, "ipv4 profile emits clean rows");
+    }
 }
+

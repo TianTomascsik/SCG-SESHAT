@@ -24,6 +24,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU16, AtomicU64, Ordering};
 use std::time::Duration;
 
+use crate::net::AddressFamily;
 use crate::pki::CaBundle;
 
 use config::{ApiConfig, GatewayConfig, RuleConfig};
@@ -90,22 +91,34 @@ pub fn short_runtime_dir(prefix: &str, id: u64) -> io::Result<PathBuf> {
 /// unrelated `:0` binds from ever landing on a reserved port between our probe
 /// and the gateway's rebind.
 pub fn reserve_local_port() -> io::Result<u16> {
+    reserve_local_port_for(AddressFamily::Ipv4)
+}
+
+/// Reserve a loopback port for gateway plumbing on the given address `family`.
+///
+/// Identical to [`reserve_local_port`] but probes bindability on the family's
+/// loopback (`127.0.0.1` for IPv4, `::1` for IPv6) so an IPv6 path never hands
+/// out a port only a v4 socket confirmed. See [`reserve_local_port`] for why
+/// the reserved sub-ephemeral range plus monotonic counter avoids the `:0`
+/// re-handout race.
+pub fn reserve_local_port_for(family: AddressFamily) -> io::Result<u16> {
     /// First port of the reserved range (below the Linux ephemeral floor 32768
     /// and clear of the example configs' 10000–13000 ports).
     const BASE: u16 = 20_000;
     /// Size of the reserved range: 20000..=31999.
     const RANGE: u16 = 12_000;
     static NEXT: AtomicU16 = AtomicU16::new(0);
+    let loopback = family.loopback_ip();
     for _ in 0..RANGE {
         let offset = NEXT.fetch_add(1, Ordering::Relaxed) % RANGE;
         let port = BASE + offset;
-        if let Ok(listener) = TcpListener::bind(("127.0.0.1", port)) {
+        if let Ok(listener) = TcpListener::bind((loopback, port)) {
             drop(listener);
             return Ok(port);
         }
     }
     // Range exhausted (pathological): fall back to an OS-chosen ephemeral port.
-    let listener = TcpListener::bind("127.0.0.1:0")?;
+    let listener = TcpListener::bind((loopback, 0))?;
     Ok(listener.local_addr()?.port())
 }
 
@@ -205,6 +218,9 @@ pub struct SecuritySpec {
     /// Development-mode simulated per-hop network delay in milliseconds
     /// (geo-location / WAN latency simulation). `0` is a no-op.
     pub simulated_delay_ms: u64,
+    /// IP address family (`ipv4` / `ipv6`) for the path's plaintext ingress,
+    /// inter-gateway, and backend addresses. Defaults to IPv4.
+    pub address_family: AddressFamily,
     /// Extra provider params passed through verbatim for custom (out-of-tree)
     /// crypto providers. Empty for all built-in providers.
     pub extra_params: BTreeMap<String, serde_json::Value>,
@@ -251,6 +267,7 @@ impl std::fmt::Debug for SecuritySpec {
             .field("bdp_adaptive", &self.bdp_adaptive)
             .field("bdp_queue_budget_us", &self.bdp_queue_budget_us)
             .field("simulated_delay_ms", &self.simulated_delay_ms)
+            .field("address_family", &self.address_family)
             .field("extra_params", &self.extra_params)
             .finish()
     }
@@ -266,6 +283,7 @@ impl SecuritySpec {
             verify: None,
             extra_params: BTreeMap::new(),
             simulated_delay_ms: 0,
+            address_family: AddressFamily::Ipv4,
             server_name: None,
             server_cert: None,
             server_key: None,
@@ -333,6 +351,7 @@ impl SecuritySpec {
             verify: Some("none".to_string()),
             extra_params: BTreeMap::new(),
             simulated_delay_ms: 0,
+            address_family: AddressFamily::Ipv4,
             server_name: None,
             server_cert: Some(cert.to_path_buf()),
             server_key: Some(key.to_path_buf()),
@@ -377,6 +396,7 @@ impl SecuritySpec {
             verify: Some("mutual".to_string()),
             extra_params: BTreeMap::new(),
             simulated_delay_ms: 0,
+            address_family: AddressFamily::Ipv4,
             server_name: Some("localhost".to_string()),
             server_cert: Some(bundle.server.cert.clone()),
             server_key: Some(bundle.server.key.clone()),
@@ -421,6 +441,7 @@ impl SecuritySpec {
             verify: Some("none".to_string()),
             extra_params: BTreeMap::new(),
             simulated_delay_ms: 0,
+            address_family: AddressFamily::Ipv4,
             server_name: None,
             server_cert: Some(cert.to_path_buf()),
             server_key: Some(key.to_path_buf()),
@@ -465,6 +486,7 @@ impl SecuritySpec {
             verify: Some("mutual".to_string()),
             extra_params: BTreeMap::new(),
             simulated_delay_ms: 0,
+            address_family: AddressFamily::Ipv4,
             server_name: Some("localhost".to_string()),
             server_cert: Some(bundle.server.cert.clone()),
             server_key: Some(bundle.server.key.clone()),
@@ -516,6 +538,14 @@ impl SecuritySpec {
     /// `SO_PRIORITY`, and relay-thread priority.
     pub fn with_traffic_class(mut self, class: &str) -> Self {
         self.traffic_class = class.to_string();
+        self
+    }
+
+    /// Set the IP address family (`ipv4` / `ipv6`) the path's plaintext ingress,
+    /// inter-gateway, and backend addresses are formatted and bound on. UDS/SHM
+    /// paths ignore it.
+    pub fn with_address_family(mut self, family: AddressFamily) -> Self {
+        self.address_family = family;
         self
     }
 
@@ -817,8 +847,9 @@ pub fn build_path(
     backend_addr: &str,
     connections: usize,
 ) -> io::Result<PathPlan> {
-    let ingress = format!("127.0.0.1:{}", reserve_local_port()?);
-    let mid = format!("127.0.0.1:{}", reserve_local_port()?);
+    let family = spec.address_family;
+    let ingress = family.loopback_socket(reserve_local_port_for(family)?);
+    let mid = family.loopback_socket(reserve_local_port_for(family)?);
 
     let (encrypt, decrypt) = build_rule_pair(
         spec,
@@ -878,8 +909,9 @@ pub fn build_multi_class_path(
     let mut decrypts = Vec::with_capacity(class_backends.len());
 
     for (class, backend_addr) in class_backends {
-        let ingress = format!("127.0.0.1:{}", reserve_local_port()?);
-        let mid = format!("127.0.0.1:{}", reserve_local_port()?);
+        let family = spec.address_family;
+        let ingress = family.loopback_socket(reserve_local_port_for(family)?);
+        let mid = family.loopback_socket(reserve_local_port_for(family)?);
         let class_spec = spec.clone().with_traffic_class(class);
         let (encrypt, decrypt) = build_rule_pair(
             &class_spec,
@@ -1310,6 +1342,25 @@ mod tests {
         assert_eq!(plan.gateways[1].config.rules.len(), 1);
         assert_eq!(plan.gateways[0].config.rules[0].direction, "encrypt");
         assert_eq!(plan.gateways[1].config.rules[0].direction, "decrypt");
+    }
+
+    #[test]
+    fn build_path_ipv6_brackets_ingress_and_mid() {
+        // An IPv6 spec formats the reserved loopback ingress/inter-gateway
+        // addresses in bracketed `[::1]:port` form; the caller-supplied backend
+        // is passed through verbatim.
+        let spec = SecuritySpec::routing_tcp().with_address_family(AddressFamily::Ipv6);
+        let plan = build_path(&spec, Topology::SingleGateway, "[::1]:65004", 1).unwrap();
+        assert_eq!(plan.backend_addr, "[::1]:65004");
+        assert!(
+            plan.ingress_addr.starts_with("[::1]:"),
+            "ingress must be a bracketed v6 loopback: {}",
+            plan.ingress_addr
+        );
+        // The reserved ingress/mid addresses must parse as IPv6 socket addrs.
+        let enc = &plan.gateways[0].config.rules[0];
+        assert!(enc.listen_addr.parse::<std::net::SocketAddr>().unwrap().is_ipv6());
+        assert!(enc.upstream_addr.parse::<std::net::SocketAddr>().unwrap().is_ipv6());
     }
 
     #[test]

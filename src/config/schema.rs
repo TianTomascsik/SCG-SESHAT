@@ -15,6 +15,8 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
+pub use crate::net::AddressFamily;
+
 /// Top-level config document.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -203,6 +205,11 @@ pub struct Scenario {
     /// Network topology.
     #[serde(default)]
     pub topology: Topology,
+    /// IP address family (`ipv4` / `ipv6`) for this scenario's IP transports
+    /// (TCP / UDP / TPROXY). Unix-domain and shared-memory interfaces ignore it.
+    /// Defaults to IPv4.
+    #[serde(default)]
+    pub address_family: AddressFamily,
     /// Gateway chaining (direct baseline vs through the SCG).
     #[serde(default)]
     pub gateway: Gateway,

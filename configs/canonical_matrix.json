@@ -4431,6 +4431,194 @@
       }
     },
     {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tcp_v6_tcp_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:18175"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tcp_v6_tcp_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:18176"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tcp_v6_tcp_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:18177"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_tcp_v6_tcp_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:18178"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_routing_udp_v6_udp_1200B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:18179"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_udp_v6_udp_1200B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:18180"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tproxy_v6_tproxy_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:18181"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tproxy_v6_tproxy_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:18182"
+      }
+    },
+    {
       "category": "cipher-matrix",
       "connections": 1,
       "description": "cipher-matrix: SCG scg-direct, tcp/tls1.2, 4096B, 1 conn",
@@ -4451,7 +4639,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18175"
+        "target_addr": "127.0.0.1:18183"
       }
     },
     {
@@ -4477,7 +4665,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18176"
+        "target_addr": "127.0.0.1:18184"
       }
     },
     {
@@ -4501,7 +4689,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18177"
+        "target_addr": "127.0.0.1:18185"
       }
     },
     {
@@ -4527,7 +4715,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18178"
+        "target_addr": "127.0.0.1:18186"
       }
     },
     {
@@ -4551,7 +4739,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18179"
+        "target_addr": "127.0.0.1:18187"
       }
     },
     {
@@ -4576,7 +4764,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18180"
+        "target_addr": "127.0.0.1:18188"
       }
     },
     {
@@ -4601,7 +4789,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18181"
+        "target_addr": "127.0.0.1:18189"
       }
     },
     {
@@ -4627,7 +4815,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18182"
+        "target_addr": "127.0.0.1:18190"
       }
     },
     {
@@ -4653,7 +4841,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18183"
+        "target_addr": "127.0.0.1:18191"
       }
     },
     {
@@ -4676,7 +4864,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18184"
+        "target_addr": "127.0.0.1:18192"
       }
     },
     {
@@ -4699,7 +4887,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18185"
+        "target_addr": "127.0.0.1:18193"
       }
     },
     {
@@ -4722,7 +4910,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18186"
+        "target_addr": "127.0.0.1:18194"
       }
     },
     {
@@ -4746,7 +4934,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18187"
+        "target_addr": "127.0.0.1:18195"
       }
     },
     {
@@ -4770,7 +4958,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-188.sock"
+        "target_addr": "/tmp/seshat-matrix-196.sock"
       }
     },
     {
@@ -4794,7 +4982,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-189"
+        "target_addr": "shm:///seshat-matrix-197"
       }
     },
     {
@@ -4818,7 +5006,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18190"
+        "target_addr": "127.0.0.1:18198"
       }
     },
     {
@@ -4840,7 +5028,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18191"
+        "target_addr": "127.0.0.1:18199"
       }
     },
     {
@@ -4864,7 +5052,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:18192"
+        "target_addr": "127.0.0.1:18200"
       }
     }
   ],

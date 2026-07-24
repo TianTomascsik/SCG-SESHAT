@@ -141579,6 +141579,3621 @@
       }
     },
     {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_tcp_v6_tcp_64B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23631"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64B, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_tcp_v6_tcp_64B_direct_2c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23632"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_tcp_v6_tcp_64B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23633"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64B, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_tcp_v6_tcp_64B_direct_8c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23634"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_tcp_v6_tcp_64B_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23635"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64B, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_tcp_v6_tcp_64B_direct_32c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23636"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_tcp_v6_tcp_64B_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23637"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64B, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_tcp_v6_tcp_64B_direct_256c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23638"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64B, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_tcp_v6_tcp_64B_direct_1024c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23639"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/plain, 64B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tcp_v6_tcp_64B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23640"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/plain, 256B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_tcp_v6_tcp_256B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23641"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/plain, 256B, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_tcp_v6_tcp_256B_direct_2c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23642"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/plain, 256B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_tcp_v6_tcp_256B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23643"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/plain, 256B, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_tcp_v6_tcp_256B_direct_8c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23644"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/plain, 256B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_tcp_v6_tcp_256B_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23645"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/plain, 256B, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_tcp_v6_tcp_256B_direct_32c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23646"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/plain, 256B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_tcp_v6_tcp_256B_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23647"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/plain, 256B, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_tcp_v6_tcp_256B_direct_256c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23648"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/plain, 256B, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_tcp_v6_tcp_256B_direct_1024c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23649"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/plain, 256B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tcp_v6_tcp_256B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23650"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/plain, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_tcp_v6_tcp_1KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23651"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/plain, 1KB, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_tcp_v6_tcp_1KB_direct_2c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23652"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/plain, 1KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_tcp_v6_tcp_1KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23653"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/plain, 1KB, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_tcp_v6_tcp_1KB_direct_8c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23654"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/plain, 1KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_tcp_v6_tcp_1KB_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23655"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/plain, 1KB, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_tcp_v6_tcp_1KB_direct_32c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23656"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/plain, 1KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_tcp_v6_tcp_1KB_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23657"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/plain, 1KB, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_tcp_v6_tcp_1KB_direct_256c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23658"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/plain, 1KB, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_tcp_v6_tcp_1KB_direct_1024c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23659"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/plain, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tcp_v6_tcp_1KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23660"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tcp_v6_tcp_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23661"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/plain, 4096B, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tcp_v6_tcp_4096B_direct_2c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23662"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/plain, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tcp_v6_tcp_4096B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23663"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/plain, 4096B, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tcp_v6_tcp_4096B_direct_8c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23664"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/plain, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tcp_v6_tcp_4096B_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23665"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/plain, 4096B, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tcp_v6_tcp_4096B_direct_32c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23666"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/plain, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tcp_v6_tcp_4096B_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23667"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/plain, 4096B, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tcp_v6_tcp_4096B_direct_256c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23668"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/plain, 4096B, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tcp_v6_tcp_4096B_direct_1024c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23669"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tcp_v6_tcp_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23670"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/plain, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_tcp_v6_tcp_16KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23671"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/plain, 16KB, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_tcp_v6_tcp_16KB_direct_2c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23672"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/plain, 16KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_tcp_v6_tcp_16KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23673"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/plain, 16KB, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_tcp_v6_tcp_16KB_direct_8c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23674"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/plain, 16KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_tcp_v6_tcp_16KB_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23675"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/plain, 16KB, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_tcp_v6_tcp_16KB_direct_32c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23676"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/plain, 16KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_tcp_v6_tcp_16KB_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23677"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/plain, 16KB, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_tcp_v6_tcp_16KB_direct_256c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23678"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/plain, 16KB, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_tcp_v6_tcp_16KB_direct_1024c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23679"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/plain, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tcp_v6_tcp_16KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23680"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_tcp_v6_tcp_64KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23681"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64KB, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_tcp_v6_tcp_64KB_direct_2c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23682"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_tcp_v6_tcp_64KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23683"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64KB, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_tcp_v6_tcp_64KB_direct_8c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23684"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_tcp_v6_tcp_64KB_direct_16c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23685"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64KB, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_tcp_v6_tcp_64KB_direct_32c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23686"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_tcp_v6_tcp_64KB_direct_64c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23687"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64KB, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_tcp_v6_tcp_64KB_direct_256c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23688"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/plain, 64KB, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_tcp_v6_tcp_64KB_direct_1024c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23689"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/plain, 64KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tcp_v6_tcp_64KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23690"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_tcp_v6_tcp_64B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23691"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64B, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_tcp_v6_tcp_64B_direct_2c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23692"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_tcp_v6_tcp_64B_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23693"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64B, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_tcp_v6_tcp_64B_direct_8c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23694"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_tcp_v6_tcp_64B_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23695"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64B, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_tcp_v6_tcp_64B_direct_32c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23696"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_tcp_v6_tcp_64B_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23697"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64B, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_tcp_v6_tcp_64B_direct_256c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23698"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64B, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_tls13_tcp_v6_tcp_64B_direct_1024c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23699"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.3, 64B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_tcp_v6_tcp_64B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23700"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 256B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_tcp_v6_tcp_256B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23701"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 256B, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_tcp_v6_tcp_256B_direct_2c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23702"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 256B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_tcp_v6_tcp_256B_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23703"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 256B, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_tcp_v6_tcp_256B_direct_8c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23704"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 256B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_tcp_v6_tcp_256B_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23705"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 256B, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_tcp_v6_tcp_256B_direct_32c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23706"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 256B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_tcp_v6_tcp_256B_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23707"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 256B, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_tcp_v6_tcp_256B_direct_256c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23708"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 256B, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_tls13_tcp_v6_tcp_256B_direct_1024c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23709"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.3, 256B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_tcp_v6_tcp_256B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23710"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_tcp_v6_tcp_1KB_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23711"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 1KB, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_tcp_v6_tcp_1KB_direct_2c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23712"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 1KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_tcp_v6_tcp_1KB_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23713"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 1KB, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_tcp_v6_tcp_1KB_direct_8c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23714"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 1KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_tcp_v6_tcp_1KB_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23715"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 1KB, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_tcp_v6_tcp_1KB_direct_32c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23716"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 1KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_tcp_v6_tcp_1KB_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23717"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 1KB, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_tcp_v6_tcp_1KB_direct_256c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23718"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 1KB, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_tls13_tcp_v6_tcp_1KB_direct_1024c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23719"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.3, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_tcp_v6_tcp_1KB_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23720"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tcp_v6_tcp_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23721"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tcp_v6_tcp_4096B_direct_2c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23722"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tcp_v6_tcp_4096B_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23723"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tcp_v6_tcp_4096B_direct_8c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23724"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tcp_v6_tcp_4096B_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23725"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tcp_v6_tcp_4096B_direct_32c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23726"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tcp_v6_tcp_4096B_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23727"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tcp_v6_tcp_4096B_direct_256c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23728"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 4096B, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_tls13_tcp_v6_tcp_4096B_direct_1024c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23729"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.3, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_tcp_v6_tcp_4096B_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23730"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_tcp_v6_tcp_16KB_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23731"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 16KB, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_tcp_v6_tcp_16KB_direct_2c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23732"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 16KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_tcp_v6_tcp_16KB_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23733"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 16KB, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_tcp_v6_tcp_16KB_direct_8c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23734"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 16KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_tcp_v6_tcp_16KB_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23735"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 16KB, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_tcp_v6_tcp_16KB_direct_32c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23736"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 16KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_tcp_v6_tcp_16KB_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23737"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 16KB, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_tcp_v6_tcp_16KB_direct_256c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23738"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 16KB, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_tls13_tcp_v6_tcp_16KB_direct_1024c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23739"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.3, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_tcp_v6_tcp_16KB_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23740"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_tcp_v6_tcp_64KB_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23741"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 2,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64KB, 2 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_tcp_v6_tcp_64KB_direct_2c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23742"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_tcp_v6_tcp_64KB_direct_4c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23743"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 8,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64KB, 8 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_tcp_v6_tcp_64KB_direct_8c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23744"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 16,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64KB, 16 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_tcp_v6_tcp_64KB_direct_16c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23745"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 32,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64KB, 32 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_tcp_v6_tcp_64KB_direct_32c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23746"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 64,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64KB, 64 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_tcp_v6_tcp_64KB_direct_64c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23747"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 256,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64KB, 256 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_tcp_v6_tcp_64KB_direct_256c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23748"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1024,
+      "description": "matrix: SCG scg-direct, tcp/tls1.3, 64KB, 1024 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_tls13_tcp_v6_tcp_64KB_direct_1024c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23749"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tcp/tls1.3, 64KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "mode": "pingpong",
+      "name": "matrix_lat_tls13_tcp_v6_tcp_64KB_direct_1c",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {
+        "openssl": true
+      },
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23750"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 64B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_udp_v6_udp_64B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23751"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/plain, 64B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_udp_v6_udp_64B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23752"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 256B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_udp_v6_udp_256B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23753"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/plain, 256B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_udp_v6_udp_256B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23754"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 512B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 512,
+      "name": "matrix_routing_udp_v6_udp_512B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23755"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/plain, 512B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 512,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_udp_v6_udp_512B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23756"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "name": "matrix_routing_udp_v6_udp_1200B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23757"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/plain, 1200B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1200,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_udp_v6_udp_1200B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23758"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 1400B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1400,
+      "name": "matrix_routing_udp_v6_udp_1400B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23759"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/plain, 1400B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1400,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_udp_v6_udp_1400B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23760"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 9000B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 9000,
+      "name": "matrix_routing_udp_v6_udp_9000B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23761"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/plain, 9000B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 9000,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_udp_v6_udp_9000B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23762"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_udp_v6_udp_16KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23763"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/plain, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_udp_v6_udp_16KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23764"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 32KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 32768,
+      "name": "matrix_routing_udp_v6_udp_32KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23765"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/plain, 32KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 32768,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_udp_v6_udp_32KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23766"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, udp/plain, 65507B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65507,
+      "name": "matrix_routing_udp_v6_udp_65507B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23767"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, udp/plain, 65507B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65507,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_udp_v6_udp_65507B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "udp",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23768"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 64B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_tproxy_v6_tproxy_64B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23769"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 64B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "name": "matrix_routing_tproxy_v6_tproxy_64B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23770"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/plain, 64B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 64,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tproxy_v6_tproxy_64B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23771"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 256B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_tproxy_v6_tproxy_256B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23772"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 256B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "name": "matrix_routing_tproxy_v6_tproxy_256B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23773"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/plain, 256B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 256,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tproxy_v6_tproxy_256B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23774"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_tproxy_v6_tproxy_1KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23775"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 1KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "matrix_routing_tproxy_v6_tproxy_1KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23776"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/plain, 1KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tproxy_v6_tproxy_1KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23777"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tproxy_v6_tproxy_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23778"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 4096B, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "name": "matrix_routing_tproxy_v6_tproxy_4096B_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23779"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/plain, 4096B, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 4096,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tproxy_v6_tproxy_4096B_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23780"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_tproxy_v6_tproxy_16KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23781"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 16KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "name": "matrix_routing_tproxy_v6_tproxy_16KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23782"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/plain, 16KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 16384,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tproxy_v6_tproxy_16KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23783"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 1,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 64KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_tproxy_v6_tproxy_64KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23784"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix",
+      "connections": 4,
+      "description": "matrix: SCG scg-direct, tproxy/plain, 64KB, 4 conns",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "name": "matrix_routing_tproxy_v6_tproxy_64KB_direct_4c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23785"
+      }
+    },
+    {
+      "address_family": "ipv6",
+      "category": "matrix-latency",
+      "connections": 1,
+      "description": "matrix-latency: SCG scg-direct, tproxy/plain, 64KB, 1 conn",
+      "gateway": {
+        "chain": "scg-direct",
+        "enabled": true
+      },
+      "message_size_bytes": 65536,
+      "mode": "pingpong",
+      "name": "matrix_lat_routing_tproxy_v6_tproxy_64KB_direct_1c",
+      "protocol": {
+        "protection_mode": "routing-only",
+        "type": "none"
+      },
+      "requirements": {
+        "cap_net_admin": true
+      },
+      "sender": {
+        "interface": "tproxy",
+        "pattern": "sustained",
+        "target_addr": "[::1]:23786"
+      }
+    },
+    {
       "category": "cipher-matrix",
       "connections": 1,
       "description": "cipher-matrix: SCG scg-direct, tcp/tls1.2, 1KB, 1 conn",
@@ -141599,7 +145214,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23631"
+        "target_addr": "127.0.0.1:23787"
       }
     },
     {
@@ -141625,7 +145240,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23632"
+        "target_addr": "127.0.0.1:23788"
       }
     },
     {
@@ -141649,7 +145264,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23633"
+        "target_addr": "127.0.0.1:23789"
       }
     },
     {
@@ -141675,7 +145290,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23634"
+        "target_addr": "127.0.0.1:23790"
       }
     },
     {
@@ -141699,7 +145314,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23635"
+        "target_addr": "127.0.0.1:23791"
       }
     },
     {
@@ -141725,7 +145340,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23636"
+        "target_addr": "127.0.0.1:23792"
       }
     },
     {
@@ -141749,7 +145364,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23637"
+        "target_addr": "127.0.0.1:23793"
       }
     },
     {
@@ -141775,7 +145390,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23638"
+        "target_addr": "127.0.0.1:23794"
       }
     },
     {
@@ -141799,7 +145414,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23639"
+        "target_addr": "127.0.0.1:23795"
       }
     },
     {
@@ -141825,7 +145440,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23640"
+        "target_addr": "127.0.0.1:23796"
       }
     },
     {
@@ -141849,7 +145464,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23641"
+        "target_addr": "127.0.0.1:23797"
       }
     },
     {
@@ -141875,7 +145490,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23642"
+        "target_addr": "127.0.0.1:23798"
       }
     },
     {
@@ -141899,7 +145514,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23643"
+        "target_addr": "127.0.0.1:23799"
       }
     },
     {
@@ -141925,7 +145540,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23644"
+        "target_addr": "127.0.0.1:23800"
       }
     },
     {
@@ -141949,7 +145564,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23645"
+        "target_addr": "127.0.0.1:23801"
       }
     },
     {
@@ -141975,7 +145590,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23646"
+        "target_addr": "127.0.0.1:23802"
       }
     },
     {
@@ -141999,7 +145614,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23647"
+        "target_addr": "127.0.0.1:23803"
       }
     },
     {
@@ -142025,7 +145640,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23648"
+        "target_addr": "127.0.0.1:23804"
       }
     },
     {
@@ -142049,7 +145664,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23649"
+        "target_addr": "127.0.0.1:23805"
       }
     },
     {
@@ -142075,7 +145690,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23650"
+        "target_addr": "127.0.0.1:23806"
       }
     },
     {
@@ -142099,7 +145714,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23651"
+        "target_addr": "127.0.0.1:23807"
       }
     },
     {
@@ -142125,7 +145740,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23652"
+        "target_addr": "127.0.0.1:23808"
       }
     },
     {
@@ -142149,7 +145764,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23653"
+        "target_addr": "127.0.0.1:23809"
       }
     },
     {
@@ -142175,7 +145790,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23654"
+        "target_addr": "127.0.0.1:23810"
       }
     },
     {
@@ -142199,7 +145814,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23655"
+        "target_addr": "127.0.0.1:23811"
       }
     },
     {
@@ -142225,7 +145840,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23656"
+        "target_addr": "127.0.0.1:23812"
       }
     },
     {
@@ -142249,7 +145864,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23657"
+        "target_addr": "127.0.0.1:23813"
       }
     },
     {
@@ -142275,7 +145890,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23658"
+        "target_addr": "127.0.0.1:23814"
       }
     },
     {
@@ -142299,7 +145914,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23659"
+        "target_addr": "127.0.0.1:23815"
       }
     },
     {
@@ -142325,7 +145940,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23660"
+        "target_addr": "127.0.0.1:23816"
       }
     },
     {
@@ -142349,7 +145964,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23661"
+        "target_addr": "127.0.0.1:23817"
       }
     },
     {
@@ -142375,7 +145990,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23662"
+        "target_addr": "127.0.0.1:23818"
       }
     },
     {
@@ -142399,7 +146014,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23663"
+        "target_addr": "127.0.0.1:23819"
       }
     },
     {
@@ -142425,7 +146040,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23664"
+        "target_addr": "127.0.0.1:23820"
       }
     },
     {
@@ -142449,7 +146064,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23665"
+        "target_addr": "127.0.0.1:23821"
       }
     },
     {
@@ -142475,7 +146090,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23666"
+        "target_addr": "127.0.0.1:23822"
       }
     },
     {
@@ -142499,7 +146114,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23667"
+        "target_addr": "127.0.0.1:23823"
       }
     },
     {
@@ -142523,7 +146138,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23668"
+        "target_addr": "127.0.0.1:23824"
       }
     },
     {
@@ -142547,7 +146162,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23669"
+        "target_addr": "127.0.0.1:23825"
       }
     },
     {
@@ -142571,7 +146186,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23670"
+        "target_addr": "127.0.0.1:23826"
       }
     },
     {
@@ -142595,7 +146210,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23671"
+        "target_addr": "127.0.0.1:23827"
       }
     },
     {
@@ -142619,7 +146234,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23672"
+        "target_addr": "127.0.0.1:23828"
       }
     },
     {
@@ -142643,7 +146258,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23673"
+        "target_addr": "127.0.0.1:23829"
       }
     },
     {
@@ -142667,7 +146282,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23674"
+        "target_addr": "127.0.0.1:23830"
       }
     },
     {
@@ -142691,7 +146306,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23675"
+        "target_addr": "127.0.0.1:23831"
       }
     },
     {
@@ -142716,7 +146331,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23676"
+        "target_addr": "127.0.0.1:23832"
       }
     },
     {
@@ -142741,7 +146356,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23677"
+        "target_addr": "127.0.0.1:23833"
       }
     },
     {
@@ -142766,7 +146381,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23678"
+        "target_addr": "127.0.0.1:23834"
       }
     },
     {
@@ -142791,7 +146406,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23679"
+        "target_addr": "127.0.0.1:23835"
       }
     },
     {
@@ -142817,7 +146432,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23680"
+        "target_addr": "127.0.0.1:23836"
       }
     },
     {
@@ -142843,7 +146458,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23681"
+        "target_addr": "127.0.0.1:23837"
       }
     },
     {
@@ -142869,7 +146484,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23682"
+        "target_addr": "127.0.0.1:23838"
       }
     },
     {
@@ -142895,7 +146510,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23683"
+        "target_addr": "127.0.0.1:23839"
       }
     },
     {
@@ -142918,7 +146533,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23684"
+        "target_addr": "127.0.0.1:23840"
       }
     },
     {
@@ -142941,7 +146556,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23685"
+        "target_addr": "127.0.0.1:23841"
       }
     },
     {
@@ -142964,7 +146579,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23686"
+        "target_addr": "127.0.0.1:23842"
       }
     },
     {
@@ -142988,7 +146603,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23687"
+        "target_addr": "127.0.0.1:23843"
       }
     },
     {
@@ -143012,7 +146627,7 @@
       "sender": {
         "interface": "unix",
         "pattern": "sustained",
-        "target_addr": "/tmp/seshat-matrix-5688.sock"
+        "target_addr": "/tmp/seshat-matrix-5844.sock"
       }
     },
     {
@@ -143036,7 +146651,7 @@
       "sender": {
         "interface": "shm",
         "pattern": "sustained",
-        "target_addr": "shm:///seshat-matrix-5689"
+        "target_addr": "shm:///seshat-matrix-5845"
       }
     },
     {
@@ -143060,7 +146675,7 @@
       "sender": {
         "interface": "tproxy",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23690"
+        "target_addr": "127.0.0.1:23846"
       }
     },
     {
@@ -143082,7 +146697,7 @@
       "sender": {
         "interface": "udp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23691"
+        "target_addr": "127.0.0.1:23847"
       }
     },
     {
@@ -143106,7 +146721,7 @@
       "sender": {
         "interface": "tcp",
         "pattern": "sustained",
-        "target_addr": "127.0.0.1:23692"
+        "target_addr": "127.0.0.1:23848"
       }
     }
   ],

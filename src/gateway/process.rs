@@ -274,7 +274,7 @@ fn normalize_probe_addr(listen_addr: &str) -> String {
     if let Some(port) = listen_addr.strip_prefix("0.0.0.0:") {
         format!("127.0.0.1:{port}")
     } else if let Some(port) = listen_addr.strip_prefix("[::]:") {
-        format!("127.0.0.1:{port}")
+        format!("[::1]:{port}")
     } else {
         listen_addr.to_string()
     }
@@ -287,7 +287,8 @@ mod tests {
     #[test]
     fn normalize_wildcard_to_loopback() {
         assert_eq!(normalize_probe_addr("0.0.0.0:9100"), "127.0.0.1:9100");
-        assert_eq!(normalize_probe_addr("[::]:9100"), "127.0.0.1:9100");
+        assert_eq!(normalize_probe_addr("[::]:9100"), "[::1]:9100");
         assert_eq!(normalize_probe_addr("127.0.0.1:9100"), "127.0.0.1:9100");
+        assert_eq!(normalize_probe_addr("[::1]:9100"), "[::1]:9100");
     }
 }

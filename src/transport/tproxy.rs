@@ -19,9 +19,10 @@ use std::time::Duration;
 use super::{tcp, DataSink, DataSource, DuplexEnd, Transport, RECV_POLL_TIMEOUT};
 use crate::gateway::config::{GatewayConfig, RuleConfig};
 use crate::gateway::{
-    build_path, reserve_local_port, start_path, NamedGateway, PathPlan, RunningPath, SecuritySpec,
-    Topology,
+    build_path, reserve_local_port_for, start_path, NamedGateway, PathPlan, RunningPath,
+    SecuritySpec, Topology,
 };
+use crate::net::AddressFamily;
 
 /// The fwmark used by TPROXY iptables rules.
 const TPROXY_MARK: u32 = 0x1;
@@ -63,30 +64,34 @@ pub fn has_cap_net_admin() -> bool {
 struct TproxyRules {
     listen_port: u16,
     gateway_port: u16,
+    family: AddressFamily,
 }
 
 impl TproxyRules {
     /// Set up the full TPROXY recipe — policy route, the `DIVERT` chain for
     /// established flows, and the new-connection redirect — for intercepting
-    /// traffic to `listen_port` and steering it to `gateway_port`.
-    fn setup(listen_port: u16, gateway_port: u16) -> io::Result<Self> {
+    /// traffic to `listen_port` and steering it to `gateway_port` on address
+    /// `family` (IPv4 uses `iptables`/`ip`; IPv6 uses `ip6tables`/`ip -6`).
+    fn setup(listen_port: u16, gateway_port: u16, family: AddressFamily) -> io::Result<Self> {
         // Creating the DIVERT chain is best-effort: a leftover from a crashed
         // run means it already exists (the strict commands below re-flush it).
-        let _ = run_cmd("iptables", &["-t", "mangle", "-N", "DIVERT"]);
-        for cmd in setup_commands(listen_port, gateway_port) {
+        let _ = run_cmd(iptables_bin(family), &["-t", "mangle", "-N", "DIVERT"]);
+        for cmd in setup_commands(listen_port, gateway_port, family) {
             let args: Vec<&str> = cmd.iter().map(String::as_str).collect();
             run_cmd(args[0], &args[1..])?;
         }
         Ok(TproxyRules {
             listen_port,
             gateway_port,
+            family,
         })
     }
 
     /// Remove the iptables/routing rules (reverse order of `setup`).
     fn teardown(&self) {
+        let ipt = iptables_bin(self.family);
         let _ = run_cmd(
-            "iptables",
+            ipt,
             &[
                 "-t",
                 "mangle",
@@ -105,7 +110,7 @@ impl TproxyRules {
             ],
         );
         let _ = run_cmd(
-            "iptables",
+            ipt,
             &[
                 "-t",
                 "mangle",
@@ -119,13 +124,23 @@ impl TproxyRules {
                 "DIVERT",
             ],
         );
-        let _ = run_cmd("iptables", &["-t", "mangle", "-F", "DIVERT"]);
-        let _ = run_cmd("iptables", &["-t", "mangle", "-X", "DIVERT"]);
-        let _ = run_cmd(
-            "ip",
-            &["route", "del", "local", "0/0", "dev", "lo", "table", "100"],
-        );
-        let _ = run_cmd("ip", &["rule", "del", "fwmark", "1", "lookup", "100"]);
+        let _ = run_cmd(ipt, &["-t", "mangle", "-F", "DIVERT"]);
+        let _ = run_cmd(ipt, &["-t", "mangle", "-X", "DIVERT"]);
+        let mut route_del = ip_args(self.family);
+        route_del.extend([
+            "route",
+            "del",
+            "local",
+            local_route_prefix(self.family),
+            "dev",
+            "lo",
+            "table",
+            "100",
+        ]);
+        let _ = run_cmd("ip", &route_del);
+        let mut rule_del = ip_args(self.family);
+        rule_del.extend(["rule", "del", "fwmark", "1", "lookup", "100"]);
+        let _ = run_cmd("ip", &rule_del);
     }
 }
 
@@ -135,29 +150,67 @@ impl Drop for TproxyRules {
     }
 }
 
+/// The `iptables` binary for `family`: `iptables` for IPv4, `ip6tables` for IPv6.
+fn iptables_bin(family: AddressFamily) -> &'static str {
+    if family.is_ipv6() {
+        "ip6tables"
+    } else {
+        "iptables"
+    }
+}
+
+/// The `local` route prefix that catches every marked packet for `family`.
+fn local_route_prefix(family: AddressFamily) -> &'static str {
+    if family.is_ipv6() {
+        "::/0"
+    } else {
+        "0/0"
+    }
+}
+
+/// The `ip` sub-command prefix for `family`: empty for IPv4, `-6` for IPv6.
+/// Returned as owned `&'static str` args so it composes with borrowed literals.
+fn ip_args(family: AddressFamily) -> Vec<&'static str> {
+    if family.is_ipv6() {
+        vec!["-6"]
+    } else {
+        Vec::new()
+    }
+}
+
+
 /// The ordered list of `(program, args…)` commands that install the TPROXY
 /// recipe for `listen_port → gateway_port`. Excludes the best-effort
 /// `iptables -N DIVERT` chain creation (handled separately in [`TproxyRules::setup`]).
 /// Returned as data so the rule set can be asserted without `CAP_NET_ADMIN`.
-fn setup_commands(listen_port: u16, gateway_port: u16) -> Vec<Vec<String>> {
+fn setup_commands(listen_port: u16, gateway_port: u16, family: AddressFamily) -> Vec<Vec<String>> {
     let s = |parts: &[&str]| parts.iter().map(|p| p.to_string()).collect::<Vec<String>>();
     let lp = listen_port.to_string();
     let gp = gateway_port.to_string();
+    let ipt = iptables_bin(family);
+    let prefix = local_route_prefix(family);
+    // `ip rule`/`ip route` need a `-6` after `ip` for IPv6; splice it in.
+    let mut ip_rule = vec!["ip"];
+    ip_rule.extend(ip_args(family));
+    ip_rule.extend(["rule", "add", "fwmark", "1", "lookup", "100"]);
+    let mut ip_route = vec!["ip"];
+    ip_route.extend(ip_args(family));
+    ip_route.extend([
+        "route", "add", "local", prefix, "dev", "lo", "table", "100",
+    ]);
     vec![
         // Policy route: fwmark-1 packets are delivered to the local transparent
         // sockets via a dedicated table.
-        s(&["ip", "rule", "add", "fwmark", "1", "lookup", "100"]),
-        s(&[
-            "ip", "route", "add", "local", "0/0", "dev", "lo", "table", "100",
-        ]),
+        s(&ip_rule),
+        s(&ip_route),
         // DIVERT chain: packets that already belong to an established transparent
         // socket (`-m socket`) are marked and accepted so they reach that socket
         // directly. Without it the redirect intercepts the SYN but the data
         // packets of the established flow are not steered to the gateway socket,
         // so the connection establishes yet zero bytes ever arrive.
-        s(&["iptables", "-t", "mangle", "-F", "DIVERT"]),
+        s(&[ipt, "-t", "mangle", "-F", "DIVERT"]),
         s(&[
-            "iptables",
+            ipt,
             "-t",
             "mangle",
             "-A",
@@ -167,9 +220,9 @@ fn setup_commands(listen_port: u16, gateway_port: u16) -> Vec<Vec<String>> {
             "--set-mark",
             "0x1",
         ]),
-        s(&["iptables", "-t", "mangle", "-A", "DIVERT", "-j", "ACCEPT"]),
+        s(&[ipt, "-t", "mangle", "-A", "DIVERT", "-j", "ACCEPT"]),
         s(&[
-            "iptables",
+            ipt,
             "-t",
             "mangle",
             "-A",
@@ -184,7 +237,7 @@ fn setup_commands(listen_port: u16, gateway_port: u16) -> Vec<Vec<String>> {
         // New connections to <listen_port> are redirected to the gateway's
         // transparent listener on <gateway_port>.
         s(&[
-            "iptables",
+            ipt,
             "-t",
             "mangle",
             "-A",
@@ -218,17 +271,22 @@ fn run_cmd(program: &str, args: &[&str]) -> io::Result<()> {
 /// The original single-hop plan: one transparent `routing` rule that intercepts on
 /// `gw_port` and forwards straight to the plaintext backend. Preserved verbatim for
 /// `routing` single-gateway so the known-good routing_tproxy path is unchanged.
-fn single_transparent_routing_plan(gw_port: u16, backend_addr: &str) -> PathPlan {
+fn single_transparent_routing_plan(
+    gw_port: u16,
+    backend_addr: &str,
+    family: AddressFamily,
+) -> PathPlan {
+    let gw_addr = family.loopback_socket(gw_port);
     let rule = RuleConfig::new(
         "tproxy-encrypt",
         "encrypt",
-        &format!("127.0.0.1:{gw_port}"),
+        &gw_addr,
         backend_addr,
     )
     .security("routing")
     .param("transparent", true);
     PathPlan {
-        ingress_addr: format!("127.0.0.1:{gw_port}"),
+        ingress_addr: gw_addr,
         backend_addr: backend_addr.to_string(),
         gateways: vec![NamedGateway {
             label: "scg".to_string(),
@@ -251,11 +309,12 @@ fn build_transparent_plan(
     connections: usize,
 ) -> io::Result<PathPlan> {
     let mut plan = build_path(spec, topology, backend_addr, connections)?;
+    let gw_addr = spec.address_family.loopback_socket(gw_port);
     let mut retargeted = false;
     for gw in &mut plan.gateways {
         for rule in &mut gw.config.rules {
             if rule.direction == "encrypt" {
-                rule.listen_addr = format!("127.0.0.1:{gw_port}");
+                rule.listen_addr = gw_addr.clone();
                 rule.provider_params
                     .insert("transparent".to_string(), serde_json::Value::Bool(true));
                 retargeted = true;
@@ -320,14 +379,19 @@ impl TproxyTransport {
 
         std::fs::create_dir_all(work_dir)?;
 
+        let family = spec.address_family;
+
         // The "target" address the sender thinks it's connecting to.
-        let target_port = reserve_local_port()?;
-        let target_addr: SocketAddr = format!("127.0.0.1:{target_port}").parse().unwrap();
+        let target_port = reserve_local_port_for(family)?;
+        let target_addr: SocketAddr = family
+            .loopback_socket(target_port)
+            .parse()
+            .map_err(|e| io::Error::other(format!("invalid TPROXY target address: {e}")))?;
         // The gateway's transparent listen port (where TPROXY redirects to).
-        let gw_port = reserve_local_port()?;
+        let gw_port = reserve_local_port_for(family)?;
         // The real backend (plaintext egress).
-        let backend_port = reserve_local_port()?;
-        let backend_addr = format!("127.0.0.1:{backend_port}");
+        let backend_port = reserve_local_port_for(family)?;
+        let backend_addr = family.loopback_socket(backend_port);
         let backend = TcpListener::bind(&backend_addr)?;
         backend.set_nonblocking(true)?;
 
@@ -337,13 +401,13 @@ impl TproxyTransport {
         // rule retargeted transparent so the plaintext backend still terminates the
         // tunnel — see `build_transparent_plan`.
         let plan = if spec.provider == "routing" && matches!(topology, Topology::SingleGateway) {
-            single_transparent_routing_plan(gw_port, &backend_addr)
+            single_transparent_routing_plan(gw_port, &backend_addr, family)
         } else {
             build_transparent_plan(spec, topology, gw_port, &backend_addr, connections)?
         };
 
         // Set up TPROXY iptables rules (redirect <target_port> onto <gw_port>).
-        let rules = TproxyRules::setup(target_port, gw_port)?;
+        let rules = TproxyRules::setup(target_port, gw_port, family)?;
 
         let running = start_path(&plan, binary, work_dir, READY_TIMEOUT, gateway_cores)?;
 
@@ -485,7 +549,7 @@ mod tests {
         let plan = if spec.provider == "routing"
             && matches!(Topology::SingleGateway, Topology::SingleGateway)
         {
-            single_transparent_routing_plan(19001, "127.0.0.1:19002")
+            single_transparent_routing_plan(19001, "127.0.0.1:19002", AddressFamily::Ipv4)
         } else {
             unreachable!()
         };
@@ -546,7 +610,7 @@ mod tests {
 
     #[test]
     fn setup_installs_divert_chain_and_redirect() {
-        let cmds = setup_commands(18001, 18002);
+        let cmds = setup_commands(18001, 18002, AddressFamily::Ipv4);
         let flat: Vec<String> = cmds.iter().map(|c| c.join(" ")).collect();
 
         // Policy route for fwmark-1 (transparent local delivery).
@@ -594,4 +658,56 @@ mod tests {
             "`-m socket` DIVERT must be installed before the TPROXY redirect"
         );
     }
+
+    #[test]
+    fn ipv6_uses_ip6tables_and_v6_policy_route() {
+        let cmds = setup_commands(18001, 18002, AddressFamily::Ipv6);
+        let flat: Vec<String> = cmds.iter().map(|c| c.join(" ")).collect();
+
+        // Policy plumbing goes through `ip -6` and a `::/0` local route.
+        assert!(
+            flat.iter().any(|c| c == "ip -6 rule add fwmark 1 lookup 100"),
+            "missing v6 fwmark policy rule: {flat:?}"
+        );
+        assert!(
+            flat.iter()
+                .any(|c| c == "ip -6 route add local ::/0 dev lo table 100"),
+            "missing v6 local route in table 100: {flat:?}"
+        );
+        // Every packet-filter command must target ip6tables, never iptables.
+        assert!(
+            flat.iter().all(|c| !c.starts_with("iptables ")),
+            "v6 setup must not use iptables: {flat:?}"
+        );
+        assert!(
+            flat.iter().any(|c| c.starts_with("ip6tables ") && c.contains("-j TPROXY")),
+            "missing ip6tables TPROXY redirect: {flat:?}"
+        );
+    }
+
+    #[test]
+    fn ipv6_routing_plan_brackets_the_transparent_listener() {
+        let plan = single_transparent_routing_plan(19001, "[::1]:19002", AddressFamily::Ipv6);
+        let rules = &plan.gateways[0].config.rules;
+        assert_eq!(rules[0].listen_addr, "[::1]:19001");
+        assert_eq!(rules[0].upstream_addr, "[::1]:19002");
+        assert_eq!(plan.ingress_addr, "[::1]:19001");
+    }
+
+    #[test]
+    fn ipv6_crypto_plan_retargets_bracketed_transparent_listener() {
+        let spec = SecuritySpec::tls_server("tls1.3", Path::new("/tmp/c.pem"), Path::new("/tmp/k.pem"))
+            .with_address_family(AddressFamily::Ipv6);
+        let plan =
+            build_transparent_plan(&spec, Topology::SingleGateway, 19010, "[::1]:19011", 1).unwrap();
+        let enc = plan.gateways[0]
+            .config
+            .rules
+            .iter()
+            .find(|r| r.direction == "encrypt")
+            .unwrap();
+        assert_eq!(enc.security_provider, "tls");
+        assert_eq!(enc.listen_addr, "[::1]:19010");
+    }
 }
+

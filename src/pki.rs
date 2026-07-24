@@ -60,7 +60,7 @@ pub fn openssl_available() -> bool {
 }
 
 /// Generate a self-signed EC (P-256) server certificate with SAN
-/// `DNS:localhost, IP:127.0.0.1`, valid for `days`, written under `dir`.
+/// `DNS:localhost, IP:127.0.0.1, IP:::1`, valid for `days`, written under `dir`.
 ///
 /// Suitable for one-way TLS where the client uses `verify=none` or trusts this
 /// certificate directly. Use [`generate_self_signed_with`] to select an RSA key
@@ -70,7 +70,7 @@ pub fn generate_self_signed(dir: &Path, days: u32) -> io::Result<Identity> {
 }
 
 /// Generate a self-signed server certificate with the given key algorithm and
-/// SAN `DNS:localhost, IP:127.0.0.1`, valid for `days`, written under `dir`.
+/// SAN `DNS:localhost, IP:127.0.0.1, IP:::1`, valid for `days`, written under `dir`.
 ///
 /// The key type must match the negotiated cipher suite's authentication: RSA
 /// for `ECDHE-RSA` (TLS 1.2) suites, EC for `ECDHE-ECDSA` and TLS 1.3.
@@ -94,7 +94,7 @@ pub fn generate_self_signed_with(dir: &Path, days: u32, key_type: KeyType) -> io
         "-subj",
         "/CN=localhost",
         "-addext",
-        "subjectAltName=DNS:localhost,IP:127.0.0.1",
+        "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:::1",
     ]);
     run_openssl(&args)?;
     Ok(Identity { cert, key })
@@ -102,7 +102,7 @@ pub fn generate_self_signed_with(dir: &Path, days: u32, key_type: KeyType) -> io
 
 /// Generate a mutual-TLS bundle under `dir`: a self-signed EC (P-256) CA plus a
 /// server identity and a client identity, both signed by that CA. The server
-/// leaf carries SAN `DNS:localhost, IP:127.0.0.1` and `serverAuth` EKU; the
+/// leaf carries SAN `DNS:localhost, IP:127.0.0.1, IP:::1` and `serverAuth` EKU; the
 /// client leaf carries `clientAuth` EKU. Valid for `days`.
 ///
 /// Used for the mTLS path where the decrypt side runs `verify=mutual` against
@@ -204,7 +204,7 @@ fn sign_leaf(
         &ext,
         format!(
             "basicConstraints=CA:FALSE\n\
-             subjectAltName=DNS:localhost,IP:127.0.0.1\n\
+             subjectAltName=DNS:localhost,IP:127.0.0.1,IP:::1\n\
              keyUsage=digitalSignature\n\
              extendedKeyUsage={eku}\n"
         ),

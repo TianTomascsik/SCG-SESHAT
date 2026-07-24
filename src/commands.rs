@@ -1121,6 +1121,7 @@ fn apply_protocol_security_overrides(mut spec: SecuritySpec, scenario: &Scenario
     }
     spec.with_resumption(scenario.protocol.resumption)
         .with_certificate_selection(&scenario.protocol.certificates)
+        .with_address_family(scenario.address_family)
 }
 
 fn build_security_spec(

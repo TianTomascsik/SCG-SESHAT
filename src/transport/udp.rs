@@ -14,15 +14,24 @@ use std::os::unix::io::AsRawFd;
 use super::{
     BatchOutcome, DataSink, DataSource, DuplexEnd, RecvOutcome, Transport, RECV_POLL_TIMEOUT,
 };
+use crate::net::AddressFamily;
 
 /// UDP transport factory.
 pub struct UdpTransport;
 
 /// Build a datagram sink bound to an ephemeral local port and connected to
 /// `target`, so `send` delivers one datagram per message. Used by the
-/// gateway-backed UDP transport to feed the encrypt-rule ingress.
+/// gateway-backed UDP transport to feed the encrypt-rule ingress. The local
+/// socket is bound in the same address family as `target`, so an IPv6 ingress
+/// (`[::1]:port`) gets an IPv6 sender socket rather than failing with
+/// `EAFNOSUPPORT`.
 pub(crate) fn sink_connected_to(target: SocketAddr) -> io::Result<Box<dyn DataSink>> {
-    let sock = UdpSocket::bind("127.0.0.1:0")?;
+    let bind_ip = if target.is_ipv6() {
+        AddressFamily::Ipv6.loopback_ip()
+    } else {
+        AddressFamily::Ipv4.loopback_ip()
+    };
+    let sock = UdpSocket::bind(SocketAddr::new(bind_ip, 0))?;
     sock.connect(target)?;
     Ok(Box::new(UdpSink { sock }))
 }
@@ -397,5 +406,20 @@ mod tests {
         }
         sender.join().unwrap();
         assert!(seen >= total - 2, "received only {seen}/{total} datagrams");
+    }
+
+    #[test]
+    fn sink_connected_to_matches_target_address_family() {
+        // An IPv6 ingress must yield an IPv6-bound sender socket; binding IPv4
+        // and connecting to `[::1]` would fail with EAFNOSUPPORT.
+        let v6_target: SocketAddr = "[::1]:0".parse().unwrap();
+        let v6_server = UdpSocket::bind(v6_target).unwrap();
+        let v6_addr = v6_server.local_addr().unwrap();
+        let sink = sink_connected_to(v6_addr).expect("ipv6 sink should bind");
+        drop(sink);
+
+        let v4_server = UdpSocket::bind("127.0.0.1:0").unwrap();
+        let v4_addr = v4_server.local_addr().unwrap();
+        sink_connected_to(v4_addr).expect("ipv4 sink should bind");
     }
 }

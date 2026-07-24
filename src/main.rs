@@ -12,6 +12,7 @@ mod gateway;
 mod logging;
 mod matrix;
 mod metrics;
+mod net;
 mod pki;
 mod progress;
 mod proto;

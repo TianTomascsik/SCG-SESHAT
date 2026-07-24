@@ -1564,6 +1564,92 @@
       "requirements": [
         "openssl"
       ]
+    },
+    {
+      "id": "routing_tcp_v6",
+      "protocol": {
+        "type": "none",
+        "protection_mode": "routing-only"
+      },
+      "interfaces": [
+        "tcp"
+      ],
+      "chains": [
+        "scg-direct"
+      ],
+      "tiers": [
+        "canonical",
+        "nightly"
+      ],
+      "address_family": "ipv6"
+    },
+    {
+      "id": "tls13_tcp_v6",
+      "protocol": {
+        "type": "tls",
+        "version": "1.3"
+      },
+      "interfaces": [
+        "tcp"
+      ],
+      "chains": [
+        "scg-direct"
+      ],
+      "tiers": [
+        "canonical",
+        "nightly"
+      ],
+      "requirements": [
+        "openssl"
+      ],
+      "address_family": "ipv6"
+    },
+    {
+      "id": "routing_udp_v6",
+      "protocol": {
+        "type": "none",
+        "protection_mode": "routing-only"
+      },
+      "interfaces": [
+        "udp"
+      ],
+      "chains": [
+        "scg-direct"
+      ],
+      "message_class": "datagram",
+      "connections": [
+        1
+      ],
+      "tiers": [
+        "canonical",
+        "nightly"
+      ],
+      "address_family": "ipv6"
+    },
+    {
+      "id": "routing_tproxy_v6",
+      "protocol": {
+        "type": "none",
+        "protection_mode": "routing-only"
+      },
+      "interfaces": [
+        "tproxy"
+      ],
+      "chains": [
+        "scg-direct"
+      ],
+      "connections": [
+        1,
+        4
+      ],
+      "tiers": [
+        "canonical",
+        "nightly"
+      ],
+      "requirements": [
+        "cap_net_admin"
+      ],
+      "address_family": "ipv6"
     }
   ],
   "cipher_matrix": {

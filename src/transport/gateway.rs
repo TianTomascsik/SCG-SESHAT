@@ -37,7 +37,7 @@ use super::{
     RECV_POLL_TIMEOUT,
 };
 use crate::gateway::{
-    add_management_uds_template, build_multi_class_path, build_path, reserve_local_port,
+    add_management_uds_template, build_multi_class_path, build_path, reserve_local_port_for,
     start_multi_class_path, start_path, RunningPath, SecuritySpec, Topology,
 };
 use crate::proto::wire::{encode_message, HEADER_LEN};
@@ -136,7 +136,8 @@ impl GatewayTcpTransport {
 
         // Reserve the backend port, point the decrypt rule at it, then bind the
         // real listener before launching the gateway.
-        let backend_addr = format!("127.0.0.1:{}", reserve_local_port()?);
+        let family = spec.address_family;
+        let backend_addr = family.loopback_socket(reserve_local_port_for(family)?);
         let mut plan = build_path(spec, topology, &backend_addr, connections)?;
         if let Some(app_id) = management_endpoint_app_id {
             add_management_uds_template(&mut plan, app_id)?;
@@ -300,7 +301,8 @@ impl GatewayMultiClassTransport {
         let mut backends = Vec::with_capacity(classes.len());
         let mut class_backends = Vec::with_capacity(classes.len());
         for class in classes {
-            let backend_addr = format!("127.0.0.1:{}", reserve_local_port()?);
+            let family = spec.address_family;
+            let backend_addr = family.loopback_socket(reserve_local_port_for(family)?);
             let backend = TcpListener::bind(&backend_addr)?;
             backend.set_nonblocking(true)?;
             backends.push(backend);
@@ -565,7 +567,8 @@ impl GatewayUdpTransport {
     ) -> io::Result<Self> {
         std::fs::create_dir_all(work_dir)?;
 
-        let backend_addr = format!("127.0.0.1:{}", reserve_local_port()?);
+        let family = spec.address_family;
+        let backend_addr = family.loopback_socket(reserve_local_port_for(family)?);
         let plan = build_path(spec, topology, &backend_addr, connections)?;
         let ingress_addr = plan.ingress_addr.clone();
 
