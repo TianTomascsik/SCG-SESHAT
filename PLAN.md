@@ -59,7 +59,7 @@ are explicitly catalogued/documented rather than misreported.
 5. **Output** → **CSV only** (single format). Raw per-run samples + sysinfo still captured for reproducibility.
 6. **Binary name** → **`seshat`** only (CLI = `run | sender | receiver | report | validate | list | sysinfo | setup | teardown | impair`).
 7. **NFR-PERF (hard requirement)** → the harness must **NEVER** be the bottleneck — only the SCG. SESHAT's sender/receiver must generate + absorb traffic and resolve latency faster than the SCG under test, so every measurement reflects the SCG's limit. Enforced by engineering (batched/vectored I/O, pre-allocated buffers, multi-threaded senders/receivers pinned to cores **separate** from the SCG, immediate recv-timestamping, stats off the hot path) **and** by a mandatory headroom-calibration gate (WP1.7). If `scg-client`'s simple sync `send`/`recv` can't keep up, drop to `scg-ipc` rings/framing directly with batching.
-8. **vendor-udp** → **EXCLUDED** (not in the public repo; not benchmarked).
+8. **Proprietary vendor providers** → **EXCLUDED** (out of scope for the open harness; not benchmarked).
 
 ---
 

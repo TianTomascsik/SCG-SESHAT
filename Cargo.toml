@@ -2,8 +2,12 @@
 name = "seshat"
 version = "0.1.0"
 edition = "2021"
-description = "SESHAT — SCG benchmark harness (new generation, work in progress)"
-license = "Apache-2.0"
+description = "SESHAT — benchmark harness for the Secure Communication Gateway (SCG)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/TianTomascsik/SCG-SESHAT"
+readme = "README.md"
+authors = ["Tian Tomascsik <tian.tomascsik@gmail.com>"]
+publish = false
 
 # Detach from any parent workspace so this can be split into its own repo cleanly.
 [workspace]

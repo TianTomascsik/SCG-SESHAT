@@ -7,9 +7,9 @@ project. It spawns the *real* `gateway` binary, drives traffic through it
 end-to-end across every transport and crypto mode the SCG supports, and emits
 reproducible, spreadsheet-ready CSV results.
 
-It is the next-generation replacement for the legacy benchmark orchestration in
-[`SCG-Interface-benchmarks`](../SCG-Interface-benchmarks) (loose scripts,
-container compose files, and ad-hoc visualization).
+It is the next-generation replacement for the project's earlier ad-hoc
+benchmark orchestration (loose scripts, container compose files, and ad-hoc
+visualization).
 
 A central design rule (**NFR-PERF**) is that *the harness must never be the
 bottleneck* — only the SCG under test. Every measurement is gated by a
@@ -547,8 +547,9 @@ How it maps to the gateway config:
   work and route through the same custom provider.
 
 This keeps proprietary provider *names and parameters* out of the open harness:
-the hook is generic, and the specifics live only in your own suite JSON (see the
-internal `your own internal suite` repo for a worked vendor-udp example).
+the hook is generic, and the specifics live only in your own suite JSON. A
+worked example is the `custom` scenario in `src/config/mod.rs`'s tests, which
+drives an out-of-tree `vendor-udp` provider purely through `provider_params`.
 
 ---
 
@@ -704,13 +705,18 @@ PLAN.md                     implementation plan + progress
 
 ## Relationship to other repos
 
-- **System under test:** [`SCG`](../SCG) — the gateway binary and its
-  `scg-client` / `scg-ipc` / `scg-proto` crates.
-- **Legacy harness it replaces:**
-  [`SCG-Interface-benchmarks`](../SCG-Interface-benchmarks).
+- **System under test:** [`SCG`](https://github.com/TianTomascsik/SCG) — the
+  gateway binary and its `scg-client` / `scg-ipc` / `scg-proto` crates. A
+  sibling checkout at `../SCG` is the default the harness probes for the
+  gateway binary; `SCG_GATEWAY_BIN` overrides it.
 
 ---
 
 ## License
 
-Apache-2.0 (see [LICENSE](LICENSE)).
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT license ([LICENSE-MIT](LICENSE-MIT))
+
+at your option.

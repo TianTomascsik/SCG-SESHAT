@@ -28,11 +28,16 @@ WG_TUN_A="10.0.0.1"
 WG_TUN_B="10.0.0.2"
 WG_TUN_PREFIX="24"
 
-# X25519 test keypairs (NOT secret). Gateway A pairs with Gateway B.
-WG_PRIV_A="YIU06CCTQAWakOr4BzFQm12PHbSrbLS6AoHXwYRzf2s="
-WG_PUB_A="9ZbRNWy7qc+1SSM04oB0lsbRwi6JxBypHIJ+pDYuOyI="
-WG_PRIV_B="KIfGAY5onof5FlOhwqH83HbK00vFrhq/Za5thhxOYVQ="
-WG_PUB_B="E8wSpx1wNz0iDPMOswelLLwGrXSaWkZN+zhuve7QUEo="
+# X25519 test keypairs (NOT secret; throwaway). Generated fresh with
+# `wg genkey` when this file is sourced, unless the caller pins WG_PRIV_A /
+# WG_PRIV_B in the environment (e.g. to keep one pair across a sweep).
+# Public keys are always derived from the private keys, so A pairs with B.
+if command -v wg >/dev/null 2>&1; then
+  WG_PRIV_A="${WG_PRIV_A:-$(wg genkey)}"
+  WG_PUB_A="$(printf '%s' "$WG_PRIV_A" | wg pubkey)"
+  WG_PRIV_B="${WG_PRIV_B:-$(wg genkey)}"
+  WG_PUB_B="$(printf '%s' "$WG_PRIV_B" | wg pubkey)"
+fi
 
 wg_info() { printf '[wg] %s\n' "$*"; }
 wg_err() { printf '[wg] ERROR: %s\n' "$*" >&2; }
