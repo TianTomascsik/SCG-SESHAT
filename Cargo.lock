@@ -958,6 +958,7 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 [[package]]
 name = "scg-client"
 version = "0.1.0"
+source = "git+https://github.com/TianTomascsik/SCG.git?tag=v0.1.0#c5af563aac77eb09dd9f9e09916dc9a89c9173a3"
 dependencies = [
  "cbindgen",
  "hyper-util",
@@ -974,6 +975,7 @@ dependencies = [
 [[package]]
 name = "scg-ipc"
 version = "0.1.0"
+source = "git+https://github.com/TianTomascsik/SCG.git?tag=v0.1.0#c5af563aac77eb09dd9f9e09916dc9a89c9173a3"
 dependencies = [
  "libc",
 ]
@@ -981,6 +983,7 @@ dependencies = [
 [[package]]
 name = "scg-proto"
 version = "0.1.0"
+source = "git+https://github.com/TianTomascsik/SCG.git?tag=v0.1.0#c5af563aac77eb09dd9f9e09916dc9a89c9173a3"
 dependencies = [
  "prost",
  "tonic",
