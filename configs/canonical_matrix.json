@@ -5054,6 +5054,30 @@
         "pattern": "sustained",
         "target_addr": "127.0.0.1:18200"
       }
+    },
+    {
+      "category": "unsupported",
+      "connections": 1,
+      "description": "unsupported: SCG scg-scg, tcp/tls1.3, 1KB, 1 conn",
+      "disabled_reason": "A two-host measurement needs a second physical machine on an Ethernet link plus root for tc and tcpdump, so it cannot run in the unified seshat suite: build_path() binds the ingress and the inter-gateway mid hop on loopback (src/gateway/mod.rs), and the decisive artefact is a far-side packet capture, which no harness code produces. It is benchmarked by the privileged scripts/wire_bench.sh orchestration (peer side scripts/wire_peer.sh), mirroring how the WireGuard provider is handled. Note the wire path is mutual-TLS only: the gateway's M-13 check makes verify != mutual a hard validation error once the decrypt listener is non-loopback, so an unauthenticated wire deployment is refused by construction.",
+      "enabled": false,
+      "gateway": {
+        "chain": "scg-scg",
+        "enabled": true
+      },
+      "message_size_bytes": 1024,
+      "name": "blocked_remote_two_host_wire",
+      "protocol": {
+        "mutual_auth": true,
+        "type": "tls",
+        "version": "1.3"
+      },
+      "requirements": {},
+      "sender": {
+        "interface": "tcp",
+        "pattern": "sustained",
+        "target_addr": "127.0.0.1:18201"
+      }
     }
   ],
   "suite": {

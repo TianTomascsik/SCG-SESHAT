@@ -172,19 +172,17 @@ fn validate_scenario(s: &Scenario) -> ScenarioReport {
         ProtocolType::Ipsec => r
             .errors
             .push("protocol.type=ipsec is an SCG stub; set enabled=false (see WP6.1)".to_string()),
-        ProtocolType::Custom => {
+        ProtocolType::Custom
             if s.protocol
                 .security_provider
                 .as_deref()
                 .map(str::trim)
                 .unwrap_or("")
-                .is_empty()
-            {
-                r.errors.push(
-                    "protocol.type=custom requires a non-empty protocol.security_provider"
-                        .to_string(),
-                );
-            }
+                .is_empty() =>
+        {
+            r.errors.push(
+                "protocol.type=custom requires a non-empty protocol.security_provider".to_string(),
+            );
         }
         _ => {}
     }

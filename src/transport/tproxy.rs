@@ -178,7 +178,6 @@ fn ip_args(family: AddressFamily) -> Vec<&'static str> {
     }
 }
 
-
 /// The ordered list of `(program, args…)` commands that install the TPROXY
 /// recipe for `listen_port → gateway_port`. Excludes the best-effort
 /// `iptables -N DIVERT` chain creation (handled separately in [`TproxyRules::setup`]).
@@ -195,9 +194,7 @@ fn setup_commands(listen_port: u16, gateway_port: u16, family: AddressFamily) ->
     ip_rule.extend(["rule", "add", "fwmark", "1", "lookup", "100"]);
     let mut ip_route = vec!["ip"];
     ip_route.extend(ip_args(family));
-    ip_route.extend([
-        "route", "add", "local", prefix, "dev", "lo", "table", "100",
-    ]);
+    ip_route.extend(["route", "add", "local", prefix, "dev", "lo", "table", "100"]);
     vec![
         // Policy route: fwmark-1 packets are delivered to the local transparent
         // sockets via a dedicated table.
@@ -277,14 +274,9 @@ fn single_transparent_routing_plan(
     family: AddressFamily,
 ) -> PathPlan {
     let gw_addr = family.loopback_socket(gw_port);
-    let rule = RuleConfig::new(
-        "tproxy-encrypt",
-        "encrypt",
-        &gw_addr,
-        backend_addr,
-    )
-    .security("routing")
-    .param("transparent", true);
+    let rule = RuleConfig::new("tproxy-encrypt", "encrypt", &gw_addr, backend_addr)
+        .security("routing")
+        .param("transparent", true);
     PathPlan {
         ingress_addr: gw_addr,
         backend_addr: backend_addr.to_string(),
@@ -666,7 +658,8 @@ mod tests {
 
         // Policy plumbing goes through `ip -6` and a `::/0` local route.
         assert!(
-            flat.iter().any(|c| c == "ip -6 rule add fwmark 1 lookup 100"),
+            flat.iter()
+                .any(|c| c == "ip -6 rule add fwmark 1 lookup 100"),
             "missing v6 fwmark policy rule: {flat:?}"
         );
         assert!(
@@ -680,7 +673,8 @@ mod tests {
             "v6 setup must not use iptables: {flat:?}"
         );
         assert!(
-            flat.iter().any(|c| c.starts_with("ip6tables ") && c.contains("-j TPROXY")),
+            flat.iter()
+                .any(|c| c.starts_with("ip6tables ") && c.contains("-j TPROXY")),
             "missing ip6tables TPROXY redirect: {flat:?}"
         );
     }
@@ -696,10 +690,11 @@ mod tests {
 
     #[test]
     fn ipv6_crypto_plan_retargets_bracketed_transparent_listener() {
-        let spec = SecuritySpec::tls_server("tls1.3", Path::new("/tmp/c.pem"), Path::new("/tmp/k.pem"))
-            .with_address_family(AddressFamily::Ipv6);
-        let plan =
-            build_transparent_plan(&spec, Topology::SingleGateway, 19010, "[::1]:19011", 1).unwrap();
+        let spec =
+            SecuritySpec::tls_server("tls1.3", Path::new("/tmp/c.pem"), Path::new("/tmp/k.pem"))
+                .with_address_family(AddressFamily::Ipv6);
+        let plan = build_transparent_plan(&spec, Topology::SingleGateway, 19010, "[::1]:19011", 1)
+            .unwrap();
         let enc = plan.gateways[0]
             .config
             .rules
@@ -710,4 +705,3 @@ mod tests {
         assert_eq!(enc.listen_addr, "[::1]:19010");
     }
 }
-

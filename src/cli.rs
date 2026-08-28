@@ -134,6 +134,31 @@ pub enum Command {
     Impair(ImpairArgs),
     /// Generate the declarative benchmark matrix suites.
     Matrix(MatrixArgs),
+    /// Mint a mutual-TLS bundle (CA + server + client) for a benchmark path.
+    Pki(PkiArgs),
+}
+
+/// Arguments for `seshat pki`.
+///
+/// Exists for the two-host wire benchmark, which is script-orchestrated but
+/// must not hand-roll its own `openssl` invocation: the gateway's M-13 check
+/// makes `verify: mutual` mandatory on a non-loopback decrypt listener, so both
+/// ends need CA-signed identities whose SANs cover the addresses actually
+/// dialled. Emitting them here keeps one PKI implementation.
+#[derive(Debug, clap::Args)]
+pub struct PkiArgs {
+    /// Directory to write `ca.crt`, `server.crt/key` and `client.crt/key` into.
+    #[arg(long)]
+    pub out: PathBuf,
+    /// Certificate validity. Keep this short: a benchmark bundle is single-use
+    /// material that leaves the host, not a long-lived credential.
+    #[arg(long, default_value_t = 2)]
+    pub days: u32,
+    /// Extra subjectAltName entries for the **server** leaf, in `TYPE:value`
+    /// form (e.g. `IP:10.9.0.2`). Repeatable. The loopback SANs are always
+    /// present, so omitting this reproduces the single-host bundle exactly.
+    #[arg(long = "san")]
+    pub sans: Vec<String>,
 }
 
 /// Matrix-generation command group.

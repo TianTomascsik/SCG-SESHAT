@@ -210,6 +210,17 @@ pub trait DataSource: Send {
             RecvOutcome::Closed => Ok(BatchOutcome::Closed),
         }
     }
+    /// Receive the next complete message and, when this transport can observe
+    /// it, the IP TOS byte of the packet that carried it.
+    ///
+    /// Datagram transports override this with an `IP_RECVTOS` `recvmsg` (see
+    /// [`crate::workload::dscp::recv_one_with_tos`]). The default delegates to
+    /// [`Self::recv_msg`] and reports `None`: Linux delivers TOS ancillary data
+    /// only for datagram sockets, so a stream transport must report the mark as
+    /// unobserved rather than fabricate a verdict.
+    fn recv_msg_with_tos(&mut self, buf: &mut [u8]) -> io::Result<(RecvOutcome, Option<u8>)> {
+        Ok((self.recv_msg(buf)?, None))
+    }
     /// Return the underlying OS file descriptor, if applicable. Used for
     /// DSCP/TOS verification via `recvmsg` ancillary data.
     fn raw_fd(&self) -> Option<i32> {

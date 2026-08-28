@@ -17,8 +17,8 @@ pub mod logscan;
 pub mod process;
 pub mod reload;
 
-use std::io;
 use std::collections::BTreeMap;
+use std::io;
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU16, AtomicU64, Ordering};
@@ -331,7 +331,11 @@ impl SecuritySpec {
     /// `security_provider`; `params` become flattened `provider_params`. This is
     /// the generic escape hatch that lets internal/proprietary providers be
     /// benchmarked without teaching SESHAT their specifics.
-    pub fn custom(provider: &str, proto: &str, params: BTreeMap<String, serde_json::Value>) -> Self {
+    pub fn custom(
+        provider: &str,
+        proto: &str,
+        params: BTreeMap<String, serde_json::Value>,
+    ) -> Self {
         SecuritySpec {
             provider: provider.to_string(),
             proto: proto.to_string(),
@@ -1281,8 +1285,12 @@ mod tests {
 
         // Absent/zero delay must omit the key entirely, keeping baseline rules
         // byte-identical to before the knob existed.
-        let baseline = SecuritySpec::routing_tcp()
-            .apply_encrypt(RuleConfig::new("r", "encrypt", "127.0.0.1:1", "127.0.0.1:2"));
+        let baseline = SecuritySpec::routing_tcp().apply_encrypt(RuleConfig::new(
+            "r",
+            "encrypt",
+            "127.0.0.1:1",
+            "127.0.0.1:2",
+        ));
         assert_eq!(baseline.simulated_delay_ms, None);
         let baseline_json = serde_json::to_value(&baseline).unwrap();
         assert!(baseline_json.get("simulated_delay_ms").is_none());
@@ -1359,8 +1367,16 @@ mod tests {
         );
         // The reserved ingress/mid addresses must parse as IPv6 socket addrs.
         let enc = &plan.gateways[0].config.rules[0];
-        assert!(enc.listen_addr.parse::<std::net::SocketAddr>().unwrap().is_ipv6());
-        assert!(enc.upstream_addr.parse::<std::net::SocketAddr>().unwrap().is_ipv6());
+        assert!(enc
+            .listen_addr
+            .parse::<std::net::SocketAddr>()
+            .unwrap()
+            .is_ipv6());
+        assert!(enc
+            .upstream_addr
+            .parse::<std::net::SocketAddr>()
+            .unwrap()
+            .is_ipv6());
     }
 
     #[test]

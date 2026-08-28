@@ -20,11 +20,18 @@
 //! ## DSCP
 //! When a stream declares a DSCP tag the sender marks its own socket via
 //! `IP_TOS`, so the class's ingress leg carries the tag, and the gateway marks
-//! its egress legs from the rule's traffic class. End-to-end *verification* of
-//! those marks is future work: the TCP data path cannot observe a peer's DS
-//! field from userspace (`IP_RECVTOS` ancillary data is datagram-only), so
-//! [`StreamResult::dscp_preserved`] stays `None` rather than fabricating a
-//! verdict. A UDP multi-stream path or a pcap-based checker could fill it in.
+//! its egress legs from the rule's traffic class.
+//!
+//! Verification of those marks is **datagram-only**: Linux delivers
+//! `IP_RECVTOS` ancillary data for datagram sockets, so a UDP stream enables it
+//! on the receive socket and checks every measured packet, while a TCP stream
+//! cannot observe a peer's DS field from userspace at all. Accordingly
+//! [`StreamResult::dscp_preserved`] is `Some(bool)` on the UDP path and stays
+//! `None` on the TCP path, rather than fabricating a verdict.
+//!
+//! What that verdict covers is the leg the harness terminates — the gateway's
+//! egress towards this sink. It does **not** cover the inter-gateway hop, whose
+//! DS field is only visible to a packet capture on the far side.
 
 use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -77,9 +84,11 @@ pub struct StreamResult {
     pub send_lag_mean_us: f64,
     /// Worst-case send-side wake-up lag behind schedule (µs).
     pub send_lag_max_us: f64,
-    /// Whether DSCP was preserved end-to-end. Always `None` on the TCP path
-    /// (unobservable from userspace — see the module docs); kept for a future
-    /// UDP or pcap-based verifier rather than fabricating a verdict.
+    /// Whether every measured packet reached this sink carrying the declared
+    /// DSCP value. `Some` on datagram transports, and always `None` on the TCP
+    /// path, where the DS field is unobservable from userspace (see the module
+    /// docs) — never a fabricated verdict. Covers the gateway's egress leg to
+    /// this sink, not the inter-gateway hop.
     pub dscp_preserved: Option<bool>,
 }
 
@@ -135,6 +144,36 @@ impl MultiStreamResult {
     }
 }
 
+/// Per-stream tally of DS-field marks actually seen on received packets.
+///
+/// Only datagram transports can populate this: Linux delivers `IP_RECVTOS`
+/// ancillary data for datagram sockets only, so on the TCP path nothing is ever
+/// observed and the verdict stays `None`.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+struct DscpObservation {
+    /// Received packets whose TOS byte the kernel reported.
+    observed: u64,
+    /// Of those, packets carrying the expected DSCP value.
+    matched: u64,
+}
+
+impl DscpObservation {
+    /// Record one observation against the expected DSCP value.
+    fn record(&mut self, tos: u8, expected: u8) {
+        self.observed = self.observed.saturating_add(1);
+        if dscp::tos_to_dscp(tos) == expected {
+            self.matched = self.matched.saturating_add(1);
+        }
+    }
+
+    /// `Some(true)` when every observed packet carried the expected mark,
+    /// `Some(false)` when at least one did not, and `None` when the field was
+    /// never observable — never a fabricated verdict.
+    fn verdict(self) -> Option<bool> {
+        (self.observed > 0).then_some(self.matched == self.observed)
+    }
+}
+
 /// Run multiple streams concurrently through the provided transport pairs.
 ///
 /// Each element of `pairs` is a `(sink, source)` already connected through the
@@ -167,33 +206,77 @@ pub fn run_multi_stream(
         // gateway marks its legs from the rule's traffic class; this covers
         // the harness→gateway hop so the whole path carries the declared tag.
         // Best-effort: a failed mark must not break the data path.
-        if let (Some(dscp), Some(fd)) = (cfg.dscp_tag, sink.raw_fd()) {
-            if let Err(e) = dscp::set_dscp(fd, dscp) {
+        match (cfg.dscp_tag, sink.raw_fd()) {
+            (Some(dscp), Some(fd)) => {
+                if let Err(e) = dscp::set_dscp(fd, dscp) {
+                    log::warn!(
+                        "stream '{}': could not set DSCP {} on sender socket: {e}",
+                        cfg.name,
+                        dscp
+                    );
+                }
+            }
+            (Some(dscp), None) => {
+                // A tagged stream whose sink hides its descriptor would be
+                // marked nowhere at all, silently. Say so rather than reporting
+                // a class that never carried its tag.
                 log::warn!(
-                    "stream '{}': could not set DSCP {} on sender socket: {e}",
+                    "stream '{}': DSCP {} requested but this transport exposes no \
+                     socket to mark; the ingress leg will carry no tag",
                     cfg.name,
                     dscp
                 );
             }
+            (None, _) => {}
         }
 
         // Receiver thread — collects metrics during the measure window.
         let recv_stop = Arc::clone(&stop);
         let recv_measuring = Arc::clone(&measuring);
         let recv_cores = cfg.receiver_cores.clone();
+        let expect_dscp = cfg.dscp_tag;
+        let recv_name = cfg.name.clone();
         let recv_handle = thread::Builder::new()
             .name(format!("stream-rx-{}", cfg.name))
             .spawn(move || {
                 if !recv_cores.is_empty() {
                     crate::run::affinity::pin_current_thread(&recv_cores);
                 }
+                // Ingress DSCP observation, when the stream declares a tag and
+                // the transport is a datagram socket. Enabling `IP_RECVTOS`
+                // fails on stream sockets, and that failure is the signal to
+                // leave the verdict unobserved rather than guess at it.
+                let observe_dscp = match (expect_dscp, source.raw_fd()) {
+                    (Some(_), Some(fd)) => match dscp::enable_recvtos(fd) {
+                        Ok(()) => true,
+                        Err(e) => {
+                            log::debug!(
+                                "stream '{recv_name}': DSCP preservation not observable \
+                                 on this transport ({e}); leaving the verdict unset"
+                            );
+                            false
+                        }
+                    },
+                    _ => false,
+                };
                 let mut buf = vec![0u8; msg_bytes + 64];
                 let mut metrics = FlowMetrics::new();
+                let mut dscp_seen = DscpObservation::default();
                 while !recv_stop.load(Ordering::Relaxed) {
-                    match source.recv_msg(&mut buf) {
-                        Ok(RecvOutcome::Message(n)) => {
+                    // Only the observing path pays for `recvmsg`; every other
+                    // stream keeps the exact receive syscall it had before.
+                    let step = if observe_dscp {
+                        source.recv_msg_with_tos(&mut buf)
+                    } else {
+                        source.recv_msg(&mut buf).map(|o| (o, None))
+                    };
+                    match step {
+                        Ok((RecvOutcome::Message(n), tos)) => {
                             let recv_ns = monotonic_ns();
                             if recv_measuring.load(Ordering::Relaxed) {
+                                if let (Some(expected), Some(tos)) = (expect_dscp, tos) {
+                                    dscp_seen.record(tos, expected);
+                                }
                                 if n != msg_bytes {
                                     metrics.record_boundary_violation();
                                 }
@@ -202,13 +285,13 @@ pub fn run_multi_stream(
                                 }
                             }
                         }
-                        Ok(RecvOutcome::Timeout) => continue,
-                        Ok(RecvOutcome::Closed) => break,
+                        Ok((RecvOutcome::Timeout, _)) => continue,
+                        Ok((RecvOutcome::Closed, _)) => break,
                         Err(_) => break,
                     }
                 }
                 source.close();
-                metrics
+                (metrics, dscp_seen)
             })?;
 
         // Sender thread — deadline-paced (CO-corrected stamps) or blast.
@@ -285,7 +368,7 @@ pub fn run_multi_stream(
         let lag: SendLag = send_handle
             .join()
             .map_err(|_| io::Error::other(format!("stream '{}' sender panicked", cfg.name)))?;
-        let mut metrics: FlowMetrics = recv_handle
+        let (mut metrics, dscp_seen): (FlowMetrics, DscpObservation) = recv_handle
             .join()
             .map_err(|_| io::Error::other(format!("stream '{}' receiver panicked", cfg.name)))?;
         metrics.set_duration(measure_duration.as_secs_f64());
@@ -299,9 +382,9 @@ pub fn run_multi_stream(
             paced: cfg.interval_us.is_some(),
             send_lag_mean_us: lag.mean_us(),
             send_lag_max_us: lag.max_us(),
-            // TCP path: unobservable from userspace, so honestly unchecked
-            // (see the module docs) instead of a fabricated boolean.
-            dscp_preserved: None,
+            // Measured on datagram transports; `None` on the TCP path, where
+            // the DS field is unobservable from userspace (see the module docs).
+            dscp_preserved: dscp_seen.verdict(),
         });
     }
 
@@ -311,7 +394,7 @@ pub fn run_multi_stream(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transport::{tcp::TcpTransport, Transport};
+    use crate::transport::{tcp::TcpTransport, udp::UdpTransport, Transport};
 
     fn stream_cfg(name: &str, class: &str, interval_us: Option<u64>) -> StreamConfig {
         StreamConfig {
@@ -369,6 +452,57 @@ mod tests {
 
         // TCP path never fabricates a DSCP verdict.
         assert!(result.streams.iter().all(|s| s.dscp_preserved.is_none()));
+    }
+
+    #[test]
+    fn dscp_observation_never_fabricates_a_verdict() {
+        // Nothing observed (the TCP path) stays unset rather than defaulting.
+        assert_eq!(DscpObservation::default().verdict(), None);
+
+        let mut all_marked = DscpObservation::default();
+        all_marked.record(dscp::dscp_to_tos(46), 46);
+        all_marked.record(dscp::dscp_to_tos(46), 46);
+        assert_eq!(all_marked.verdict(), Some(true));
+
+        // A single stripped or rewritten mark fails the whole stream.
+        let mut one_stripped = DscpObservation::default();
+        one_stripped.record(dscp::dscp_to_tos(46), 46);
+        one_stripped.record(dscp::dscp_to_tos(0), 46);
+        assert_eq!(one_stripped.verdict(), Some(false));
+
+        // ECN bits live in the low two bits and must not affect the verdict.
+        let mut with_ecn = DscpObservation::default();
+        with_ecn.record(dscp::dscp_to_tos(46) | 0b11, 46);
+        assert_eq!(with_ecn.verdict(), Some(true));
+    }
+
+    /// The datagram path *can* observe the DS field, so a UDP stream declaring
+    /// EF must come back with a real `Some(true)` rather than the TCP path's
+    /// permanent `None`.
+    #[test]
+    fn udp_stream_observes_the_declared_dscp_mark() {
+        let transport = UdpTransport;
+        let pairs = vec![transport.loopback_pair(256).expect("udp pair")];
+        let configs = vec![stream_cfg("safety-0", "safety", Some(1_000))];
+
+        let result = run_multi_stream(
+            &configs,
+            pairs,
+            Duration::from_millis(100),
+            Duration::from_millis(400),
+        )
+        .expect("multi-stream run");
+
+        let stream = &result.streams[0];
+        assert!(
+            stream.summary.messages > 0,
+            "no datagrams arrived, so the DSCP verdict would be vacuous"
+        );
+        assert_eq!(
+            stream.dscp_preserved,
+            Some(true),
+            "UDP loopback delivers IP_RECVTOS, so the declared EF mark must be observed"
+        );
     }
 
     /// Safety aggregates key on the canonical class label.

@@ -19,3 +19,18 @@ perf-data/
 results-ab/
 
 results/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Wire-campaign outputs
+peer-out/
+peer-bundle/
+
+# Editor / local
+*.bak
+*.orig
+*~
+.idea/
+.vscode/

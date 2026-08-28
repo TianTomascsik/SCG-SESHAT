@@ -8,12 +8,15 @@
 //! DSCP occupies bits 2–7 of the IP TOS byte (the 6 most-significant bits of
 //! the DS field). The low 2 bits are ECN and ignored for DSCP purposes.
 //!
-//! Future work: the `IP_RECVTOS` observation helpers (`enable_recvtos`,
-//! `recv_one_with_tos`, `get_tos`) are currently unused — Linux only delivers
-//! ancillary TOS data for datagram sockets, so the TCP multi-stream path
-//! cannot verify DSCP preservation end-to-end from userspace and must not
-//! fabricate a verdict (see `workload::streams`). They are kept for a future
-//! UDP multi-stream or pcap-based verifier.
+//! Linux only delivers ancillary TOS data for **datagram** sockets, so DSCP
+//! preservation is observable from userspace on the UDP path and not on the TCP
+//! one. `enable_recvtos` + `recv_one_with_tos` back that observation for
+//! datagram transports (see [`crate::transport::DataSource::recv_msg_with_tos`]
+//! and `workload::streams`); a stream transport reports "unobserved" rather than
+//! fabricating a verdict. Verifying the mark on the *inter-gateway* hop, rather
+//! than on the harness leg, still needs a packet capture.
+//!
+//! `get_tos` reads back a socket's own outgoing TOS and has no caller yet.
 #![allow(dead_code)]
 
 use std::io;
@@ -140,8 +143,12 @@ pub fn get_tos(fd: i32) -> io::Result<u8> {
 /// Receive one packet from `fd` via `recvmsg` and extract the IP TOS byte from
 /// the `IP_RECVTOS` ancillary data. `IP_RECVTOS` must already be enabled on `fd`.
 ///
-/// Returns `(bytes_read, tos_byte)` on success.
-pub fn recv_one_with_tos(fd: i32, buf: &mut [u8]) -> io::Result<(usize, u8)> {
+/// Returns `(bytes_read, Some(tos_byte))` when the kernel delivered a TOS
+/// control message, and `(bytes_read, None)` when it did not — which happens on
+/// a socket where `IP_RECVTOS` is not (or cannot be) enabled. The distinction
+/// matters: a missing cmsg must never be reported as a TOS byte of zero, or a
+/// caller comparing against an expected DSCP would record a fabricated mismatch.
+pub fn recv_one_with_tos(fd: i32, buf: &mut [u8]) -> io::Result<(usize, Option<u8>)> {
     // cmsg buffer: big enough for one IP_TOS cmsg (1 byte payload).
     let mut cmsg_buf = [0u8; 64];
 
@@ -170,8 +177,8 @@ pub fn recv_one_with_tos(fd: i32, buf: &mut [u8]) -> io::Result<(usize, u8)> {
         return Err(io::Error::last_os_error());
     }
 
-    // Walk cmsg headers looking for IP_TOS.
-    let mut tos: u8 = 0;
+    // Walk cmsg headers looking for IP_TOS. Absent means "not observed".
+    let mut tos: Option<u8> = None;
     // SAFETY: `msg` was just populated by a successful `recvmsg`, so its control
     // buffer and `msg_controllen` describe valid kernel-written cmsg data. Each
     // `cmsg` returned by `CMSG_FIRSTHDR`/`CMSG_NXTHDR` is either null (loop exits)
@@ -183,7 +190,7 @@ pub fn recv_one_with_tos(fd: i32, buf: &mut [u8]) -> io::Result<(usize, u8)> {
         while !cmsg.is_null() {
             if (*cmsg).cmsg_level == libc::IPPROTO_IP && (*cmsg).cmsg_type == libc::IP_TOS {
                 let data_ptr = libc::CMSG_DATA(cmsg);
-                tos = *data_ptr;
+                tos = Some(*data_ptr);
                 break;
             }
             cmsg = libc::CMSG_NXTHDR(&msg, cmsg);

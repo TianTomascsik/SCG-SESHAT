@@ -151,6 +151,13 @@ impl DataSink for UdpSink {
     }
 
     fn close(&mut self) {}
+
+    /// Exposed so a multi-stream run can stamp `IP_TOS` on the sending socket.
+    /// Without this the sink reported no descriptor and the DSCP mark was
+    /// silently skipped on the whole datagram path.
+    fn raw_fd(&self) -> Option<i32> {
+        Some(self.sock.as_raw_fd())
+    }
 }
 
 struct UdpSource {
@@ -232,6 +239,30 @@ impl DataSource for UdpSource {
             *slot = hdrs[i].msg_len as usize;
         }
         Ok(BatchOutcome::Messages(count))
+    }
+
+    /// Datagram receive that also reports the packet's IP TOS byte, so a
+    /// multi-stream run can verify the DSCP mark survived the path.
+    ///
+    /// The TOS is `None` unless `IP_RECVTOS` was enabled on this socket
+    /// (`crate::workload::dscp::enable_recvtos`); the caller treats that as
+    /// "unobserved" rather than as a zero mark. Timeout mapping matches
+    /// [`Self::recv_msg`] so the run-phase flag is still polled.
+    fn recv_msg_with_tos(&mut self, buf: &mut [u8]) -> io::Result<(RecvOutcome, Option<u8>)> {
+        match crate::workload::dscp::recv_one_with_tos(self.sock.as_raw_fd(), buf) {
+            Ok((n, tos)) => Ok((RecvOutcome::Message(n), tos)),
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    io::ErrorKind::WouldBlock
+                        | io::ErrorKind::TimedOut
+                        | io::ErrorKind::Interrupted
+                ) =>
+            {
+                Ok((RecvOutcome::Timeout, None))
+            }
+            Err(e) => Err(e),
+        }
     }
 
     fn close(&mut self) {}

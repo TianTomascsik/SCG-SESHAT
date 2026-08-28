@@ -59,7 +59,32 @@ pub fn dispatch(command: Command) -> CmdResult {
         Command::Teardown(args) => teardown(args),
         Command::Impair(args) => impair(args),
         Command::Matrix(args) => matrix(args),
+        Command::Pki(args) => pki(args),
     }
+}
+
+/// Mint a mutual-TLS bundle for a benchmark path (see [`crate::cli::PkiArgs`]).
+fn pki(args: crate::cli::PkiArgs) -> CmdResult {
+    if !crate::pki::openssl_available() {
+        return Err("the openssl CLI is required to mint a benchmark PKI bundle".into());
+    }
+    let bundle = crate::pki::generate_mtls_bundle_with_sans(&args.out, args.days, &args.sans)?;
+    // Private keys leave this host for the peer, so do not leave them
+    // group/other readable — the gateway's own KC-01 check warns on that.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        for key in [&bundle.server.key, &bundle.client.key] {
+            std::fs::set_permissions(key, std::fs::Permissions::from_mode(0o600))?;
+        }
+    }
+    console::line(&format!(
+        "wrote mutual-TLS bundle to {} (valid {} day(s), {} extra server SAN(s))",
+        args.out.display(),
+        args.days,
+        args.sans.len()
+    ));
+    Ok(())
 }
 
 /// Expand the versioned matrix source into the committed benchmark suites.

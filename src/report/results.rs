@@ -892,7 +892,10 @@ fn analytical_overhead(scenario: &Scenario, params: &RunParams) -> Option<u32> {
                 TlsVersion::V1_0 | TlsVersion::V1_2 => EncapProfile::Tls12Gcm,
             },
             ProtocolType::Dtls => return None,
-            ProtocolType::None | ProtocolType::Wireguard | ProtocolType::Ipsec | ProtocolType::Custom => EncapProfile::Tcp,
+            ProtocolType::None
+            | ProtocolType::Wireguard
+            | ProtocolType::Ipsec
+            | ProtocolType::Custom => EncapProfile::Tcp,
         },
     };
     Some(compute_overhead(profile).total)

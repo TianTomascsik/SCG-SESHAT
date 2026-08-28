@@ -113,7 +113,6 @@ fn ipv4_family() -> String {
     "ipv4".to_string()
 }
 
-
 fn stream_class() -> String {
     "stream".to_string()
 }
@@ -1964,4 +1963,3 @@ mod tests {
         assert!(v4_seen >= 1, "ipv4 profile emits clean rows");
     }
 }
-
