@@ -5,7 +5,7 @@
 //! all latency math on a single host. Wall-clock `CLOCK_REALTIME` is only used
 //! for human-facing run timestamps / result-directory names.
 //!
-//! Consumed by the workload/metrics engine in later phases.
+//! Consumed by the workload/metrics engine.
 #![allow(dead_code)]
 
 /// Read `CLOCK_MONOTONIC` as nanoseconds.

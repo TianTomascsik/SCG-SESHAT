@@ -7,9 +7,9 @@ project. It spawns the *real* `gateway` binary, drives traffic through it
 end-to-end across every transport and crypto mode the SCG supports, and emits
 reproducible, spreadsheet-ready CSV results.
 
-It is the next-generation replacement for the project's earlier ad-hoc
-benchmark orchestration (loose scripts, container compose files, and ad-hoc
-visualization).
+It orchestrates everything end to end: it generates gateway configurations,
+spawns and tears down real gateway processes, drives calibrated load through
+them, and reports every metric with provenance.
 
 A central design rule (**NFR-PERF**) is that *the harness must never be the
 bottleneck* — only the SCG under test. Every measurement is gated by a
@@ -20,8 +20,8 @@ result it reports.
 
 ## Status
 
-SESHAT is under active development. The implemented surface already drives real
-end-to-end benchmarks; the remaining work is tracked in [PLAN.md](PLAN.md).
+SESHAT drives real end-to-end benchmarks across the full interface × protocol
+matrix below.
 
 | Area | State |
 | --- | --- |
@@ -137,6 +137,16 @@ Ready-made configs ship in [`configs/`](configs):
   for the privileged WireGuard harness (see the WireGuard section below).
 - [`configs/matrix_spec.json`](configs/matrix_spec.json) — declarative source
   for all generated matrix suites; regenerate with `seshat matrix generate`.
+- [`configs/profile_regression.json`](configs/profile_regression.json) — the
+  fixed cells `scripts/perf_gate.sh` compares against its baselines.
+- [`configs/shm_zerocopy.json`](configs/shm_zerocopy.json) — SHM zero-copy vs
+  copy-path A/B cells.
+- [`configs/qos_isolation.json`](configs/qos_isolation.json) — multi-stream QoS
+  isolation (safety-class latency under bulk load).
+- [`configs/udp_baseline.json`](configs/udp_baseline.json) — plaintext UDP
+  loopback baselines.
+- [`configs/datagram_encrypted_paced.json`](configs/datagram_encrypted_paced.json)
+  — paced (sub-saturation) encrypted datagram cells for large sizes.
 - [`configs/canonical_matrix.json`](configs/canonical_matrix.json) — compact
   generated default protocol/transport matrix.
 - [`configs/full_matrix.json`](configs/full_matrix.json) — generated nightly
@@ -188,7 +198,7 @@ Ready-made configs ship in [`configs/`](configs):
 ## Benchmark matrix and measurements
 
 A full evaluation runs straight from the binary — build once, then run the
-`suite` subcommand (this replaces the old `run_all.sh` wrapper):
+`suite` subcommand:
 
 ```bash
 cargo build --release                              # build seshat (and ../SCG gateway)
@@ -220,7 +230,7 @@ for the full per-run/calibration/result detail, `--describe` to show each
 scenario's one-line description, or `--quiet` for warnings plus the final report
 only (also the non-TTY/CI default). These global flags apply to `run` too.
 
-The safety-isolation unit checks (formerly `run_all.sh --safety-tests`) run as
+The safety-isolation unit checks run as
 plain `cargo test`.
 
 ### What is measured
@@ -354,6 +364,32 @@ metadata lives in [`configs/wireguard.json`](configs/wireguard.json). On Arch:
 > network namespace that SESHAT's in-process gateway launcher does not yet set up,
 > and (b) the standalone `seshat sender`/`receiver` are TCP-only.
 
+### Two-host wire benchmark
+
+The single-host suite runs everything on loopback, which cannot show that a
+DSCP mark survives a physical interface or that a real queueing discipline
+acts on it. The `scripts/wire_*.sh` orchestration closes that gap with two
+machines on a point-to-point Ethernet link (privileged; catalogued as a
+`blocked_*` limitation row in the generated matrices):
+
+```bash
+# host B (the peer / decrypt end), from the peer-bundle/ dir wire_bench.sh emits:
+./wire_peer.sh --local-ip 10.9.0.2 --dev <NIC> --capture
+
+# host A (the instrumented side):
+scripts/wire_bench.sh --mode loopback                 # baseline half
+scripts/wire_bench.sh --mode wire --peer 10.9.0.2 --dev <NIC>
+
+# afterwards: copy the peer's peer-out/ back to host A and merge the far-side
+# records (delivered goodput, loss, DSCP verdict) into the wire summary CSV
+# (writes wire_summary_merged.csv next to the original):
+python3 scripts/merge_peer_out.py --results-dir <run-dir> --peer-out <copied-peer-out-dir>
+```
+
+Shared tunables (ports, message shapes, sweep grid) live in
+`scripts/wire_env.sh`; `scripts/wire_probe.py` is the traffic source/sink both
+sides use.
+
 ### Focused suites
 
 | Suite | Scenarios and purpose |
@@ -378,7 +414,7 @@ The global `--verbose`/`--describe`/`--quiet` flags control the console view for
 | Command | Purpose | State |
 | --- | --- | --- |
 | `run` | Execute a single config's benchmark suite | ✅ |
-| `suite` | Run a whole evaluation tier (many configs) + overview; replaces `run_all.sh` | ✅ |
+| `suite` | Run a whole evaluation tier (many configs) + consolidated overview | ✅ |
 | `validate` | Parse + validate a config, report errors, do not run | ✅ |
 | `list` | Expand and list every scenario with its parameters | ✅ |
 | `calibrate` | Sweep the harness null-loopback throughput ceiling | ✅ |
@@ -387,6 +423,8 @@ The global `--verbose`/`--describe`/`--quiet` flags control the console view for
 | `setup` / `teardown` | Create/remove a `veth`/`netns` topology | ✅ |
 | `impair` | Apply `tc netem` latency/loss/jitter to an interface | ✅ |
 | `report` | Re-generate CSV from an existing result directory | ✅ |
+| `matrix` | Regenerate the generated matrix suites from `configs/matrix_spec.json` (`seshat matrix generate`) | ✅ |
+| `pki` | Mint a benchmark CA + client/server certificates (used by the wire scripts) | ✅ |
 
 Key `run` flags (all optional; they override config `defaults`):
 
@@ -443,9 +481,9 @@ fail fast at `validate` time.
 | `protocol` | Security / app-protocol configuration (see below) |
 | `gateway` | `{ "enabled": true, "chain": "scg-direct" \| "scg-scg" }` |
 | `topology` | Network topology (loopback by default) |
-| `streams` | Multi-stream definition for scheduling scenarios | ✅ |
-| `reload_event` | Hot-reload event (SIGHUP mid-measurement) | ✅ |
-| `optimization_flags` | SCG perf toggles — zero-copy, spin-wait, … | ✅ |
+| `streams` | Multi-stream definition for scheduling scenarios |
+| `reload_event` | Hot-reload event (SIGHUP mid-measurement) |
+| `optimization_flags` | SCG perf toggles — zero-copy, spin-wait, … |
 | `runs` / `duration_secs` / `warmup_secs` / `cooldown_secs` | Per-scenario overrides |
 
 ### Traffic modes
@@ -631,47 +669,16 @@ number reflects the gateway's limit. This is enforced two ways:
    across more cores than the two-thread probe. Run the probe standalone with
    `seshat calibrate` (`--warmup`, `--probes` match the in-suite gate).
 
-### Harness fast-path engineering (2026-07)
+### Harness fast-path engineering
 
-Before this pass, half the nightly matrix was flagged `harness_limited`
-because the harness itself was syscall- and validation-bound. What changed:
-
-| Improvement | Before | After |
-| --- | --- | --- |
-| **Stream batch send** — TCP/UDS (and the gateway/TPROXY paths built on them) push whole batches with one size-adaptive `writev` (up to 1024 messages / 256 KiB per call); stream `send_batch` returns only at message boundaries so a short write can never desynchronise the stream | 1 `write()` syscall per message | 1 syscall per ≤1024 messages |
-| **Cursor-based frame reassembly** — `FramedReader` keeps read/write cursors over one fixed buffer and compacts with a single memmove per buffer-full; `recv_batch` carves every complete message one `read` yielded | `Vec::drain` memmove **per message** (O(n²) per read burst), 1 message per `recv_batch` | 1 memmove per buffer-full, one syscall drained into up to 1024 messages |
-| **Block-wise payload integrity** — the deterministic fill/verify pattern is cyclic with period 256, so both run as 256-byte block copies/compares against a static ramp table | per-byte function call on **every** payload byte | memcpy/memcmp-class |
-| **UDS client batching** (`scg-client`) — vectored `writev` of ≤512 frames (header+payload iovec pairs) and a buffered `FrameDecoder` receive | 2 `write` syscalls + 1 heap allocation per frame | 1 syscall per ≤512 frames, allocation-free receive |
-
-Measured effect on the harness's own single-connection loopback ceiling
-(the NFR-PERF reference, this host): **64 B: 0.14 → ~9 Gbit/s (~62×) ·
-1 KiB: 2.0 → ~41 Gbit/s · 4 KiB: 12 → ~49 Gbit/s · 16 KiB: 13 → ~51 Gbit/s.**
-Consequently, previously harness-throttled gateway rows roughly doubled to
-sextupled (e.g. routing 4 KiB single-connection 6.5 → ~42 Gbit/s), and all
-TLS/kTLS/mTLS/integrity/cipher rows now clear the 3× headroom gate.
-
-**Is a batched load generator still representative?** Yes — for what each
-mode claims to measure:
-
-* **Blast/throughput rows are capacity measurements.** Like `iperf3`/`pktgen`,
-  the generator's job is to offer *more* than the DUT can handle so the number
-  reflects the gateway's limit; batching is how every serious load generator
-  achieves that. What the SCG sees is unchanged in kind: the same byte stream
-  on TCP/UDS (frame layout byte-identical), the same discrete datagrams on
-  UDP/DTLS (`sendmmsg` preserves PDU boundaries, and was already in use). The
-  batched single connection stands in for the aggregate of many clients — the
-  load a gateway is actually sized for.
-* **Application-representative modes are deliberately NOT batched.** Paced /
-  periodic senders (the ETCS-like low-rate traffic model) still send exactly
-  one message per schedule tick through `send_msg`, preserving per-message
-  timing and coordinated-omission correction; ping-pong RTT keeps one message
-  in flight; connection-rate churns real handshakes. Latency figures come from
-  these modes, not from blast rows.
-* **Stated caveat:** on blast rows the gateway's ingress sees fewer, larger
-  reads than a naïve one-`write()`-per-message application would produce, so
-  per-wakeup gateway overheads are amortised — the correct condition for a
-  capacity ceiling, but a single unbatched legacy client would offer less load
-  (documented in `docs/methodology.md`).
+The load-generation fast path batches aggressively (vectored `writev` sends,
+cursor-based frame reassembly, block-wise payload verification) so the harness
+is never the bottleneck; the before/after numbers are recorded in
+[CHANGELOG.md](CHANGELOG.md). Why a batched generator remains representative —
+and for exactly which metrics — is treated in
+[docs/methodology.md](docs/methodology.md) (limitations §4.10): throughput rows
+are capacity measurements, while latency/ETCS-like modes deliberately stay
+one-message-per-event.
 
 ---
 
@@ -697,8 +704,7 @@ src/report/                 CSV writer + result-directory tree
 src/sysinfo.rs              host fingerprint
 src/{console,logging,time}.rs   support
 configs/                    example suites + suites.json tier manifest
-benchmark_features.md       feature specification (F-01..F-20)
-PLAN.md                     implementation plan + progress
+docs/methodology.md         measurement methodology & validity notes
 ```
 
 ---

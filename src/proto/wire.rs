@@ -21,7 +21,7 @@
 //! reference UB while pinning an exact byte layout.
 //!
 //! These are the wire primitives consumed by the workload sender/receiver and
-//! metrics engine in later phases, so `dead_code` is allowed for now.
+//! metrics engine, so `dead_code` is allowed on the unused remainder.
 #![allow(dead_code)]
 
 use crate::time::monotonic_ns;

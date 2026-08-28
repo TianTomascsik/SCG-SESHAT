@@ -171,7 +171,7 @@ fn validate_scenario(s: &Scenario) -> ScenarioReport {
         }
         ProtocolType::Ipsec => r
             .errors
-            .push("protocol.type=ipsec is an SCG stub; set enabled=false (see WP6.1)".to_string()),
+            .push("protocol.type=ipsec is an SCG stub; set enabled=false".to_string()),
         ProtocolType::Custom
             if s.protocol
                 .security_provider

@@ -1,4 +1,4 @@
-//! gRPC management client for the SCG gateway (WP2.2).
+//! gRPC management client for the SCG gateway.
 //!
 //! Wraps [`scg_client`] to provision/close UDS and SHM endpoints and probe
 //! gateway health via the management API. A lightweight facade so the rest of

@@ -1,4 +1,4 @@
-//! Multi-stream scheduling & prioritization (WP3.2).
+//! Multi-stream scheduling & prioritization.
 //!
 //! Manages N concurrent traffic streams through the gateway, each with its own
 //! traffic class, DSCP tag, and pacing. Each stream runs through the gateway

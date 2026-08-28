@@ -151,7 +151,7 @@ if [ -z "$GW" ] && [ -n "$SCG_DIR" ] && [ "${SKIP_BUILD:-0}" != "1" ]; then
   log "Building SCG gateway (release)"
   # The harness drives the gateway with the unsigned single-file --config, which
   # is a dev-only build feature (production builds accept only signed
-  # --config-dir; SCG-TRA #87). Build with --features dev so the gateway accepts
+  # --config-dir). Build with --features dev so the gateway accepts
   # the generated config.
   if ( cd "$SCG_DIR" && cargo build --release -p gateway --features dev --quiet ) 2>/dev/null && [ -x "$SCG_DIR/target/release/gateway" ]; then
     GW="$SCG_DIR/target/release/gateway"; GW_TARGET_DIR="$SCG_DIR/target"

@@ -1,5 +1,5 @@
 //! SHM transport via the SCG gateway's gRPC-provisioned shared-memory interface
-//! (WP2.4).
+//!.
 //!
 //! The gateway exposes shared-memory ring endpoints that are dynamically created
 //! through the management API. A client connects via a control socket, presents

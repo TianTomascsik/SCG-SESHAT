@@ -8,9 +8,8 @@
 //! than failing, because this also runs inside minimal containers.
 //!
 //! The same [`SysInfo`] is rendered as a human table for the `sysinfo`
-//! subcommand and serialized into each result directory in later phases.
+//! subcommand and serialized into each result directory.
 
-use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 
@@ -384,7 +383,7 @@ fn git_short_hash(dir: &str) -> Option<String> {
 
 /// Reproducibility/measurement-quality warnings for the current host. Empty when
 /// the environment is well-controlled. Surfaced as `WARN` logs before a run so a
-/// thesis result is never silently taken on a turbo-enabled, on-demand-governed
+/// publishable result is never silently taken on a turbo-enabled, on-demand-governed
 /// box where per-run clocks (and thus latency/throughput) drift.
 pub fn preflight_warnings(info: &SysInfo) -> Vec<String> {
     let mut warns = Vec::new();
@@ -518,22 +517,6 @@ fn collect_nics() -> Vec<Nic> {
         });
     }
     nics
-}
-
-/// Compact one-line summary used in run headers and CSV metadata.
-// Consumed by the run engine / reporting in a later phase (WP1.6).
-#[allow(dead_code)]
-pub fn summary_line(info: &SysInfo) -> String {
-    let mut s = String::new();
-    let _ = write!(
-        s,
-        "{} | {} | {} cores | {}",
-        info.cpu_model,
-        info.kernel,
-        info.cpu_logical,
-        fmt_mem(info.mem_total_kb)
-    );
-    s
 }
 
 #[cfg(test)]

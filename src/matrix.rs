@@ -600,7 +600,7 @@ fn append_handshake_scenarios(
         }
     }
     // Axis 2 — ECDHE key-exchange group (fixed ECDSA cert), gated by the gateway `groups` support
-    // added under TRA #84.
+    // allowlist-validated by the gateway.
     for (label, group) in [("x25519", "X25519"), ("p256", "P-256")] {
         for &c in conns {
             push_connrate_handshake(
@@ -621,8 +621,8 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
     for profile in &spec.profiles {
         // Catalog (reference) and Everything (exhaustive executable) both ignore
         // per-profile tier tags, so a profile carrying `tiers: []` — one held out
-        // of canonical/nightly on purpose, e.g. subset146 keeping the thesis-era
-        // tiers byte-identical — still gets full coverage here.
+        // of canonical/nightly on purpose, e.g. subset146 keeping the original
+        // evaluation tiers byte-identical — still gets full coverage here.
         if !matches!(tier, Tier::Catalog | Tier::Everything)
             && !profile.tiers.iter().any(|t| tier_name(tier) == t)
         {
@@ -637,8 +637,8 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
         // Connection ladder per tier. On a single loopback host SHM/UDS gain no aggregate
         // throughput from a longer ladder: the data plane is serial per connection (one relay
         // thread per endpoint) and there is no NIC to bypass, so the box stays largely idle while
-        // one thread pegs a core (see docs/methodology.md "Reading the concurrency sweep" and
-        // seshat-viz F15). The nightly [1,4,16,64] cap on unix/shm is therefore deliberate — past
+        // one thread pegs a core (see docs/methodology.md "Reading the concurrency
+        // sweep"). The nightly [1,4,16,64] cap on unix/shm is therefore deliberate — past
         // it the sweep only re-measures the serial ceiling, not fan-out; a bandwidth-bound /
         // real-NIC tier is what would let it scale, not a wider ladder.
         let connections = match tier {
@@ -690,7 +690,7 @@ fn expand_profiles(spec: &MatrixSpec, tier: Tier) -> Result<Value, Box<dyn std::
                     }
                     // Also emit a closed-loop ping-pong LATENCY scenario for this
                     // (protocol, interface, size) at 1 connection on the scg-direct path, so
-                    // seshat-viz F4 has a real per-message RTT for every cell — not only the
+                    // downstream visualisation has a real per-message RTT for every cell — not only the
                     // open-loop blast p99 above, which is queueing-dominated (coordinated
                     // omission). Latency is inherently a 1-connection, single-gateway
                     // measurement; the throughput grid is unchanged. Skip the catalog tier

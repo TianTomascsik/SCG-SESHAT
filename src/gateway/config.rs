@@ -1,4 +1,4 @@
-//! Gateway JSON configuration model (WP2.1).
+//! Gateway JSON configuration model.
 //!
 //! SESHAT does not depend on the `gateway` crate; instead it emits the JSON the
 //! `gateway` binary reads via `--config`. These `Serialize` structs mirror the
@@ -9,7 +9,7 @@
 //! Rules use string values for `direction` / `*_proto` / `security_provider` /
 //! `traffic_class` to match the gateway's lowercase serde enums exactly, with
 //! typed constructors and a fluent builder to keep call sites readable.
-#![allow(dead_code)] // builder surface is consumed across Phase 2 work packages.
+#![allow(dead_code)] // Parts of the builder surface are used only by specific suites/tests.
 
 use std::collections::BTreeMap;
 

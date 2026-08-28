@@ -61,9 +61,9 @@ WIRE_DGRAM_MSG="${WIRE_DGRAM_MSG:-1400}"     # under a 1500 B MTU; DTLS cannot f
 # without flow control an unthrottled sender measures the relay's drop point,
 # not the crypto.
 WIRE_DTLS_RATE_MBPS="${WIRE_DTLS_RATE_MBPS:-900}"
-# Kernel vs user-space TLS on the encrypt side. The thesis records their parity
-# as a loopback artefact that "says nothing about offload gains behind a real
-# NIC"; setting this to false and re-running the same cells turns that caveat
+# Kernel vs user-space TLS on the encrypt side. The single-host evaluation records
+# their parity as a loopback artefact that "says nothing about offload gains behind
+# a real NIC"; setting this to false and re-running the same cells turns that caveat
 # into a measurement. Note these NICs have no TLS *hardware* offload, so this
 # compares kernel-software kTLS against user-space TLS, not hardware offload.
 WIRE_PREFER_KTLS="${WIRE_PREFER_KTLS:-true}"
@@ -93,7 +93,7 @@ wire_info() { printf '[wire] %s\n' "$*"; }
 wire_err() { printf '[wire] ERROR: %s\n' "$*" >&2; }
 
 # ── Gateway config emission ──────────────────────────────────────────────────
-# One rule per traffic class per direction. M-13
+# One rule per traffic class per direction. The gateway
 # (SCG/gateway/src/management/config.rs) makes `verify: mutual` mandatory the
 # moment a decrypt listener is non-loopback, so the wire path is mutual-TLS by
 # construction — never pass allow_unverified_transport to work around it.

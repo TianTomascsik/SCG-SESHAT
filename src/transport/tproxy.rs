@@ -1,4 +1,4 @@
-//! TPROXY transparent transport (WP2.7).
+//! TPROXY transparent transport.
 //!
 //! Benchmarks the gateway's transparent proxy mode (`transparent: true` in the
 //! rule config), where the gateway intercepts traffic via iptables TPROXY without
@@ -347,7 +347,7 @@ impl TproxyTransport {
     /// We deliberately do NOT use the `"auto"` original-destination mode. The
     /// gateway *does* recover the TPROXY original destination correctly
     /// (`SO_ORIGINAL_DST` with a `getsockname` fallback on the `IP_TRANSPARENT`
-    /// socket — SCG-TRA #59 / code-review M10, with its own `recover_transparent_dst`
+    /// socket — the gateway hardens original-destination recovery, with its own `recover_transparent_dst`
     /// tests). The blocker is *loopback*: with `"auto"` the gateway would forward to
     /// the recovered destination (the same `target_port` the client dialed), which
     /// re-enters `PREROUTING` on `lo`, hits the same `-j TPROXY` rule, and loops.

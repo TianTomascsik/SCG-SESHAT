@@ -3,7 +3,7 @@
 //! A *transport* knows how to stand up a connected sender→receiver pair so the
 //! run engine can drive traffic without caring whether the bytes travel over
 //! TCP, UDP, a Unix socket, or shared memory. Phase 1 implements the two
-//! loopback baselines (no gateway); later phases add gateway-backed UDS/SHM.
+//! loopback baselines (no gateway) and the gateway-backed transports.
 //!
 //! The data plane is split into two halves so each can live on its own
 //! core-pinned thread (NFR-PERF):
@@ -16,7 +16,7 @@
 //! [`FramedReader`] does that using the `payload_len` in each [`WireHeader`],
 //! tolerating reads that block/time out mid-message.
 //!
-//! The trait API here is consumed by the run engine (WP1.4).
+//! The trait API here is consumed by the run engine.
 #![allow(dead_code)]
 
 pub mod gateway;

@@ -110,7 +110,7 @@ pub enum Command {
     /// Run a full benchmark suite.
     Run(RunArgs),
     /// Run a whole evaluation tier (many config files) in one pass and render
-    /// the consolidated performance overview (replaces the run_all.sh wrapper).
+    /// the consolidated performance overview.
     Suite(SuiteArgs),
     /// Run only the sender side (distributed mode).
     Sender(SenderArgs),
@@ -141,7 +141,7 @@ pub enum Command {
 /// Arguments for `seshat pki`.
 ///
 /// Exists for the two-host wire benchmark, which is script-orchestrated but
-/// must not hand-roll its own `openssl` invocation: the gateway's M-13 check
+/// must not hand-roll its own `openssl` invocation: the gateway's preflight
 /// makes `verify: mutual` mandatory on a non-loopback decrypt listener, so both
 /// ends need CA-signed identities whose SANs cover the addresses actually
 /// dialled. Emitting them here keeps one PKI implementation.
@@ -270,7 +270,7 @@ impl SuiteTier {
 }
 
 /// Arguments for `suite` — run an evaluation tier across many config files in a
-/// single pass and emit a consolidated performance overview (replaces run_all.sh).
+/// single pass and emit a consolidated performance overview.
 #[derive(Debug, clap::Args)]
 pub struct SuiteArgs {
     /// Evaluation tier to run (ignored when explicit `--config`s are given).

@@ -82,7 +82,7 @@ wg_gw_config wg-bench-decrypt decrypt "$WG_TUN_B:$MID_PORT" "127.0.0.1:$RECV_POR
 # The SCG WireGuard relay pins to its FIRST source and rejects any second source
 # port — it is a single logical gateway-to-gateway flow, so a stray second client
 # must not be forwarded or receive the first client's return traffic
-# (SCG/gateway/src/security/wireguard_engine.rs, TRA #39). The latency probe and
+# (SCG/gateway/src/security/wireguard_engine.rs). The latency probe and
 # each throughput-rate probe open a fresh socket (a new source port), so the
 # gateway pair is restarted per measurement to re-pin to that measurement's source.
 start_gws() {
@@ -122,7 +122,9 @@ stop_gws  # the latency source pinned the relay; each throughput rate needs a fr
 best_tp="0.0"; best_loss="n/a"; best_offer="0"
 for R in $RATES; do
   : >"$W/ts.err"
-  start_gws  # fresh gateways so the relay pins to THIS rate's sender source (#39)
+  start_gws  # fresh gateways so the relay pins to THIS rate's sender source (the
+             # relay locks onto the first peer it sees; a stale gateway would keep
+             # relaying to the previous rate's sender)
   ip netns exec "$WG_PEER_NS" python3 "$PROBE" receiver 127.0.0.1 "$RECV_PORT" sink "$((DUR + 2))" >"$W/ts.out" 2>"$W/ts.err" &
   SINK=$!
   sleep 0.5

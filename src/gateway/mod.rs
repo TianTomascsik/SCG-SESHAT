@@ -1,5 +1,5 @@
 //! Gateway integration: JSON config generation, child-process lifecycle, and
-//! secured-path topology (WP2.1).
+//! secured-path topology.
 //!
 //! A benchmark path runs traffic through one or two real `gateway` processes:
 //!
@@ -9,7 +9,7 @@
 //!
 //! [`build_path`] wires the ports/rules for a [`Topology`]; [`start_path`] spawns
 //! the gateway(s) and waits until they are accepting connections.
-#![allow(dead_code)] // topology/security surface is consumed across Phase 2 work packages.
+#![allow(dead_code)] // Parts of the topology/security surface are used only by specific suites/tests.
 
 pub mod config;
 pub mod grpc_client;
@@ -191,7 +191,7 @@ pub struct SecuritySpec {
     /// TLS 1.3 ciphersuites override.
     pub ciphersuites: Option<String>,
     /// ECDHE key-exchange named-group override (e.g. `X25519` / `P-256`), for the
-    /// handshake-algorithm sweep. The gateway allowlist-validates it (TRA #84).
+    /// handshake-algorithm sweep. The gateway allowlist-validates it.
     pub groups: Option<String>,
     /// Enable TLS session resumption/tickets.
     pub resumption: bool,

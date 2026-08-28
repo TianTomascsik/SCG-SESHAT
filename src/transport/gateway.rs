@@ -1,4 +1,4 @@
-//! Gateway-backed TCP transport (Phase 2): drives benchmark traffic through one
+//! Gateway-backed TCP transport: drives benchmark traffic through one
 //! or two real `gateway` processes instead of a local loopback socket.
 //!
 //! Wire model (see [`crate::gateway`]): the SESHAT sender speaks **plaintext
@@ -22,7 +22,7 @@
 //! forwarded connection as the receiver, skipping any leftover probe connection
 //! that the gateway already closed. Calls are sequential in the run engine, so
 //! connect-then-accept pairs the two halves deterministically.
-#![allow(dead_code)] // consumed by the run command wiring (WP2.5).
+#![allow(dead_code)] // consumed by the run command wiring.
 
 use std::io::{self, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream, ToSocketAddrs, UdpSocket};

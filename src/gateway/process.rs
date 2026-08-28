@@ -1,4 +1,4 @@
-//! Gateway child-process lifecycle (WP2.1).
+//! Gateway child-process lifecycle.
 //!
 //! [`GatewayProcess`] spawns the real `gateway` binary against a generated JSON
 //! config, waits for its listeners to come up (by polling the sockets — not by
@@ -8,9 +8,9 @@
 //!
 //! The harness passes the generated config with the single-file `--config`
 //! flag. That unsigned flat loader is a development-only build feature of the
-//! gateway (production builds accept only the signed `--config-dir`; SCG-TRA
-//! #87), so the located `gateway` binary must be built with `--features dev`.
-#![allow(dead_code)] // lifecycle surface is consumed across Phase 2 work packages.
+//! gateway (production builds accept only the signed `--config-dir`), so the
+//! located `gateway` binary must be built with `--features dev`.
+#![allow(dead_code)] // Parts of the lifecycle surface are used only by specific suites/tests.
 
 use std::fs::{File, OpenOptions};
 use std::io::{self};

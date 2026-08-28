@@ -7,7 +7,7 @@
 //! precise errors during `validate`.
 //!
 //! This is a data model: many fields are populated by `serde` and consumed by
-//! later phases (the execution engine, gateway config-gen, reporting), so
+//! several consumers (the execution engine, gateway config-gen, reporting), so
 //! `dead_code` is allowed while the harness is built out.
 #![allow(dead_code)]
 
@@ -402,7 +402,7 @@ pub struct Protocol {
     pub cert_key_type: Option<String>,
     /// Override the ECDHE key-exchange named group (e.g. `X25519` / `P-256`) for
     /// the handshake-algorithm sweep's key-exchange axis. Passed to the gateway's
-    /// `groups` provider-param, which allowlist-validates it (TRA #84). `None`
+    /// `groups` provider-param, which allowlist-validates it. `None`
     /// leaves the gateway's default group set.
     #[serde(default)]
     pub kex_group: Option<String>,

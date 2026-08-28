@@ -1,4 +1,4 @@
-//! UDS transport via the SCG gateway's gRPC-provisioned local interface (WP2.3).
+//! UDS transport via the SCG gateway's gRPC-provisioned local interface.
 //!
 //! The gateway exposes Unix-domain socket endpoints that are dynamically created
 //! through the management API. A client connects with a single-use capability

@@ -2,9 +2,9 @@
 
 This document is the scientific companion to the SESHAT benchmark harness. It
 states, defensibly and with source references, **what SESHAT measures**, **how**,
-**what it covers** against the feature spec (`benchmark_features.md`), and **where
-the limits are**. It is written for thesis/examiner scrutiny: every metric is
-either directly observed (cited below) or explicitly marked as not measured.
+**what it covers**, and **where the limits are**. It is written for independent
+scrutiny: every metric is either directly observed (cited below) or explicitly
+marked as not measured.
 
 Terminology: *DUT* = the SCG gateway under test; *paced* = an open-loop sender
 with a non-zero inter-message gap; *blast* = an unthrottled open-loop sender.
@@ -13,7 +13,7 @@ with a non-zero inter-message gap; *blast* = an unthrottled open-loop sender.
 
 ## 1. Spec → implementation matrix
 
-| Capability (benchmark_features.md) | Status | Where |
+| Capability | Status | Where |
 |---|---|---|
 | Transports: TCP, UDP, UDS, SHM ring, TPROXY | **Implemented** | `src/transport/{tcp,udp,uds,shm,tproxy,gateway}.rs` |
 | Topologies: `scg-direct`, `scg-scg` | **Implemented** | `src/gateway/mod.rs` (`build_path`, `Topology`) |
@@ -94,7 +94,7 @@ delivered — directly demonstrating that the splice/kTLS zero-copy paths approa
 ~0 user copies per message while userspace TLS copies each payload in and out.
 Degrades to empty (`[SKIPPED]`) when unprivileged or `bpftrace` is absent.
 
-**Fair cross-transport comparison & new modes (2026-07).** To let figures compare transports
+**Fair cross-transport comparison & new modes.** To let figures compare transports
 and protocols like-for-like rather than apples-to-oranges, the matrix and suites gained:
 
 - **Multi-connection stream IPC.** The UDS (`unix`) and SHM profiles in
@@ -124,10 +124,6 @@ and protocols like-for-like rather than apples-to-oranges, the matrix and suites
   from existing overrides, e.g. `seshat suite --tier nightly --runs 5 --duration 10s`
   (optionally scoped with `--scenario-filter`); cost is linear in `runs × duration`.
 
-**Figure-numbering note.** The visualization's resource-cost figure (F9) consolidates what were
-once three separate figures (old F9 + F10 + F14); the gaps at F10/F14 are intentional, not
-missing figures.
-
 **Session resumption ground truth.** The SCG logs `resumed=<bool>` per TLS accept
 (`SSL_session_reused`) on the decrypt side, for both the userspace-TLS and kTLS
 paths (the kTLS handshake still runs through OpenSSL).
@@ -142,7 +138,7 @@ fraction.)
 throughput figure, the calibrator (`src/run/calibrate.rs`) measures the harness's
 own null-loopback ceiling for the same message shape and computes headroom
 (`ceiling / measured`), flagging `harness_limited` when headroom falls below 3×.
-As of 2026-07 this gate was overhauled end to end:
+This gate works end to end as follows:
 
 - **The harness itself is batched.** Stream transports (TCP, and the gateway/
   TPROXY paths built on it) send whole batches with one vectored `writev`
@@ -190,7 +186,7 @@ As of 2026-07 this gate was overhauled end to end:
   single-host physics from harness slowness. Only the residual (low headroom,
   no explaining CPU signal) is labeled `harness-io`.
 
-**Reading the concurrency sweep (F15).** On a single loopback host, sweeping
+**Reading the concurrency sweep.** On a single loopback host, sweeping
 SHM/UDS connection count does **not** raise aggregate throughput, and this is not
 a harness or gateway defect. The engine opens N independent gateway endpoints per
 connection (`run/engine.rs`, one gRPC/`SCM_RIGHTS` endpoint + sender/receiver
@@ -298,7 +294,7 @@ are deterministic; CSV-only, per-run output enables independent re-analysis.
 7. **Loopback dominance.** Most scenarios run on loopback; the physical-NIC and
    veth/netns topologies are supported but a loopback ceiling can mask real-NIC
    effects. Use the netem-impaired and veth topologies for path realism. A
-   related single-host limit is surfaced explicitly since 2026-07: rows where
+   related single-host limit is surfaced explicitly: rows where
    the whole host is ≥90 % busy are labeled `bottleneck=host-saturated` (still
    `harness_limited=true`) — loopback co-saturation means the measurement is a
    lower bound that no harness improvement could raise. Note also that the SHM
@@ -312,7 +308,7 @@ are deterministic; CSV-only, per-run output enables independent re-analysis.
 9. **Jitter is PDV, throughput is wire-bytes.** Both are valid but must be stated;
    readers expecting latency-stddev or payload-goodput should convert.
 10. **Blast rows measure capacity under an efficient (batched) load generator,
-    not a naïve application.** Since the 2026-07 fast-path work, the blast
+    not a naïve application.** With the batched fast path, the blast
     sender coalesces up to 1024 messages per vectored syscall — standard load-
     generator practice (`iperf3`, `pktgen`) and required by NFR-PERF, and the
     wire contents are unchanged in kind (byte-identical stream framing on
@@ -327,13 +323,4 @@ are deterministic; CSV-only, per-run output enables independent re-analysis.
     (`send_msg` per schedule tick, one in-flight round trip) so latency and
     ETCS-like low-rate results are unaffected by batching.
 
----
 
-## 5. Provenance of this methodology
-
-The harness changes underpinning §2–§3 (coordinated-omission correction, exact
-metric totals, environment capture + preflight, the eBPF memory-copy backend,
-resumption telemetry, honest hot-reload accounting, the optimization-knob A/B
-surface, and the degradation-curve annotations) were added as a scientific-rigor
-pass; see the per-area commits and the unit tests in
-`src/{proto/wire,workload/sender,run/engine,metrics/system,sysinfo,gateway}.rs`.

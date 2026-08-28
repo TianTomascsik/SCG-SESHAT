@@ -145,7 +145,7 @@ fi
 info "building SESHAT and gateway"
 run_seshat_cargo build --release
 # --features dev: the harness spawns the gateway with the unsigned single-file
-# --config, which production builds reject (signed --config-dir only, SCG-TRA #87).
+# --config, which production builds reject (signed --config-dir only).
 run_gateway_cargo build --release -p gateway --features dev
 
 if [[ ! -x "$GATEWAY_BIN" ]]; then

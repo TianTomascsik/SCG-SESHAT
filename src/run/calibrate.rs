@@ -1,4 +1,4 @@
-//! NFR-PERF calibration & headroom gate (WP1.7).
+//! NFR-PERF calibration & headroom gate.
 //!
 //! The harness must never be the bottleneck — every reported number must
 //! reflect the SCG's limit, not SESHAT's. This module measures the harness's
@@ -49,7 +49,7 @@ pub struct Calibration {
     pub headroom: f64,
     /// Whether the scenario is harness-limited (only meaningful with an SCG).
     pub harness_limited: bool,
-    /// Device under test: `loopback` (Phase 1 baseline) or `scg` (Phase 2+).
+    /// Device under test: `loopback` (harness-only baseline) or `scg`.
     pub dut: &'static str,
     /// Where the throughput limit most plausibly sits: `n/a` (loopback baseline),
     /// `scg-cpu` (the gateway's pinned core pool — or its hottest single thread —

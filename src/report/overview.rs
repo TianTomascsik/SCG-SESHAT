@@ -1,5 +1,4 @@
-//! Consolidated performance overview (the in-binary replacement for
-//! `run_all.sh`'s `PERFORMANCE_OVERVIEW.txt`).
+//! Consolidated performance overview (`PERFORMANCE_OVERVIEW.txt`).
 //!
 //! Reads the top-level `summary.csv` of a result tree — which already holds one
 //! row per executed scenario across every config in a `suite` run — and renders

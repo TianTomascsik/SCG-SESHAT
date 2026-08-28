@@ -1,4 +1,4 @@
-//! Network impairment injection via `tc netem` (WP4.2).
+//! Network impairment injection via `tc netem`.
 //!
 //! Applies latency, jitter, loss, bandwidth limitation, reorder, and duplicate
 //! to a network interface. Used by the `impair` subcommand and integrated into

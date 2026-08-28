@@ -1,5 +1,5 @@
 //! Topology management: virtual network namespaces, veth pairs, and helpers for
-//! simulating multi-host deployments on a single machine (WP4.1).
+//! simulating multi-host deployments on a single machine.
 //!
 //! The `setup` and `teardown` subcommands use these primitives to create and
 //! destroy network topologies before/after benchmark runs. Requires

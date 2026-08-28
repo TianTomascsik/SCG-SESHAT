@@ -5,7 +5,7 @@
 //!     [`Pattern`] (sustained / periodic / burst / ramp) into a stream of
 //!     monotonic send deadlines, relative to the run start. It performs no I/O
 //!     and no sleeping, so it is fully deterministic and unit-testable; the run
-//!     engine (WP1.4) reads each deadline and parks the thread via
+//!     engine reads each deadline and parks the thread via
 //!     [`crate::time::sleep_until_ns`].
 //!   * [`MessageBuilder`] — *what* to send. It owns one reusable buffer and
 //!     stamps a fresh [`WireHeader`] + deterministic payload per sequence

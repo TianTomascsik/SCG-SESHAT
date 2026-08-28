@@ -1,4 +1,4 @@
-//! Hot-reload event injection for mid-run config changes (WP3.4).
+//! Hot-reload event injection for mid-run config changes.
 //!
 //! The SCG gateway supports two hot-reload mechanisms:
 //!   1. **SIGHUP + file-watch**: rewrite the JSON config file and send SIGHUP (or

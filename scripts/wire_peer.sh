@@ -86,11 +86,11 @@ fi
 CONFIG="$RUNTIME_CONFIG"
 wire_info "certificate paths localised to $HERE/wire-pki"
 
-# The decrypt listener is non-loopback, so the gateway's own M-13 check refuses
+# The decrypt listener is non-loopback, so the gateway's preflight refuses
 # to start it without verify:mutual. Confirm before binding anything.
 "$GATEWAY_BIN" --config "$CONFIG" --validate >"$OUT_DIR/validate.log" 2>&1 || {
   wire_err "decrypt config failed validation:"; grep -i error "$OUT_DIR/validate.log" >&2; exit 1; }
-wire_info "decrypt config validated (mutual TLS, as M-13 requires off loopback)"
+wire_info "decrypt config validated (mutual TLS, required off loopback)"
 
 if [[ $CAPTURE == 1 ]]; then
   if command -v tcpdump >/dev/null 2>&1; then

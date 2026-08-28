@@ -1,7 +1,8 @@
 //! Subcommand dispatch and handlers.
 //!
-//! Phase 0 implements `validate`, `list`, and `run --dry-run` (config-driven);
-//! `sysinfo` lands in WP0.3 and the remaining commands in later phases.
+//! Implements every `seshat` subcommand: `validate`, `list`, `run`, `suite`,
+//! `sender`/`receiver`, `report`, `sysinfo`, `setup`/`teardown`, `impair`,
+//! `calibrate`, `matrix`, and `pki`.
 //! Handlers return a boxed-error result; `main` maps `Err` to a non-zero exit.
 
 use crate::cli::{
@@ -497,7 +498,7 @@ fn execute_suite(args: &RunArgs, cfg: &Config) -> CmdResult {
 
 /// `suite` — run a whole evaluation tier (many config files) in one pass,
 /// consolidating all scenarios into a single result tree and overview report.
-/// This is the in-binary replacement for the old `run_all.sh` wrapper.
+/// Runs the whole evaluation in one invocation.
 fn suite(args: SuiteArgs) -> CmdResult {
     console::banner();
 
@@ -521,7 +522,7 @@ fn suite(args: SuiteArgs) -> CmdResult {
     }
 
     // A single result tree keys scenarios by name, so names must be unique
-    // across the whole suite. Fail fast (this was run_all.sh's jq dedup check).
+    // across the whole suite. Fail fast on a duplicate.
     if let Some(dup) = duplicate_scenario_name(&loaded) {
         return Err(format!(
             "scenario name '{dup}' appears in more than one suite config; \
@@ -1044,7 +1045,7 @@ fn stage_swap_identity(
 /// The *path change* is what makes the swap visible: the SCG reload diff
 /// compares `provider_params` strings (no file-content hash), so an in-place
 /// content overwrite would be classified `unchanged` and the old cert would
-/// keep serving (TRA #86). Written atomically (tmp + rename) so the SIGHUP'd
+/// keep serving. Written atomically (tmp + rename) so the SIGHUP'd
 /// gateway never reads a torn file. Returns whether any rule was rewritten.
 fn rewrite_cert_paths(
     config_path: &Path,
@@ -1434,8 +1435,8 @@ fn gateway_plan(s: &Scenario) -> Option<GatewayPlan> {
 ///
 /// The engine opens `connections` fresh pairs in every `run_once` call and the
 /// transport's connection counter is monotonic across runs, so a budget of
-/// `connections` alone starves the second repetition (the 20260717 campaign
-/// skipped all 1080 UDS/SHM scenarios this way).
+/// `connections` alone starves the second repetition (a full campaign once
+/// skipped all of its 1080 UDS/SHM scenarios this way).
 fn provisioned_pipelines(connections: usize, runs: usize) -> usize {
     connections.max(1) * runs.max(1)
 }
@@ -2642,8 +2643,8 @@ fn run_hotreload_scenario(
                 // Real key-material rotation: rewrite the running config so the
                 // decrypt rule's cert_path/key_path point at the pre-staged swap
                 // identity (a PATH change — the SCG diff compares provider_params
-                // strings, so an in-place content overwrite would be invisible,
-                // TRA #86), then SIGHUP. The changed-bucket restart severs the
+                // strings, so an in-place content overwrite would be invisible),
+                // then SIGHUP. The changed-bucket restart severs the
                 // rule's established connections by design, so drops are
                 // expected and the scenario must not assert zero drops.
                 if let (Some(path), Some(pid), Some(identity)) =
@@ -4028,7 +4029,7 @@ mod tests {
 
     #[test]
     fn pipeline_budget_covers_every_repetition() {
-        // Regression pin for the 20260717 campaign: the engine opens
+        // Regression pin: the engine opens
         // `connections` fresh pairs per run and never resets the transport's
         // connection counter, so the UDS/SHM pipeline budget must be
         // connections × runs. Provisioning `connections` alone fails run 2's

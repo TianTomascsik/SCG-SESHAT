@@ -105,7 +105,7 @@ cleanup() {
 trap cleanup EXIT
 
 # ── PKI ──────────────────────────────────────────────────────────────────────
-# M-13 makes verify:mutual mandatory once the decrypt listener is non-loopback,
+# The gateway makes verify:mutual mandatory once the decrypt listener is non-loopback,
 # so both ends need CA-signed identities. The server leaf carries IP SANs for
 # both link addresses because the encrypt side dials by IP literal.
 mint_pki() {
@@ -322,7 +322,7 @@ except (TypeError, ValueError):
 # The reference for a wire cell is the link's goodput ceiling, not the loopback
 # null-transport ceiling SESHAT uses for single-host runs. `link_limited` is a
 # separate field from `harness_limited` on purpose: that term already has a
-# published meaning in the thesis and must not be reused for a different cause.
+# published meaning in the evaluation and must not be reused for a different cause.
 link_limited = ""
 bottleneck = ""
 try:

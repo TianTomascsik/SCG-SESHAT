@@ -1,10 +1,10 @@
-//! Benchmark PKI helpers (WP2.1 / WP2.5).
+//! Benchmark PKI helpers.
 //!
 //! TLS scenarios need an on-disk certificate + key for the gateway's decrypt
 //! (TLS server) side. Rather than pull in a Rust crypto stack, SESHAT shells out
 //! to the system `openssl` CLI — certificates are a one-time setup artefact, not
 //! a hot-path concern, and the gateway itself is built against OpenSSL.
-#![allow(dead_code)] // PKI surface is consumed across Phase 2 work packages.
+#![allow(dead_code)] // Parts of the PKI builder surface are used only by specific suites/tests.
 
 use std::io;
 use std::path::{Path, PathBuf};

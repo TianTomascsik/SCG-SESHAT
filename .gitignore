@@ -12,11 +12,8 @@
 # Logs
 *.log
 
-results/*
 
 perf-data/
-
-results-ab/
 
 results/
 
