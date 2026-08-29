@@ -16,6 +16,11 @@ bottleneck* — only the SCG under test. Every measurement is gated by a
 self-calibration step that proves the harness has ample headroom over the
 result it reports.
 
+**Reproducing the published evaluation end to end** — every campaign, its
+prerequisites, and the figure pipeline — is documented in
+[REPRODUCING.md](REPRODUCING.md) (one command:
+`sudo scripts/reproduce_evaluation.sh`).
+
 ---
 
 ## Status

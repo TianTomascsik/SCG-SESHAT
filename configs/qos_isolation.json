@@ -2,7 +2,7 @@
   "$schema": "seshat-config-v1",
   "suite": {
     "name": "SCG QoS Isolation",
-    "description": "Thesis QoS-isolation campaign: does classifying a paced safety stream (traffic_class=safety -> per-class gateway rule pair with DSCP EF egress marking, SO_PRIORITY, and the safety worker pool) protect its latency against BE bulk saturation, and what does the classification buy versus running the identical stream unclassified? 3 protection modes (routing, TLS 1.3, kTLS 1.3) x 3 conditions (alone / contended-classified / contended-unclassified). Safety-stream latency is CO-corrected (scheduled-send stamping). Thread-priority elevation (nice -5) additionally requires CAP_SYS_NICE (run under sudo); without it the gateway logs a warning and DSCP/SO_PRIORITY marking still applies.",
+    "description": "QoS-isolation campaign: does classifying a paced safety stream (traffic_class=safety -> per-class gateway rule pair with DSCP EF egress marking, SO_PRIORITY, and the safety worker pool) protect its latency against BE bulk saturation, and what does the classification buy versus running the identical stream unclassified? 3 protection modes (routing, TLS 1.3, kTLS 1.3) x 3 conditions (alone / contended-classified / contended-unclassified). Safety-stream latency is CO-corrected (scheduled-send stamping). Thread-priority elevation (nice -5) additionally requires CAP_SYS_NICE (run under sudo); without it the gateway logs a warning and DSCP/SO_PRIORITY marking still applies.",
     "author": "SESHAT",
     "version": "1.0.0"
   },
