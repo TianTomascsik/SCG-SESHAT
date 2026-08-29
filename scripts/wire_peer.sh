@@ -35,7 +35,7 @@ while [[ $# -gt 0 ]]; do
     --gateway) GATEWAY_BIN="$2"; shift 2 ;;
     --out) OUT_DIR="$2"; shift 2 ;;
     --capture) CAPTURE=1; shift ;;
-    -h|--help) sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) wire_err "unknown argument: $1"; exit 2 ;;
   esac
 done

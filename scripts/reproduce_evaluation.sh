@@ -83,7 +83,10 @@ fi
 
 # ── 1. Build gateway + harness (the harness never builds the gateway itself) ─
 [[ -d "$SCG" ]] || { echo "FATAL: SCG checkout not found at $SCG (set SCG_DIR)"; exit 1; }
-( cd "$SCG" && cargo build --release ) || { echo "FATAL: SCG build failed"; exit 1; }
+# --features dev: the harness drives the gateway with the unsigned single-file
+# --config, which production (default-feature) builds refuse (signed
+# --config-dir only) — without it every SCG scenario records a skip.
+( cd "$SCG" && cargo build --release -p gateway --features dev ) || { echo "FATAL: SCG build failed"; exit 1; }
 ( cd "$SESHAT" && cargo build --release --bin seshat ) || { echo "FATAL: SESHAT build failed"; exit 1; }
 export SCG_GATEWAY_BIN="${SCG_GATEWAY_BIN:-$SCG/target/release/gateway}"
 command -v openssl >/dev/null || { echo "FATAL: openssl CLI missing (test certs)"; exit 1; }

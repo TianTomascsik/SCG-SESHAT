@@ -399,8 +399,9 @@ pub fn preflight_warnings(info: &SysInfo) -> Vec<String> {
     if info.turbo == Some(true) {
         warns.push(
             "CPU turbo/boost is enabled — per-run frequency depends on thermal \
-             headroom. Disable for stable numbers (intel_pstate: \
-             `echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo`)."
+             headroom. Disable for stable numbers (Intel: `echo 1 | sudo tee \
+             /sys/devices/system/cpu/intel_pstate/no_turbo`; AMD: `echo 0 | \
+             sudo tee /sys/devices/system/cpu/cpufreq/boost`)."
                 .to_string(),
         );
     }

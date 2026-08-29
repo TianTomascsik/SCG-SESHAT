@@ -61,6 +61,8 @@ sudo scripts/reproduce_evaluation.sh            # the full single-host evaluatio
 scripts/reproduce_evaluation.sh --quick \
   --skip-perf --skip-ebpf --skip-qos --skip-wg \
   --skip-queue --skip-relay                     # unprivileged plumbing smoke test
+                                                # (still hours: the full config set
+                                                # at reduced rigor, ~3300 scenarios)
 ```
 
 The script header documents the stage → evidence map (which stage backs which
@@ -86,8 +88,8 @@ from a figure is recomputed there.
   `experiment/io-uring-relay` branch of **both** SCG and SCG-SESHAT — check
   that branch out in both repos and the `relay` stage runs it
   (`configs/relay_backend_ab.json` + `scripts/run_relay_backend_ab.sh`).
-  The committed `results/relay-backend-ab-*/` trees are the records the
-  published comparison used.
+  The `results/relay-backend-ab-*/` trees retained on the evaluation host are
+  the records the published comparison used (`results/` is not committed).
 
 ## Verifying a rerun
 

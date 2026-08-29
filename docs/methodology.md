@@ -229,7 +229,8 @@ taken on a drifting box.
 
 ```
 sudo cpupower frequency-set -g performance         # pin clocks
-echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo   # disable turbo
+echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo   # disable turbo (Intel)
+echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost              # disable boost (AMD)
 # boot with isolcpus=<gateway,sender,receiver cores>, then pin via the config's
 # cpu_affinity_{gateway,sender,receiver}; keep all three on one NUMA node.
 ```

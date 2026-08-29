@@ -35,7 +35,7 @@ SESHAT_BIN="${SESHAT_BIN:-$HERE/../target/release/seshat}"
 PROBE="$HERE/wire_probe.py"
 
 usage() {
-  sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,21p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 

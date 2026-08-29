@@ -117,19 +117,19 @@ variable. SCG scenarios are skipped (not failed) when no suitable binary or
 
 ```bash
 # 1. Validate a config without running anything
-seshat validate --config configs/gateway_smoke.json
+./target/release/seshat validate --config configs/gateway_smoke.json
 
 # 2. List the scenarios a config expands to
-seshat list --config configs/gateway_smoke.json
+./target/release/seshat list --config configs/gateway_smoke.json
 
 # 3. Measure the harness's own loopback ceiling (NFR-PERF baseline)
-seshat calibrate --duration 1s
+./target/release/seshat calibrate --duration 1s
 
 # 4. Run the suite (results land in ./results/<timestamp>/)
-seshat run --config configs/gateway_smoke.json
+./target/release/seshat run --config configs/gateway_smoke.json
 
 # 5. Snapshot the host (hardware/kernel fingerprint)
-seshat sysinfo
+./target/release/seshat sysinfo
 ```
 
 Ready-made configs ship in [`configs/`](configs):
@@ -222,8 +222,8 @@ run — expect hours to days at the default rigor; pair it with `--quick` for a
 fast full-coverage pass or `--resume <dir>` to continue an interrupted one.
 
 `suite` runs the generated `canonical_matrix` plus the matched
-`interface_comparison`, latency, saturation, ping-pong, and connection-rate
-suites (the tier → config-file map lives in
+`interface_comparison`, profile-regression, latency, saturation, ping-pong,
+connection-rate, and SHM zero-copy suites (the tier → config-file map lives in
 [`configs/suites.json`](configs/suites.json)), consolidates every scenario into
 one timestamped result tree, and renders the performance overview to the
 terminal and `PERFORMANCE_OVERVIEW.txt`. Scenario names must be unique across a
