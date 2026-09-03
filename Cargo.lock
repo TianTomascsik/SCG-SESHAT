@@ -322,7 +322,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -946,7 +946,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -958,7 +958,7 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 [[package]]
 name = "scg-client"
 version = "0.1.0"
-source = "git+https://github.com/TianTomascsik/SCG.git?tag=v0.1.0#c5af563aac77eb09dd9f9e09916dc9a89c9173a3"
+source = "git+https://github.com/TianTomascsik/SCG.git?tag=v0.1.0#446da910eb1d5fbaa96f3281d17e34fb7727c5d5"
 dependencies = [
  "cbindgen",
  "hyper-util",
@@ -975,7 +975,7 @@ dependencies = [
 [[package]]
 name = "scg-ipc"
 version = "0.1.0"
-source = "git+https://github.com/TianTomascsik/SCG.git?tag=v0.1.0#c5af563aac77eb09dd9f9e09916dc9a89c9173a3"
+source = "git+https://github.com/TianTomascsik/SCG.git?tag=v0.1.0#446da910eb1d5fbaa96f3281d17e34fb7727c5d5"
 dependencies = [
  "libc",
 ]
@@ -983,7 +983,7 @@ dependencies = [
 [[package]]
 name = "scg-proto"
 version = "0.1.0"
-source = "git+https://github.com/TianTomascsik/SCG.git?tag=v0.1.0#c5af563aac77eb09dd9f9e09916dc9a89c9173a3"
+source = "git+https://github.com/TianTomascsik/SCG.git?tag=v0.1.0#446da910eb1d5fbaa96f3281d17e34fb7727c5d5"
 dependencies = [
  "prost",
  "tonic",
@@ -1164,7 +1164,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
