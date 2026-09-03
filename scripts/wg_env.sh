@@ -7,9 +7,9 @@
 # topology. setup/smoke/teardown all source this file so they agree on names,
 # addresses, and keys.
 #
-# The keys below are fixed X25519 TEST material (derived with OpenSSL). They are
-# NOT secret and exist only so the benchmark is reproducible; never reuse them
-# for anything real.
+# The X25519 keypairs are generated fresh with `wg genkey` each time this file
+# is sourced (see below). They are throwaway TEST material, never secret, and
+# must never be reused for anything real.
 
 # Peer network namespace + veth (real-network transport for the WG packets).
 WG_PEER_NS="scg-wg-peer"
